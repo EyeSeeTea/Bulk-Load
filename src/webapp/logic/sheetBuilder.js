@@ -239,7 +239,7 @@ SheetBuilder.prototype.fillMetadataSheet = function () {
 SheetBuilder.prototype.getVersion = function () {
     const { element } = this.builder;
     const defaultVersion =
-        element.type === "dataSet" ? "DATASET_GENERATED_v1" : "PROGRAM_GENERATED_v1";
+        element.type === "dataSet" ? "DATASET_GENERATED_v1" : "PROGRAM_GENERATED_v2";
     return getObjectVersion(element) ?? defaultVersion;
 };
 
@@ -375,6 +375,8 @@ SheetBuilder.prototype.fillDataEntrySheet = function () {
     } else {
         _.forEach(element.programStages, programStageT => {
             const programStage = metadata.get(programStageT.id);
+
+            createColumn(this.workbook, dataEntrySheet, itemRow, columnId++, "Event id");
 
             createColumn(
                 this.workbook,

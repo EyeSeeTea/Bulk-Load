@@ -142,33 +142,59 @@ export class InstanceDhisRepository implements InstanceRepository {
         endDate,
     }: GetDataPackageParams): Promise<DataPackage[]> {
         const metadata = await this.api.get<MetadataPackage>(`/programs/${id}/metadata`).getData();
-        const response = await promiseMap(orgUnits, orgUnit =>
-            this.api
-                .get<EventsPackage>("/events", {
-                    program: id,
-                    orgUnit,
-                    paging: false,
-                    startDate: startDate?.format("YYYY-MM-DD"),
-                    endDate: endDate?.format("YYYY-MM-DD"),
-                })
-                .getData()
-        );
+        const categoryComboId: string = _.find(metadata.programs, { id })?.categoryCombo.id;
+        const categoryOptions = this.buildProgramAttributeOptions(metadata, categoryComboId);
+        if (categoryOptions.length === 0) {
+            throw new Error(`Could not find category options for the program ${id}`);
+        }
 
-        return _(response)
-            .map(({ events }) => events)
-            .flatten()
-            .map(({ event, orgUnit, eventDate, attributeOptionCombo, coordinate, dataValues }) => ({
-                id: event,
-                orgUnit,
-                period: moment(eventDate).format("YYYY-MM-DD"),
-                attribute: attributeOptionCombo,
-                coordinate,
-                dataValues: dataValues.map(({ dataElement, value }) => ({
-                    dataElement,
-                    value: this.formatDataValue(value, metadata),
-                })),
-            }))
-            .value();
+        try {
+            const response = await promiseMap(orgUnits, async orgUnit => {
+                // DHIS2 bug if we do not provide CC and COs, endpoint only works with ALL authority
+                return promiseMap(categoryOptions, categoryOptionId =>
+                    this.api
+                        .get<EventsPackage>("/events", {
+                            program: id,
+                            orgUnit,
+                            paging: false,
+                            attributeCc: categoryComboId,
+                            attributeCos: categoryOptionId,
+                            startDate: startDate?.format("YYYY-MM-DD"),
+                            endDate: endDate?.format("YYYY-MM-DD"),
+                        })
+                        .getData()
+                );
+            });
+
+            return _(response)
+                .flatten()
+                .map(({ events }) => events)
+                .flatten()
+                .map(
+                    ({
+                        event,
+                        orgUnit,
+                        eventDate,
+                        attributeOptionCombo,
+                        coordinate,
+                        dataValues,
+                    }) => ({
+                        id: event,
+                        orgUnit,
+                        period: moment(eventDate).format("YYYY-MM-DD"),
+                        attribute: attributeOptionCombo,
+                        coordinate,
+                        dataValues: dataValues.map(({ dataElement, value }) => ({
+                            dataElement,
+                            value: this.formatDataValue(value, metadata),
+                        })),
+                    })
+                )
+                .value();
+        } catch (error) {
+            console.error("Error fetching events", error);
+            return [];
+        }
     }
 
     private formatDataValue(value: string | number, metadata: MetadataPackage): string | number {
@@ -178,6 +204,32 @@ export class InstanceDhisRepository implements InstanceRepository {
 
         // Return default case
         return value;
+    }
+
+    private buildProgramAttributeOptions(
+        metadata: MetadataPackage,
+        categoryComboId?: string
+    ): string[] {
+        if (!categoryComboId) return [];
+
+        // Get all the categories assigned to the categoryCombo of the program
+        const categoryCombo = _.find(metadata?.categoryCombos, { id: categoryComboId });
+        const categoryIds: string[] = _.compact(
+            categoryCombo?.categories?.map(({ id }: MetadataItem) => id)
+        );
+
+        // Get all the category options for each category on the categoryCombo
+        const categories = _.compact(categoryIds.map(id => _.find(metadata?.categories, { id })));
+        const categoryOptions: MetadataItem[] = _(categories)
+            .map(({ categoryOptions }: MetadataItem) =>
+                categoryOptions.map(({ id }: MetadataItem) =>
+                    _.find(metadata?.categoryOptions, { id })
+                )
+            )
+            .flatten()
+            .value();
+
+        return categoryOptions.map(({ id }) => id);
     }
 }
 
@@ -212,7 +264,10 @@ interface AggregatedPackage {
     }>;
 }
 
-type MetadataPackage = Record<
-    string,
-    Array<{ id: string; code: string; [key: string]: unknown }> | undefined
->;
+interface MetadataItem {
+    id: string;
+    code: string;
+    [key: string]: any;
+}
+
+type MetadataPackage = Record<string, MetadataItem[] | undefined>;

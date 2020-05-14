@@ -37,7 +37,7 @@ export class DownloadTemplateUseCase {
         endDate,
     }: DownloadTemplateProps): Promise<void> {
         try {
-            const templateId = type === "dataSet" ? "DATASET_GENERATED_v1" : "PROGRAM_GENERATED_v1";
+            const templateId = type === "dataSet" ? "DATASET_GENERATED_v1" : "PROGRAM_GENERATED_v2";
             const template = this.templateRepository.getTemplate(templateId);
             await this.excelRepository.loadTemplate(template, { type: "file", file });
 

@@ -441,8 +441,9 @@ export default function LandingPage() {
                         ({state.importObject.id})
                         {state.importDataValues.map((group, idx) => (
                             <li key={idx} style={{ marginLeft: 10, fontSize: "1em" }}>
-                                {moment(String(group.period)).format("DD/MM/YYYY")}: {group.count}{" "}
-                                {i18n.t("data values")}
+                                {moment(String(group.period)).format("DD/MM/YYYY")}:{" "}
+                                {group.id ? i18n.t("Update") : i18n.t("Create")} {group.count}{" "}
+                                {i18n.t("data values")} {group.id && `(${group.id})`}
                             </li>
                         ))}
                     </div>

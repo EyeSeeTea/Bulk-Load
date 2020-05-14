@@ -256,13 +256,13 @@ export const TemplateSelector = ({ settings, themes, onChange }: TemplateSelecto
                             onChange={onOrgUnitChange}
                             selected={selectedOrgUnits}
                             controls={{
-                                filterByLevel: false,
-                                filterByGroup: false,
+                                filterByLevel: true,
+                                filterByGroup: true,
                                 selectAll: false,
                             }}
                             rootIds={orgUnitTreeRootIds}
                             fullWidth={false}
-                            height={220}
+                            height={250}
                         />
                     </div>
                 ) : null

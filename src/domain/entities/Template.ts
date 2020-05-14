@@ -1,8 +1,6 @@
 import { Id } from "./ReferenceObject";
 import { ThemeableSections, ImageSections } from "./Theme";
 
-type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
-
 export type RefType = "row" | "column" | "cell" | "range";
 export type SheetRef = RowRef | ColumnRef | CellRef | RangeRef;
 export type DataSource = RowDataSource | ColumnDataSource | CellDataSource;
@@ -70,8 +68,10 @@ export interface GenericDataSource {
     range: Partial<Range>;
     orgUnit: SheetRef;
     period: SheetRef;
-    dataElement: SheetRef | Id;
-    categoryOption?: SheetRef | Id;
+    dataElement: SheetRef;
+    categoryOption?: SheetRef;
+    attribute?: SheetRef;
+    eventId?: SheetRef;
 }
 
 export interface RowDataSource extends GenericDataSource {
@@ -82,6 +82,7 @@ export interface RowDataSource extends GenericDataSource {
     dataElement: RowRef;
     categoryOption?: RowRef;
     attribute?: ColumnRef | CellRef;
+    eventId?: ColumnRef | CellRef;
 }
 
 export interface ColumnDataSource extends GenericDataSource {
@@ -91,6 +92,8 @@ export interface ColumnDataSource extends GenericDataSource {
     period: RowRef | CellRef;
     dataElement: ColumnRef;
     categoryOption?: ColumnRef;
+    attribute?: RowRef | CellRef;
+    eventId?: RowRef | CellRef;
 }
 
 export interface CellDataSource extends GenericDataSource {
@@ -98,6 +101,8 @@ export interface CellDataSource extends GenericDataSource {
     ref: CellRef;
     orgUnit: CellRef;
     period: CellRef;
-    dataElement: CellRef | Id;
-    categoryOption?: CellRef | Id;
+    dataElement: CellRef;
+    categoryOption?: CellRef;
+    attribute?: CellRef;
+    eventId?: CellRef;
 }

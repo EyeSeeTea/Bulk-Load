@@ -66,7 +66,7 @@ export abstract class ExcelRepository {
     private async fillRows(template: Template, dataSource: RowDataSource, payload: DataPackage[]) {
         let { rowStart } = dataSource.range;
 
-        for (const { orgUnit, period, attribute, dataValues } of payload) {
+        for (const { id, orgUnit, period, attribute, dataValues } of payload) {
             const cells = await this.getCellsInRange(template, {
                 ...dataSource.range,
                 rowStart,
@@ -76,6 +76,11 @@ export abstract class ExcelRepository {
             const orgUnitCell = await this.findRelativeCell(template, dataSource.orgUnit, cells[0]);
             if (orgUnitCell && orgUnit) {
                 await this.writeCell(template, orgUnitCell, orgUnit);
+            }
+
+            const eventIdCell = await this.findRelativeCell(template, dataSource.eventId, cells[0]);
+            if (eventIdCell && id) {
+                await this.writeCell(template, eventIdCell, id);
             }
 
             const periodCell = await this.findRelativeCell(template, dataSource.period, cells[0]);
