@@ -128,7 +128,7 @@ interface BaseDataSource {
     coordinates?: {
         latitude: SheetRef | ValueRef;
         longitude: SheetRef | ValueRef;
-    }
+    };
 }
 
 export interface TrackerRelationship {

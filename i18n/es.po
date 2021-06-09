@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load App\n"
-"POT-Creation-Date: 2021-05-25T11:10:38.397Z\n"
+"POT-Creation-Date: 2021-06-09T07:29:25.828Z\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -416,6 +416,9 @@ msgstr "Se ha producido un error borrando valores de datos"
 
 msgid "Select at least one model"
 msgstr "Seleccione al menos una plantilla"
+
+msgid "Latitude"
+msgstr ""
 
 msgid "User with no permissions"
 msgstr ""
