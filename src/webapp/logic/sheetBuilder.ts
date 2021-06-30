@@ -346,9 +346,8 @@ export class SheetBuilder {
             const { name, description } = this.translate(item);
             const optionSet = metadata.get(item.optionSet?.id);
             const { name: optionSetName } = this.translate(optionSet);
-            const options = optionSet?.options
-                ?.map(({ id }: any) => metadata.get(id))
-                .map((option: any) => this.translate(option).name)
+            const options = _.slice(optionSet?.options ?? [], 0, 25)
+                .map(({ id }: any) => this.translate(metadata.get(id)).name)
                 .join(", ");
 
             legendSheet.cell(rowId, 1).string(name ?? "");
@@ -530,9 +529,8 @@ export class SheetBuilder {
             const { name } = this.translate(item);
             const optionSet = metadata.get(item.optionSet?.id);
             const { name: optionSetName } = this.translate(optionSet);
-            const options = optionSet?.options
-                ?.map(({ id }: any) => metadata.get(id))
-                .map((option: any) => this.translate(option).name)
+            const options = _.slice(optionSet?.options ?? [], 0, 25)
+                .map(({ id }: any) => this.translate(metadata.get(id)).name)
                 .join(", ");
             const isCompulsory = this.isMetadataItemCompulsory(item);
 
