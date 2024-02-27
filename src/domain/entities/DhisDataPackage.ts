@@ -1,3 +1,5 @@
+import { D2Geometry } from "@eyeseetea/d2-api";
+
 export interface EventsPackage {
     events: Event[];
 }
@@ -21,13 +23,10 @@ export interface Event {
     orgUnit: string;
     program: string;
     status: string;
-    eventDate: string;
-    coordinate?: {
-        latitude: string;
-        longitude: string;
-    };
+    occurredAt: string;
+    geometry?: D2Geometry;
     attributeOptionCombo?: string;
-    trackedEntityInstance?: string;
+    trackedEntity?: string;
     programStage?: string;
     dataValues: EventDataValue[];
 }

@@ -339,10 +339,10 @@ async function getApiEvents(
 
             return {
                 event: data.id,
-                trackedEntityInstance: teiId,
+                trackedEntity: teiId,
                 program: program,
                 orgUnit: data.orgUnit,
-                eventDate: data.period,
+                occurredAt: data.period,
                 attributeOptionCombo: data.attribute,
                 status: "COMPLETED" as const,
                 programStage: data.programStage,
