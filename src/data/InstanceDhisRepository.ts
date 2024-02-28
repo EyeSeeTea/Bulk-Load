@@ -505,8 +505,8 @@ export class InstanceDhisRepository implements InstanceRepository {
                     pageSize: 250,
                     attributeCc: categoryComboId,
                     attributeCos: categoryOptionId,
-                    startDate: startDate?.format("YYYY-MM-DD"),
-                    endDate: endDate?.format("YYYY-MM-DD"),
+                    occurredAfter: startDate?.format("YYYY-MM-DD"),
+                    occurredBefore: endDate?.format("YYYY-MM-DD"),
                     cache: Math.random(),
                     // @ts-ignore FIXME: Add property in d2-api
                     fields: "*",
