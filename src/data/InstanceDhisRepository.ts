@@ -25,7 +25,6 @@ import {
     DataStore,
     DataValueSetsGetResponse,
     Id,
-    Pager,
     SelectedPick,
 } from "../types/d2-api";
 import { cache } from "../utils/cache";
