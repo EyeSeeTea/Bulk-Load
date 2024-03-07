@@ -24,7 +24,14 @@ export interface Event {
     program: string;
     status: string;
     occurredAt: string;
-    geometry?: D2Geometry;
+    geometry?: {
+        type: string;
+        coordinates: [string, string];
+    } | null;
+    coordinate?: {
+        latitude: string;
+        longitude: string;
+    };
     attributeOptionCombo?: string;
     trackedEntity?: string;
     programStage?: string;

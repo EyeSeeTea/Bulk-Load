@@ -245,6 +245,75 @@ async function uploadTeis(options: {
                 return {
                     status: result?.status === "SUCCESS" ? "OK" : "ERROR",
                     response: result ?? undefined,
+                    bundleReport: {
+                        typeReportMap: {
+                            ENROLLMENT: {
+                                objectReports: [],
+                                stats: {
+                                    created: result?.imported || 0,
+                                    updated: result?.updated || 0,
+                                    ignored: result?.ignored || 0,
+                                    deleted: result?.deleted || 0,
+                                    total: result?.total || 0,
+                                },
+                                trackerType: "ENROLLMENT",
+                            },
+                            EVENT: {
+                                objectReports: [],
+                                stats: {
+                                    created: result?.imported || 0,
+                                    updated: result?.updated || 0,
+                                    ignored: result?.ignored || 0,
+                                    deleted: result?.deleted || 0,
+                                    total: result?.total || 0,
+                                },
+                                trackerType: "EVENT",
+                            },
+                            RELATIONSHIP: {
+                                objectReports: [],
+                                stats: {
+                                    created: result?.imported || 0,
+                                    updated: result?.updated || 0,
+                                    ignored: result?.ignored || 0,
+                                    deleted: result?.deleted || 0,
+                                    total: result?.total || 0,
+                                },
+                                trackerType: "RELATIONSHIP",
+                            },
+                            TRACKED_ENTITY: {
+                                objectReports: [],
+                                stats: {
+                                    created: result?.imported || 0,
+                                    updated: result?.updated || 0,
+                                    ignored: result?.ignored || 0,
+                                    deleted: result?.deleted || 0,
+                                    total: result?.total || 0,
+                                },
+                                trackerType: "TRACKED_ENTITY",
+                            },
+                        },
+                        stats: {
+                            created: result?.imported || 0,
+                            updated: result?.updated || 0,
+                            ignored: result?.ignored || 0,
+                            deleted: result?.deleted || 0,
+                            total: result?.total || 0,
+                        },
+                        status: "OK",
+                    },
+                    message: "",
+                    stats: {
+                        created: result?.imported || 0,
+                        updated: result?.updated || 0,
+                        ignored: result?.ignored || 0,
+                        deleted: result?.deleted || 0,
+                        total: result?.total || 0,
+                    },
+                    validationReport: {
+                        errorReports: [],
+                        warningReports: [],
+                    },
+                    timingsStats: [],
                 };
             },
             {

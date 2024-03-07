@@ -64,7 +64,7 @@ const buildSummaryTable = (stats: SynchronizationStats[]) => {
             <TableHead>
                 <TableRow>
                     <TableCell>{i18n.t("Type")}</TableCell>
-                    <TableCell>{i18n.t("Imported")}</TableCell>
+                    <TableCell>{i18n.t("Created")}</TableCell>
                     <TableCell>{i18n.t("Updated")}</TableCell>
                     <TableCell>{i18n.t("Deleted")}</TableCell>
                     <TableCell>{i18n.t("Ignored")}</TableCell>
@@ -72,14 +72,14 @@ const buildSummaryTable = (stats: SynchronizationStats[]) => {
                 </TableRow>
             </TableHead>
             <TableBody>
-                {stats.map(({ type, imported, updated, deleted, ignored, total }, i) => (
+                {stats.map(({ type, created, updated, deleted, ignored, total, ids }, i) => (
                     <TableRow key={`row-${i}`}>
                         <TableCell>{type}</TableCell>
-                        <TableCell>{imported}</TableCell>
+                        <TableCell>{created}</TableCell>
                         <TableCell>{updated}</TableCell>
                         <TableCell>{deleted}</TableCell>
                         <TableCell>{ignored}</TableCell>
-                        <TableCell>{total || _.sum([imported, deleted, ignored, updated])}</TableCell>
+                        <TableCell>{total || _.sum([created, deleted, ignored, updated])}</TableCell>
                     </TableRow>
                 ))}
             </TableBody>
@@ -103,6 +103,27 @@ const buildMessageTable = (messages: ErrorMessage[]) => {
                         <TableCell>{id}</TableCell>
                         <TableCell>{message}</TableCell>
                         <TableCell>{details}</TableCell>
+                    </TableRow>
+                ))}
+            </TableBody>
+        </Table>
+    );
+};
+
+const buildTypeIdsTable = (stats: SynchronizationStats[]) => {
+    return (
+        <Table>
+            <TableHead>
+                <TableRow>
+                    <TableCell>{i18n.t("Type")}</TableCell>
+                    <TableCell>{i18n.t("Ids")}</TableCell>
+                </TableRow>
+            </TableHead>
+            <TableBody>
+                {stats.map(({ type, ids }, i) => (
+                    <TableRow key={`row-${i}`}>
+                        <TableCell>{type}</TableCell>
+                        <TableCell>{ids?.join(", ")}</TableCell>
                     </TableRow>
                 ))}
             </TableBody>
@@ -157,16 +178,22 @@ const SyncSummary = ({ results, onClose }: SyncSummaryProps) => {
                             <Typography variant="overline">{i18n.t("Summary")}</Typography>
                         </AccordionDetails>
 
-                        {message && (
+                        {(message || status === "OK") && (
                             <AccordionDetails className={classes.accordionDetails}>
-                                <Typography variant="body2">{message}</Typography>
+                                <Typography variant="body2">{message || i18n.t("Import was successful")}</Typography>
                             </AccordionDetails>
                         )}
 
                         {!_.isEmpty(stats) && (
-                            <AccordionDetails className={classes.accordionDetails}>
-                                {buildSummaryTable([...stats])}
-                            </AccordionDetails>
+                            <>
+                                <AccordionDetails className={classes.accordionDetails}>
+                                    {buildSummaryTable([...stats])}
+                                </AccordionDetails>
+
+                                <AccordionDetails className={classes.accordionDetails}>
+                                    {buildTypeIdsTable([...stats])}
+                                </AccordionDetails>
+                            </>
                         )}
 
                         {errors && errors.length > 0 && (

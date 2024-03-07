@@ -5,6 +5,7 @@ import {
     SynchronizationStatus,
 } from "../domain/entities/SynchronizationResult";
 import i18n from "../locales";
+import { TrackerPostResponse } from "@eyeseetea/d2-api/api/tracker";
 
 type Status = "OK" | "ERROR";
 
@@ -43,55 +44,52 @@ export interface ImportPostResponse {
 export function processImportResponse(options: {
     title: string;
     model: string;
-    importResult: ImportPostResponse;
+    importResult: TrackerPostResponse;
     splitStatsList: boolean;
 }): SynchronizationResult {
     const { title, model, importResult, splitStatsList } = options;
-    const { message, response } = importResult;
-    const status = response ? response.status : "ERROR";
+    const { message, bundleReport, status, stats } = importResult;
 
-    if (!response) return { title, status, message, rawResponse: importResult };
+    if (!bundleReport) return { title, status, message, rawResponse: importResult };
 
-    // Add inner import summaries
-    const importSummaries = _(response.importSummaries)
-        .flatMap(importSummary => [importSummary, ...(importSummary.enrollments?.importSummaries || [])])
+    const objectReports = _.flatMap(bundleReport.typeReportMap, type => type.objectReports);
+
+    const errors = _.flatMap(objectReports, objectReport =>
+        objectReport.errorReports.map(errorReport => {
+            return {
+                id: objectReport.uid,
+                message: errorReport.message,
+                details: errorReport.errorCode,
+            };
+        })
+    );
+
+    const fields = ["created", "updated", "ignored", "deleted", "total"] as const;
+    const totalStats: SynchronizationStats = { type: "TOTAL", ..._.pick(stats, fields) };
+
+    const statsList = _(bundleReport.typeReportMap)
+        .values()
+        .filter(({ stats }) => stats.total > 0)
+        //.flatMap(({ objectReports }) => objectReports)
+        .map(typeReportMap => {
+            const typeIds = typeReportMap.objectReports.map(({ uid }) => uid);
+            return {
+                type: i18n.t(`${model}`),
+                ids: typeIds,
+                ...bundleReport.typeReportMap[typeReportMap.trackerType].stats,
+            };
+        })
         .value();
 
-    const aggregatedStatus =
-        _(importSummaries)
-            .map(summary => summary.status)
-            .find(status => status !== "SUCCESS") || status;
-
-    const errors =
-        _.flatMap(
-            importSummaries,
-            ({ reference = "", description, conflicts }) =>
-                conflicts?.map(({ object, value }) => ({
-                    id: reference,
-                    message: _([description, object, value]).compact().join(" "),
-                    details: "",
-                })) ?? (description ? [{ id: reference, message: description, details: "" }] : [])
-        ) ?? [];
-
-    const fields = ["imported", "updated", "ignored", "deleted", "total"] as const;
-    const totalStats: SynchronizationStats = { type: "TOTAL", ..._.pick(response, fields) };
-
-    const eventStatsList = (response.importSummaries || []).map((importSummary): SynchronizationStats => {
-        return {
-            type: i18n.t(`${model} ${importSummary.reference || "-"}`),
-            ...importSummary.importCount,
-        };
-    });
-
-    const stats = splitStatsList
-        ? _.compact([eventStatsList.length === 1 ? null : totalStats, ...eventStatsList])
+    const splitedStats: SynchronizationStats[] = splitStatsList
+        ? _.compact([statsList.length === 1 ? null : totalStats, ...statsList])
         : [totalStats];
 
-    return { title, status: aggregatedStatus, message, errors, stats, rawResponse: importResult };
+    return { title, status, message, errors, stats: splitedStats, rawResponse: importResult };
 }
 
 export async function postImport(
-    postFn: () => Promise<ImportPostResponse>,
+    postFn: () => Promise<TrackerPostResponse>,
     options: { title: string; model: string; splitStatsList: boolean }
 ): Promise<SynchronizationResult> {
     const { title, model, splitStatsList } = options;

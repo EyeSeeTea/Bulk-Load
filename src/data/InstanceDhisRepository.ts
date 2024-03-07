@@ -25,7 +25,6 @@ import {
     DataStore,
     DataValueSetsGetResponse,
     Id,
-    Pager,
     SelectedPick,
 } from "../types/d2-api";
 import { cache } from "../utils/cache";
@@ -33,6 +32,9 @@ import { promiseMap } from "../utils/promises";
 import { postEvents } from "./Dhis2Events";
 import { getProgram, getTrackedEntityInstances, updateTrackedEntityInstances } from "./Dhis2TrackedEntityInstances";
 import { TrackerEventsResponse } from "@eyeseetea/d2-api/api/trackerEvents";
+import { D2Geometry } from "@eyeseetea/d2-api/schemas";
+
+type GeometryPoint = Extract<D2Geometry, { type: "Point" }>;
 
 export class InstanceDhisRepository implements InstanceRepository {
     private api: D2Api;
@@ -345,7 +347,16 @@ export class InstanceDhisRepository implements InstanceRepository {
             occurredAt: period,
             attributeOptionCombo: attribute,
             dataValues: dataValues,
-            coordinate,
+            ...(coordinate?.latitude && coordinate?.longitude
+                ? {
+                      geometry: {
+                          type: "Point",
+                          coordinates: [coordinate.latitude, coordinate.longitude],
+                      },
+                  }
+                : {
+                      geometry: null,
+                  }),
         }));
     }
 
@@ -367,7 +378,7 @@ export class InstanceDhisRepository implements InstanceRepository {
                 title,
                 status: "ERROR",
                 message: i18n.t("Failed to import data values"),
-                stats: [{ imported: 0, deleted: 0, updated: 0, ignored: 0 }],
+                stats: [{ created: 0, deleted: 0, updated: 0, ignored: 0 }],
                 errors: [],
                 rawResponse: {},
             };
@@ -381,7 +392,7 @@ export class InstanceDhisRepository implements InstanceRepository {
             title,
             status,
             message: description,
-            stats: [{ imported, deleted, updated, ignored }],
+            stats: [{ created: imported, deleted, updated, ignored }],
             errors,
             rawResponse: importSummary,
         };
@@ -520,11 +531,37 @@ export class InstanceDhisRepository implements InstanceRepository {
             for (const categoryOptionId of categoryOptions) {
                 const { instances: events, page } = await getEvents(orgUnit, categoryOptionId, 1);
 
-                programEvents.push(...events);
+                const mappedEvents = events.map(event => {
+                    return {
+                        ...event,
+                        geometry: {
+                            type: "Point",
+                            coordinates: [
+                                (event.geometry as GeometryPoint)?.coordinates[0].toString(),
+                                (event.geometry as GeometryPoint)?.coordinates[1].toString(),
+                            ] as [string, string],
+                        },
+                    };
+                });
+
+                programEvents.push(...mappedEvents);
 
                 await promiseMap(_.range(2, page + 1, 1), async page => {
                     const { instances: events } = await getEvents(orgUnit, categoryOptionId, page);
-                    programEvents.push(...events);
+
+                    const mappedEvents = events.map(event => {
+                        return {
+                            ...event,
+                            geometry: {
+                                type: "Point",
+                                coordinates: [
+                                    (event.geometry as GeometryPoint)?.coordinates[0].toString(),
+                                    (event.geometry as GeometryPoint)?.coordinates[1].toString(),
+                                ] as [string, string],
+                            },
+                        };
+                    });
+                    programEvents.push(...mappedEvents);
                 });
             }
         }

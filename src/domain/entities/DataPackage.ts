@@ -28,10 +28,11 @@ export interface DataPackageData {
     attribute?: Id;
     trackedEntityInstance?: Id;
     programStage?: Id;
-    coordinate?: {
-        latitude: string;
-        longitude: string;
-    };
+    geometry?: {
+        type: string;
+        coordinates: [string, string];
+    } | null;
+    coordinate?: { latitude: string; longitude: string };
     dataValues: DataPackageDataValue[];
 }
 

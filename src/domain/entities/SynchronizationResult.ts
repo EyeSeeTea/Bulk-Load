@@ -1,12 +1,13 @@
-export type SynchronizationStatus = "PENDING" | "SUCCESS" | "WARNING" | "ERROR" | "NETWORK ERROR";
+export type SynchronizationStatus = "PENDING" | "SUCCESS" | "OK" | "WARNING" | "ERROR" | "NETWORK ERROR";
 
 export interface SynchronizationStats {
     type?: string;
-    imported: number;
+    created: number;
     updated: number;
     ignored: number;
     deleted: number;
     total?: number;
+    ids?: string[];
 }
 
 export interface ErrorMessage {
