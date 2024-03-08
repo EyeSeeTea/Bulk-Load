@@ -70,7 +70,6 @@ export function processImportResponse(options: {
     const statsList = _(bundleReport.typeReportMap)
         .values()
         .filter(({ stats }) => stats.total > 0)
-        //.flatMap(({ objectReports }) => objectReports)
         .map(typeReportMap => {
             const typeIds = typeReportMap.objectReports.map(({ uid }) => uid);
             return {

@@ -72,7 +72,7 @@ const buildSummaryTable = (stats: SynchronizationStats[]) => {
                 </TableRow>
             </TableHead>
             <TableBody>
-                {stats.map(({ type, created, updated, deleted, ignored, total, ids }, i) => (
+                {stats.map(({ type, created, updated, deleted, ignored, total }, i) => (
                     <TableRow key={`row-${i}`}>
                         <TableCell>{type}</TableCell>
                         <TableCell>{created}</TableCell>
