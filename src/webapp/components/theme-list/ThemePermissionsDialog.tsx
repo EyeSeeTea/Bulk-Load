@@ -1,10 +1,9 @@
-import { ConfirmationDialog, ShareUpdate, Sharing } from "@eyeseetea/d2-ui-components";
+import { ConfirmationDialog, ShareUpdate, Sharing, useLoading, useSnackbar } from "@eyeseetea/d2-ui-components";
 import { useCallback } from "react";
 import i18n from "../../../locales";
 import { useAppContext } from "../../contexts/app-context";
 import { Id } from "../../../domain/entities/ReferenceObject";
 import { Theme } from "../../../domain/entities/Theme";
-import _ from "lodash";
 
 export interface ThemePermissionsDialogProps {
     themeId: Id;
@@ -16,6 +15,8 @@ export interface ThemePermissionsDialogProps {
 export function ThemePermissionsDialog(props: ThemePermissionsDialogProps) {
     const { themeId, onClose, rows: themes, onChange } = props;
     const { compositionRoot } = useAppContext();
+    const snackbar = useSnackbar();
+    const loading = useLoading();
 
     const search = useCallback((query: string) => compositionRoot.users.search(query), [compositionRoot]);
 
@@ -58,29 +59,32 @@ export function ThemePermissionsDialog(props: ThemePermissionsDialogProps) {
             publicAccess: publicSharing,
             externalAccess: external,
         }: ShareUpdate) => {
-            const newThemes = themes.map((theme): Theme => {
-                if (theme.id !== themeId) {
-                    return theme;
-                } else {
-                    const newTheme = theme.updateSharing({
-                        external: external ?? false,
-                        public: publicSharing ?? "r-------",
-                        users: users ?? [],
-                        userGroups: userGroups ?? [],
-                    });
-                    compositionRoot.themes
-                        .save(newTheme)
-                        .then(errors =>
-                            errors.length === 0
-                                ? onChange(_.uniqBy([theme, ...themes], "id"))
-                                : console.error(errors.join("\n"))
-                        );
-                    return newTheme;
-                }
+            loading.show();
+            const themesWithUpdated = themes.map((theme): Theme => {
+                return theme.id === themeId
+                    ? theme.updateSharing({
+                          external: external ?? false,
+                          public: publicSharing ?? "r-------",
+                          users: users ?? [],
+                          userGroups: userGroups ?? [],
+                      })
+                    : theme;
             });
-            onChange(newThemes);
+
+            const updatedTheme = themesWithUpdated.find(theme => theme.id === themeId);
+            if (updatedTheme) {
+                const errors = await compositionRoot.themes.save(updatedTheme);
+                if (errors.length === 0) {
+                    onChange(themesWithUpdated);
+                } else {
+                    snackbar.error(errors.join("\n"));
+                }
+            } else {
+                snackbar.error(i18n.t("Error while updating sharing settings"));
+            }
+            loading.hide();
         };
-    }, [themes, onChange, themeId, compositionRoot.themes]);
+    }, [compositionRoot.themes, loading, onChange, snackbar, themeId, themes]);
 
     return (
         <ConfirmationDialog isOpen={true} fullWidth={true} onCancel={onClose} cancelText={i18n.t("Close")}>
