@@ -22,5 +22,7 @@ export interface SynchronizationResult {
     message?: string;
     stats?: SynchronizationStats[];
     errors?: ErrorMessage[];
+    warnings?: ErrorMessage[];
+    objectReportErrors?: ErrorMessage[];
     rawResponse: object;
 }

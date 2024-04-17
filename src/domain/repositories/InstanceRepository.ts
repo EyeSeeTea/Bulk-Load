@@ -8,7 +8,7 @@ import { Locale } from "../entities/Locale";
 import { OrgUnit } from "../entities/OrgUnit";
 import { Id, NamedRef } from "../entities/ReferenceObject";
 import { SynchronizationResult } from "../entities/SynchronizationResult";
-import { Program, TrackedEntityInstance } from "../entities/TrackedEntityInstance";
+import { Program, TrackedEntity } from "../entities/TrackedEntityInstance";
 
 export interface GetDataPackageParams {
     type: DataFormType;
@@ -40,7 +40,7 @@ export interface InstanceRepository {
     importDataPackage(dataPackage: DataPackage): Promise<SynchronizationResult[]>;
     getProgram(programId: Id): Promise<Program | undefined>;
     convertDataPackage(dataPackage: DataPackage): EventsPackage | AggregatedPackage;
-    getBuilderMetadata(teis: TrackedEntityInstance[]): Promise<BuilderMetadata>;
+    getBuilderMetadata(teis: TrackedEntity[]): Promise<BuilderMetadata>;
 }
 
 export interface BuilderMetadata {

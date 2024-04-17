@@ -18,7 +18,7 @@ import { TemplateRepository } from "../repositories/TemplateRepository";
 import { FileRepository } from "../repositories/FileRepository";
 import { FileResource } from "../entities/FileResource";
 import { ImportSourceRepository } from "../repositories/ImportSourceRepository";
-import { TrackedEntityInstance } from "../entities/TrackedEntityInstance";
+import { TrackedEntity } from "../entities/TrackedEntityInstance";
 import { Maybe } from "../../types/utils";
 
 export type ImportTemplateError =
@@ -272,33 +272,28 @@ export class ImportTemplateUseCase implements UseCase {
                       );
                   });
 
-        const trackedEntityInstances = getTrackedEntityInstances(
-            excelDataPackage,
-            useBuilderOrgUnits,
-            selectedOrgUnits
-        );
+        const trackedEntities = getTrackedEntities(excelDataPackage, useBuilderOrgUnits, selectedOrgUnits);
 
         return {
             dataValues: {
                 type: dataForm.type,
                 dataEntries: files.length === 0 ? excelFile : this.addImagesToDataEntries(files, excelFile, dataForm),
-                trackedEntityInstances:
-                    files.length === 0 ? trackedEntityInstances : this.addImagesToTeis(files, trackedEntityInstances),
+                trackedEntities: files.length === 0 ? trackedEntities : this.addImagesToTeis(files, trackedEntities),
             },
             invalidDataValues: {
                 type: dataForm.type,
                 dataEntries: invalidDataValues,
-                trackedEntityInstances: [],
+                trackedEntities: [],
             },
             existingDataValues: {
                 type: dataForm.type,
                 dataEntries: existingDataValues,
-                trackedEntityInstances: [],
+                trackedEntities: [],
             },
             instanceDataValues: {
                 type: dataForm.type,
                 dataEntries: instanceDataValues,
-                trackedEntityInstances: [],
+                trackedEntities: [],
             },
         };
     }
@@ -324,7 +319,7 @@ export class ImportTemplateUseCase implements UseCase {
         });
     }
 
-    private addImagesToTeis(files: FileResource[], trackedEntityInstances: TrackedEntityInstance[]) {
+    private addImagesToTeis(files: FileResource[], trackedEntityInstances: TrackedEntity[]) {
         return trackedEntityInstances.map(tei => {
             return {
                 ...tei,
@@ -444,13 +439,9 @@ export class ImportTemplateUseCase implements UseCase {
     }
 }
 
-function getTrackedEntityInstances(
-    excelDataValues: DataPackage,
-    useBuilderOrgUnits: boolean,
-    selectedOrgUnitPaths: string[]
-) {
+function getTrackedEntities(excelDataValues: DataPackage, useBuilderOrgUnits: boolean, selectedOrgUnitPaths: string[]) {
     const orgUnitOverridePath = useBuilderOrgUnits ? selectedOrgUnitPaths[0] : null;
-    const teis = excelDataValues.type === "trackerPrograms" ? excelDataValues.trackedEntityInstances : [];
+    const teis = excelDataValues.type === "trackerPrograms" ? excelDataValues.trackedEntities : [];
 
     return orgUnitOverridePath
         ? teis.map(tei => ({ ...tei, orgUnit: { id: cleanOrgUnitPath(orgUnitOverridePath) } }))

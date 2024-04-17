@@ -38,7 +38,7 @@ export class ExcelBuilder {
         const dataSourceValues = await this.getDataSourceValues(template, dataSources);
         const metadata =
             payload.type === "trackerPrograms"
-                ? await this.instanceRepository.getBuilderMetadata(payload.trackedEntityInstances)
+                ? await this.instanceRepository.getBuilderMetadata(payload.trackedEntities)
                 : emptyBuilderMetadata;
 
         for (const dataSource of dataSourceValues) {
@@ -119,7 +119,7 @@ export class ExcelBuilder {
         let { rowStart } = dataSource.attributes;
         if (payload.type !== "trackerPrograms") return;
 
-        for (const tei of payload.trackedEntityInstances ?? []) {
+        for (const tei of payload.trackedEntities ?? []) {
             const { orgUnit, id, enrollment } = tei;
 
             const cells = await this.excelRepository.getCellsInRange(template.id, {
@@ -156,7 +156,7 @@ export class ExcelBuilder {
                 await this.excelRepository.writeCell(
                     template.id,
                     enrollmentDateCell,
-                    format(new Date(enrollment.enrollmentDate), dateFormatPattern)
+                    format(new Date(enrollment.enrolledAt), dateFormatPattern)
                 );
 
             const incidentDateCell = await this.excelRepository.findRelativeCell(
@@ -168,7 +168,7 @@ export class ExcelBuilder {
                 await this.excelRepository.writeCell(
                     template.id,
                     incidentDateCell,
-                    format(new Date(enrollment.incidentDate), dateFormatPattern)
+                    format(new Date(enrollment.occurredAt || ""), dateFormatPattern)
                 );
 
             for (const cell of cells) {
@@ -216,7 +216,7 @@ export class ExcelBuilder {
     ) {
         if (payload.type !== "trackerPrograms") return;
 
-        const relationships: Relationship[] = getRelationships(payload.trackedEntityInstances ?? []);
+        const relationships: Relationship[] = getRelationships(payload.trackedEntities ?? []);
         const typeId = removeCharacters(
             await this.excelRepository.readCell(template.id, dataSource.relationshipType, {
                 formula: true,
@@ -315,7 +315,7 @@ export class ExcelBuilder {
         }
 
         if (settings.programStagePopulateEventsForEveryTei[String(dataSourceProgramStageId)]) {
-            const allTEIs = payload.trackedEntityInstances.map(trackedEntityInstances => trackedEntityInstances.id);
+            const allTEIs = payload.trackedEntities.map(trackedEntityInstances => trackedEntityInstances.id);
             const existingTEIs = _(payload.dataEntries)
                 .filter(
                     dataEntry =>
@@ -351,7 +351,7 @@ export class ExcelBuilder {
     private async fillRows(template: Template, dataSource: RowDataSource, payload: DataPackage) {
         let { rowStart } = dataSource.range;
 
-        for (const { id, orgUnit, period, attribute, dataValues, geometry } of payload.dataEntries) {
+        for (const { id, orgUnit, period, attribute, dataValues, coordinate } of payload.dataEntries) {
             const cells = await this.excelRepository.getCellsInRange(template.id, {
                 ...dataSource.range,
                 rowStart,
@@ -377,12 +377,12 @@ export class ExcelBuilder {
             }
 
             const latitudeCell = await this.findRelative(template, dataSource.coordinates?.latitude, cells[0]);
-            const latitude = geometry?.coordinates?.[0];
+            const latitude = coordinate?.latitude;
             if (latitudeCell && latitude) {
                 await this.excelRepository.writeCell(template.id, latitudeCell, latitude);
             }
             const longitudeCell = await this.findRelative(template, dataSource.coordinates?.longitude, cells[0]);
-            const longitude = geometry?.coordinates?.[1];
+            const longitude = coordinate?.longitude;
             if (longitudeCell && longitude) {
                 await this.excelRepository.writeCell(template.id, longitudeCell, longitude);
             }

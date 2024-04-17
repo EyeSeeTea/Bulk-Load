@@ -1,45 +1,7 @@
 import _ from "lodash";
-import {
-    SynchronizationResult,
-    SynchronizationStats,
-    SynchronizationStatus,
-} from "../domain/entities/SynchronizationResult";
+import { SynchronizationResult, SynchronizationStats } from "../domain/entities/SynchronizationResult";
 import i18n from "../locales";
 import { TrackerPostResponse } from "@eyeseetea/d2-api/api/tracker";
-
-type Status = "OK" | "ERROR";
-
-export interface ImportPostResponse {
-    status: Status;
-    message?: string;
-    response?: {
-        status: SynchronizationStatus;
-        imported: number;
-        updated: number;
-        deleted: number;
-        ignored: number;
-        total: number;
-        importSummaries?: Array<{
-            responseType: "ImportSummary";
-            description?: string;
-            status: SynchronizationStatus;
-            href?: string;
-            importCount: {
-                imported: number;
-                updated: number;
-                deleted: number;
-                ignored: number;
-            };
-            reference?: string;
-            conflicts?: {
-                object: string;
-                value: string;
-            }[];
-            // Only for TEI import
-            enrollments?: ImportPostResponse["response"];
-        }>;
-    };
-}
 
 export function processImportResponse(options: {
     title: string;
@@ -48,28 +10,20 @@ export function processImportResponse(options: {
     splitStatsList: boolean;
 }): SynchronizationResult {
     const { title, model, importResult, splitStatsList } = options;
-    const { message, bundleReport, status, stats } = importResult;
-
-    if (!bundleReport) return { title, status, message, rawResponse: importResult };
-
-    const objectReports = _.flatMap(bundleReport.typeReportMap, type => type.objectReports);
-
-    const errors = _.flatMap(objectReports, objectReport =>
-        objectReport.errorReports.map(errorReport => {
-            return {
-                id: objectReport.uid,
-                message: errorReport.message,
-                details: errorReport.errorCode,
-            };
-        })
-    );
+    const {
+        message,
+        bundleReport,
+        validationReport: { errorReports, warningReports },
+        status,
+        stats,
+    } = importResult;
 
     const fields = ["created", "updated", "ignored", "deleted", "total"] as const;
     const totalStats: SynchronizationStats = { type: "TOTAL", ..._.pick(stats, fields) };
 
-    const statsList = _(bundleReport.typeReportMap)
+    const statsList = _(bundleReport?.typeReportMap)
         .values()
-        .filter(({ stats }) => stats.total > 0)
+        .filter(typeReportMap => typeReportMap.stats.total > 0)
         .map(typeReportMap => {
             const typeIds = typeReportMap.objectReports.map(({ uid }) => uid);
             return {
@@ -84,7 +38,46 @@ export function processImportResponse(options: {
         ? _.compact([statsList.length === 1 ? null : totalStats, ...statsList])
         : [totalStats];
 
-    return { title, status, message, errors, stats: splitedStats, rawResponse: importResult };
+    const errors = errorReports.map(warningReport => {
+        return {
+            id: warningReport.uid,
+            message: warningReport.message,
+            details: warningReport.errorCode,
+        };
+    });
+
+    const warnings = warningReports.map(warningReport => {
+        return {
+            id: warningReport.uid,
+            message: warningReport.message,
+            details: warningReport.errorCode,
+        };
+    });
+
+    if (!bundleReport) return { title, status, stats: splitedStats, errors, message, rawResponse: importResult };
+
+    const objectReports = _.flatMap(bundleReport.typeReportMap, type => type.objectReports);
+
+    const objectReportErrors = _.flatMap(objectReports, objectReport =>
+        objectReport.errorReports.map(errorReport => {
+            return {
+                id: objectReport.uid,
+                message: errorReport.message,
+                details: errorReport.errorCode,
+            };
+        })
+    );
+
+    return {
+        title,
+        status,
+        message,
+        errors,
+        warnings,
+        objectReportErrors,
+        stats: splitedStats,
+        rawResponse: importResult,
+    };
 }
 
 export async function postImport(

@@ -47,7 +47,7 @@ export interface TrackedEntityType {
     featureType: TrackedEntityTypeFeatureType;
 }
 
-export type TrackedEntityTypeFeatureType = "none" | "point" | "polygon";
+export type TrackedEntityTypeFeatureType = "none" | "Point" | "Polygon";
 
 export interface DataElement {
     id: Id;

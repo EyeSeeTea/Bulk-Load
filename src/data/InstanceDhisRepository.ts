@@ -9,7 +9,7 @@ import { Locale } from "../domain/entities/Locale";
 import { OrgUnit } from "../domain/entities/OrgUnit";
 import { NamedRef } from "../domain/entities/ReferenceObject";
 import { SynchronizationResult } from "../domain/entities/SynchronizationResult";
-import { Program, TrackedEntityInstance } from "../domain/entities/TrackedEntityInstance";
+import { Program, TrackedEntity } from "../domain/entities/TrackedEntityInstance";
 import {
     BuilderMetadata,
     GetDataFormsParams,
@@ -30,8 +30,8 @@ import {
 import { cache } from "../utils/cache";
 import { promiseMap } from "../utils/promises";
 import { postEvents } from "./Dhis2Events";
-import { getProgram, getTrackedEntityInstances, updateTrackedEntityInstances } from "./Dhis2TrackedEntityInstances";
-import { TrackerEventsResponse } from "@eyeseetea/d2-api/api/trackerEvents";
+import { getProgram, getTrackedEntities, updateTrackedEntities } from "./Dhis2TrackedEntities";
+import { D2TrackerEvent, TrackerEventsResponse } from "@eyeseetea/d2-api/api/trackerEvents";
 import { D2Geometry } from "@eyeseetea/d2-api/schemas";
 
 type GeometryPoint = Extract<D2Geometry, { type: "Point" }>;
@@ -243,7 +243,7 @@ export class InstanceDhisRepository implements InstanceRepository {
         const dataPackage = await this.getProgramPackage(params);
         const orgUnits = params.orgUnits.map(id => ({ id }));
         const program = { id: params.id };
-        const trackedEntityInstances = await getTrackedEntityInstances({
+        const trackedEntities = await getTrackedEntities({
             api,
             program,
             orgUnits,
@@ -256,7 +256,7 @@ export class InstanceDhisRepository implements InstanceRepository {
 
         return {
             type: "trackerPrograms",
-            trackedEntityInstances,
+            trackedEntities,
             dataEntries: dataPackage.dataEntries,
         };
     }
@@ -272,7 +272,7 @@ export class InstanceDhisRepository implements InstanceRepository {
         }
     }
 
-    public async getBuilderMetadata(teis: TrackedEntityInstance[]): Promise<BuilderMetadata> {
+    public async getBuilderMetadata(teis: TrackedEntity[]): Promise<BuilderMetadata> {
         const orgUnitIds = teis.map(tei => tei.orgUnit.id);
         const orgUnitIdsList = _.chunk(orgUnitIds, 250);
 
@@ -351,11 +351,14 @@ export class InstanceDhisRepository implements InstanceRepository {
                 ? {
                       geometry: {
                           type: "Point",
-                          coordinates: [coordinate.latitude, coordinate.longitude],
+                          coordinates: {
+                              latitude: parseFloat(coordinate.latitude),
+                              longitude: parseFloat(coordinate.longitude),
+                          },
                       },
                   }
                 : {
-                      geometry: null,
+                      geometry: undefined,
                   }),
         }));
     }
@@ -430,8 +433,8 @@ export class InstanceDhisRepository implements InstanceRepository {
     }
 
     private async importTrackerProgramData(dataPackage: TrackerProgramPackage): Promise<SynchronizationResult[]> {
-        const { trackedEntityInstances, dataEntries } = dataPackage;
-        return updateTrackedEntityInstances(this.api, trackedEntityInstances, dataEntries);
+        const { trackedEntities, dataEntries } = dataPackage;
+        return updateTrackedEntities(this.api, trackedEntities, dataEntries);
     }
 
     private async getDataSetPackage({
@@ -506,21 +509,20 @@ export class InstanceDhisRepository implements InstanceRepository {
 
         const getEvents = (orgUnit: Id, categoryOptionId: Id, page: number): Promise<TrackerEventsResponse> => {
             // DHIS2 bug if we do not provide CC and COs, endpoint only works with ALL authority
-            return this.api
-                .get<TrackerEventsResponse>("/tracker/events", {
+            return this.api.tracker.events
+                .get({
                     program: id,
                     orgUnit,
-                    paging: true,
                     totalPages: true,
                     page,
                     pageSize: 250,
-                    attributeCc: categoryComboId,
-                    attributeCos: categoryOptionId,
+                    attributeCategoryCombo: categoryComboId,
+                    attributeCategoryOptions: categoryOptionId,
                     occurredAfter: startDate?.format("YYYY-MM-DD"),
                     occurredBefore: endDate?.format("YYYY-MM-DD"),
-                    cache: Math.random(),
-                    // @ts-ignore FIXME: Add property in d2-api
-                    fields: "*",
+                    fields: {
+                        $all: true,
+                    },
                 })
                 .getData();
         };
@@ -531,36 +533,13 @@ export class InstanceDhisRepository implements InstanceRepository {
             for (const categoryOptionId of categoryOptions) {
                 const { instances: events, page } = await getEvents(orgUnit, categoryOptionId, 1);
 
-                const mappedEvents = events.map(event => {
-                    return {
-                        ...event,
-                        geometry: {
-                            type: "Point",
-                            coordinates: [
-                                (event.geometry as GeometryPoint)?.coordinates[0].toString(),
-                                (event.geometry as GeometryPoint)?.coordinates[1].toString(),
-                            ] as [string, string],
-                        },
-                    };
-                });
-
+                const mappedEvents = mapEvents(events);
                 programEvents.push(...mappedEvents);
 
                 await promiseMap(_.range(2, page + 1, 1), async page => {
                     const { instances: events } = await getEvents(orgUnit, categoryOptionId, page);
 
-                    const mappedEvents = events.map(event => {
-                        return {
-                            ...event,
-                            geometry: {
-                                type: "Point",
-                                coordinates: [
-                                    (event.geometry as GeometryPoint)?.coordinates[0].toString(),
-                                    (event.geometry as GeometryPoint)?.coordinates[1].toString(),
-                                ] as [string, string],
-                            },
-                        };
-                    });
+                    const mappedEvents = mapEvents(events);
                     programEvents.push(...mappedEvents);
                 });
             }
@@ -698,6 +677,29 @@ function getTrackedEntityTypeFromApi(
     if (!trackedEntityType) return undefined;
 
     const d2FeatureType = trackedEntityType.featureType;
-    const featureType = d2FeatureType === "POINT" ? "point" : d2FeatureType === "POLYGON" ? "polygon" : "none";
+    const featureType = d2FeatureType === "POINT" ? "Point" : d2FeatureType === "POLYGON" ? "Polygon" : "none";
     return { id: trackedEntityType.id, featureType };
+}
+
+function mapEvents(d2Events: D2TrackerEvent[]): Event[] {
+    return d2Events.map(event => {
+        return {
+            event: event.event,
+            orgUnit: event.orgUnit,
+            program: event.program,
+            status: event.status,
+            occurredAt: event.occurredAt,
+            attributeOptionCombo: event.attributeOptionCombo,
+            trackedEntity: event.trackedEntity,
+            programStage: event.programStage,
+            dataValues: event.dataValues,
+            geometry: {
+                type: "Point",
+                coordinates: {
+                    latitude: (event.geometry as GeometryPoint)?.coordinates[0],
+                    longitude: (event.geometry as GeometryPoint)?.coordinates[1],
+                },
+            },
+        };
+    });
 }

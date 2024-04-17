@@ -1,6 +1,6 @@
 import { DataFormType } from "./DataForm";
 import { Id } from "./ReferenceObject";
-import { TrackedEntityInstance } from "./TrackedEntityInstance";
+import { TrackedEntity } from "./TrackedEntityInstance";
 
 export type DataPackage = GenericProgramPackage | TrackerProgramPackage;
 export type DataPackageValue = string | number | boolean;
@@ -16,7 +16,7 @@ export interface GenericProgramPackage extends BaseDataPackage {
 
 export interface TrackerProgramPackage extends BaseDataPackage {
     type: "trackerPrograms";
-    trackedEntityInstances: TrackedEntityInstance[];
+    trackedEntities: TrackedEntity[];
 }
 
 export interface DataPackageData {
@@ -28,10 +28,6 @@ export interface DataPackageData {
     attribute?: Id;
     trackedEntityInstance?: Id;
     programStage?: Id;
-    geometry?: {
-        type: string;
-        coordinates: [string, string];
-    } | null;
     coordinate?: { latitude: string; longitude: string };
     dataValues: DataPackageDataValue[];
 }

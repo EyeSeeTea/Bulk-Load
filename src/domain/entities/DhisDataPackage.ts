@@ -1,4 +1,4 @@
-import { D2Geometry } from "@eyeseetea/d2-api";
+import { Geometry } from "./Geometry";
 
 export interface EventsPackage {
     events: Event[];
@@ -22,23 +22,19 @@ export interface Event {
     event?: string;
     orgUnit: string;
     program: string;
-    status: string;
+    status: EventStatus;
     occurredAt: string;
-    geometry?: {
-        type: string;
-        coordinates: [string, string];
-    } | null;
-    coordinate?: {
-        latitude: string;
-        longitude: string;
-    };
+    geometry?: Geometry;
     attributeOptionCombo?: string;
     trackedEntity?: string;
     programStage?: string;
     dataValues: EventDataValue[];
+    enrollment?: string;
 }
 
 export interface EventDataValue {
     dataElement: string;
     value: string | number | boolean;
 }
+
+type EventStatus = "ACTIVE" | "COMPLETED" | "VISITED" | "SCHEDULE" | "OVERDUE" | "SKIPPED";

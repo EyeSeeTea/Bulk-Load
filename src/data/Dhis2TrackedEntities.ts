@@ -1,25 +1,17 @@
-import {
-    PaginatedTeiGetResponse,
-    TeiGetRequest,
-    TrackedEntityInstance as TrackedEntityInstanceApi,
-    TrackedEntityInstanceGeometryAttributes,
-    TrackedEntityInstanceToPost,
-} from "@eyeseetea/d2-api/api/trackedEntityInstances";
+import { TeiGetRequest } from "@eyeseetea/d2-api/api/trackedEntityInstances";
 import { generateUid } from "d2/uid";
 import _ from "lodash";
 import { Moment } from "moment";
 import { DataElementType } from "../domain/entities/DataForm";
 import { DataPackageData } from "../domain/entities/DataPackage";
 import { Event, EventDataValue } from "../domain/entities/DhisDataPackage";
-import { Geometry } from "../domain/entities/Geometry";
 import { emptyImportSummary } from "../domain/entities/ImportSummary";
 import { Relationship } from "../domain/entities/Relationship";
 import { SynchronizationResult } from "../domain/entities/SynchronizationResult";
-import { AttributeValue, Enrollment, Program, TrackedEntityInstance } from "../domain/entities/TrackedEntityInstance";
+import { AttributeValue, Program, TrackedEntity } from "../domain/entities/TrackedEntityInstance";
 import { parseDate } from "../domain/helpers/ExcelReader";
 import i18n from "../locales";
 import { D2Api, D2RelationshipType, Id, Ref } from "../types/d2-api";
-import { KeysOfUnion } from "../types/utils";
 import { promiseMap } from "../utils/promises";
 import { getUid } from "./dhis2-uid";
 import { postEvents } from "./Dhis2Events";
@@ -31,6 +23,9 @@ import {
     RelationshipMetadata,
     RelationshipOrgUnitFilter,
 } from "./Dhis2RelationshipTypes";
+import { D2TrackerTrackedEntity, TrackedEntitiesGetResponse } from "@eyeseetea/d2-api/api/trackerTrackedEntities";
+import { D2TrackerEnrollment } from "@eyeseetea/d2-api/api/trackerEnrollments";
+import { Geometry } from "../domain/entities/Geometry";
 
 export interface GetOptions {
     api: D2Api;
@@ -42,7 +37,7 @@ export interface GetOptions {
     relationshipsOuFilter?: RelationshipOrgUnitFilter;
 }
 
-export async function getTrackedEntityInstances(options: GetOptions): Promise<TrackedEntityInstance[]> {
+export async function getTrackedEntities(options: GetOptions): Promise<TrackedEntity[]> {
     const {
         api,
         orgUnits,
@@ -65,12 +60,12 @@ export async function getTrackedEntityInstances(options: GetOptions): Promise<Tr
     const orgUnitsList = _.chunk(orgUnits, 250);
 
     // Get TEIs for the first page:
-    const apiTeis: TrackedEntityInstanceApi[] = [];
+    const apiTrackedEntities: D2TrackerTrackedEntity[] = [];
 
     for (const orgUnits of orgUnitsList) {
         // Limit response size by requesting paginated TEIs
         for (let page = 1; ; page++) {
-            const { pager, trackedEntityInstances } = await getTeisFromApi({
+            const { instances } = await getTrackedEntitiesFromApi({
                 api,
                 program,
                 orgUnits,
@@ -80,12 +75,12 @@ export async function getTrackedEntityInstances(options: GetOptions): Promise<Tr
                 enrollmentEndDate,
                 ouMode: relationshipsOuFilter,
             });
-            apiTeis.push(...trackedEntityInstances);
-            if (pager.pageCount <= page) break;
+            apiTrackedEntities.push(...instances);
+            if (instances.length < pageSize) break;
         }
     }
 
-    return apiTeis.map(tei => buildTei(metadata, program, tei));
+    return apiTrackedEntities.map(trackedEntity => buildTrackedEntity(metadata, program, trackedEntity));
 }
 
 export async function getProgram(api: D2Api, id: Id): Promise<Program | undefined> {
@@ -122,27 +117,27 @@ export async function getProgram(api: D2Api, id: Id): Promise<Program | undefine
     return program;
 }
 
-export async function updateTrackedEntityInstances(
+export async function updateTrackedEntities(
     api: D2Api,
-    trackedEntityInstances: TrackedEntityInstance[],
+    trackedEntities: TrackedEntity[],
     dataEntries: DataPackageData[]
 ): Promise<SynchronizationResult[]> {
-    if (_.isEmpty(trackedEntityInstances)) return [emptyImportSummary];
+    if (_.isEmpty(trackedEntities)) return [emptyImportSummary];
 
     // Non-UID tei IDS should be deterministic within a current call, use a random seed.
-    const teiSeed = generateUid();
+    const trackedEntitySeed = generateUid();
     const metadata = await getMetadata(api);
-    const teis = updateTeiIds(trackedEntityInstances, teiSeed);
-    const programId = _(trackedEntityInstances)
+    const updatedTrackedEntities = updateTrackedEntityIds(trackedEntities, trackedEntitySeed);
+    const programId = _(trackedEntities)
         .map(tei => tei.program.id)
         .uniq()
         .compact()
         .first();
     if (!programId) throw new Error("Cannot get program from TEIs");
 
-    const orgUnitIds = _.uniq(teis.map(tei => tei.orgUnit.id));
+    const orgUnitIds = _.uniq(updatedTrackedEntities.map(tei => tei.orgUnit.id));
 
-    const existingTeis = await getTrackedEntityInstances({
+    const existingTrackedEntities = await getTrackedEntities({
         api,
         program: { id: programId },
         orgUnits: orgUnitIds.map(id => ({ id })),
@@ -152,13 +147,20 @@ export async function updateTrackedEntityInstances(
     const program = await getProgram(api, programId);
     if (!program) throw new Error(`Program not found: ${programId}`);
 
-    const apiEvents = await getApiEvents(api, teis, dataEntries, metadata, teiSeed);
-    const { preTeis, postTeis } = await splitTeis(api, teis, metadata);
-    const options = { api, program, metadata, existingTeis };
+    const apiEvents = await getApiEvents(api, updatedTrackedEntities, dataEntries, metadata, trackedEntitySeed);
+
+    const { preTrackedEntities, postTrackedEntities } = await splitTrackedEntities(
+        api,
+        updatedTrackedEntities,
+        metadata
+    );
+    const options = { api, program, metadata, existingTrackedEntities };
 
     return runSequentialPromisesOnSuccess([
-        () => uploadTeis({ ...options, teis: preTeis, title: i18n.t("Create/update") }),
-        () => uploadTeis({ ...options, teis: postTeis, title: i18n.t("Relationships") }),
+        () =>
+            uploadTrackedEntities({ ...options, trackedEntities: preTrackedEntities, title: i18n.t("Create/update") }),
+        () =>
+            uploadTrackedEntities({ ...options, trackedEntities: postTrackedEntities, title: i18n.t("Relationships") }),
         () => postEvents(api, apiEvents),
     ]);
 }
@@ -170,8 +172,9 @@ async function runSequentialPromisesOnSuccess(
     for (const fn of fns) {
         const res = await fn();
         if (res) output.push(...res);
-        const status = res?.find(r => r.status !== "SUCCESS")?.status;
-        if (status && status !== "SUCCESS") break;
+
+        const notSuccessStatus = res?.find(r => !["SUCCESS", "OK"].includes(r.status))?.status;
+        if (notSuccessStatus) break;
     }
     return output;
 }
@@ -182,13 +185,13 @@ async function runSequentialPromisesOnSuccess(
     yet (creation of TEIS is sequential). So let's split pre/post TEI's so they can be
     posted separatedly.
 */
-async function splitTeis(
+async function splitTrackedEntities(
     api: D2Api,
-    teis: TrackedEntityInstance[],
+    trackedEntities: TrackedEntity[],
     metadata: Metadata
-): Promise<{ preTeis: TrackedEntityInstance[]; postTeis: TrackedEntityInstance[] }> {
-    const existingTeis = await getExistingTeis(api);
-    const existingTeiIds = new Set(existingTeis.map(tei => tei.id));
+): Promise<{ preTrackedEntities: TrackedEntity[]; postTrackedEntities: TrackedEntity[] }> {
+    const existingTrackedEntities = await getExistingTeis(api);
+    const existingTrackedEntitiesIds = new Set(existingTrackedEntities.map(tei => tei.id));
 
     function canPostRelationship(relationship: Relationship, constraintKey: "from" | "to"): boolean {
         const relType = metadata.relationshipTypesById[relationship.typeId];
@@ -200,121 +203,58 @@ async function splitTeis(
                 : [relType.toConstraint, relationship.toId];
 
         // TEIs constraints can be posted if they exist. All others (events) can be always posted.
-        return constraint.relationshipEntity === "TRACKED_ENTITY_INSTANCE" ? existingTeiIds.has(id) : true;
+        return constraint.relationshipEntity === "TRACKED_ENTITY_INSTANCE" ? existingTrackedEntitiesIds.has(id) : true;
     }
 
-    const [validTeis, invalidTeis] = _(teis)
+    const [validTrackedEntities, invalidTrackedEntities] = _(trackedEntities)
         .partition(tei =>
             _(tei.relationships).every(rel => canPostRelationship(rel, "from") && canPostRelationship(rel, "to"))
         )
         .value();
 
-    const preTeis = _.concat(
-        invalidTeis.map(tei => ({ ...tei, relationships: [] })),
-        validTeis
+    const preTrackedEntities = _.concat(
+        invalidTrackedEntities.map(tei => ({ ...tei, relationships: [] })),
+        validTrackedEntities
     );
-    const postTeis = invalidTeis;
+    const postTrackedEntities = invalidTrackedEntities;
 
-    return { preTeis, postTeis };
+    return { preTrackedEntities, postTrackedEntities };
 }
 
-async function uploadTeis(options: {
+async function uploadTrackedEntities(options: {
     api: D2Api;
     program: Program;
     metadata: Metadata;
-    teis: TrackedEntityInstance[];
-    existingTeis: TrackedEntityInstance[];
+    trackedEntities: TrackedEntity[];
+    existingTrackedEntities: TrackedEntity[];
     title: string;
 }): Promise<SynchronizationResult[]> {
-    const { api, program, metadata, teis, existingTeis, title } = options;
+    const { api, program, metadata, trackedEntities, existingTrackedEntities, title } = options;
 
-    if (_.isEmpty(teis)) return [];
+    if (_.isEmpty(trackedEntities)) return [];
 
-    const apiTeis = teis.map(tei => getApiTeiToUpload(program, metadata, tei, existingTeis));
-    const model = i18n.t("Tracked Entity Instance");
+    const apiTrackedEntities = trackedEntities.map(trackedEntity =>
+        getApiTrackedEntityToUpload(program, metadata, trackedEntity, existingTrackedEntities)
+    );
+    const model = i18n.t("Tracked Entity");
 
-    const teisResult = await promiseMap(_.chunk(apiTeis, 200), teisToSave => {
+    const trackedEntitiesResult = await promiseMap(_.chunk(apiTrackedEntities, 200), trackedEntitiesToSave => {
         return postImport(
             async () => {
-                const { response } = await api.trackedEntityInstances
-                    .postAsync({ strategy: "CREATE_AND_UPDATE", async: true }, { trackedEntityInstances: teisToSave })
+                const { response } = await api.tracker
+                    .postAsync(
+                        { importStrategy: "CREATE_AND_UPDATE", async: true },
+                        { trackedEntities: trackedEntitiesToSave }
+                    )
                     .getData();
 
-                const result = await api.system.waitFor(response.jobType, response.id).getData();
+                const result = await api.system.waitFor("TRACKER_IMPORT_JOB", response.id).getData();
 
-                return {
-                    status: result?.status === "SUCCESS" ? "OK" : "ERROR",
-                    response: result ?? undefined,
-                    bundleReport: {
-                        typeReportMap: {
-                            ENROLLMENT: {
-                                objectReports: [],
-                                stats: {
-                                    created: result?.imported || 0,
-                                    updated: result?.updated || 0,
-                                    ignored: result?.ignored || 0,
-                                    deleted: result?.deleted || 0,
-                                    total: result?.total || 0,
-                                },
-                                trackerType: "ENROLLMENT",
-                            },
-                            EVENT: {
-                                objectReports: [],
-                                stats: {
-                                    created: result?.imported || 0,
-                                    updated: result?.updated || 0,
-                                    ignored: result?.ignored || 0,
-                                    deleted: result?.deleted || 0,
-                                    total: result?.total || 0,
-                                },
-                                trackerType: "EVENT",
-                            },
-                            RELATIONSHIP: {
-                                objectReports: [],
-                                stats: {
-                                    created: result?.imported || 0,
-                                    updated: result?.updated || 0,
-                                    ignored: result?.ignored || 0,
-                                    deleted: result?.deleted || 0,
-                                    total: result?.total || 0,
-                                },
-                                trackerType: "RELATIONSHIP",
-                            },
-                            TRACKED_ENTITY: {
-                                objectReports: [],
-                                stats: {
-                                    created: result?.imported || 0,
-                                    updated: result?.updated || 0,
-                                    ignored: result?.ignored || 0,
-                                    deleted: result?.deleted || 0,
-                                    total: result?.total || 0,
-                                },
-                                trackerType: "TRACKED_ENTITY",
-                            },
-                        },
-                        stats: {
-                            created: result?.imported || 0,
-                            updated: result?.updated || 0,
-                            ignored: result?.ignored || 0,
-                            deleted: result?.deleted || 0,
-                            total: result?.total || 0,
-                        },
-                        status: "OK",
-                    },
-                    message: "",
-                    stats: {
-                        created: result?.imported || 0,
-                        updated: result?.updated || 0,
-                        ignored: result?.ignored || 0,
-                        deleted: result?.deleted || 0,
-                        total: result?.total || 0,
-                    },
-                    validationReport: {
-                        errorReports: [],
-                        warningReports: [],
-                    },
-                    timingsStats: [],
-                };
+                if (result) {
+                    return result;
+                } else {
+                    throw new Error("Error while waiting for response");
+                }
             },
             {
                 title: `${model} - ${title}`,
@@ -323,7 +263,7 @@ async function uploadTeis(options: {
             }
         );
     });
-    return teisResult;
+    return trackedEntitiesResult;
 }
 
 interface Metadata {
@@ -347,12 +287,12 @@ async function getMetadata(api: D2Api): Promise<Metadata> {
 
 async function getApiEvents(
     api: D2Api,
-    teis: TrackedEntityInstance[],
+    trackedEntities: TrackedEntity[],
     dataEntries: DataPackageData[],
     metadata: Metadata,
-    teiSeed: string
+    trackedEntitySeed: string
 ): Promise<Event[]> {
-    const programByTei: Record<Id, Id> = _(teis)
+    const programByTrackedEntity: Record<Id, Id> = _(trackedEntities)
         .map(tei => [tei.id, tei.program.id] as const)
         .fromPairs()
         .value();
@@ -375,11 +315,15 @@ async function getApiEvents(
                 return null;
             }
 
-            const teiId = getUid(data.trackedEntityInstance, teiSeed);
-            const program = programByTei[teiId];
+            const trackedEntityId = getUid(data.trackedEntityInstance, trackedEntitySeed);
+            const program = programByTrackedEntity[trackedEntityId];
+
+            const enrollment =
+                trackedEntities.find(tei => tei.id === trackedEntityId)?.enrollment?.id ||
+                getUid([trackedEntityId, data.orgUnit, program].join("-"));
 
             if (!program) {
-                console.error(`Program not found for TEI ${teiId}`);
+                console.error(`Program not found for Tracked Entity ${trackedEntityId}`);
                 return null;
             }
 
@@ -408,13 +352,14 @@ async function getApiEvents(
 
             return {
                 event: data.id,
-                trackedEntity: teiId,
+                trackedEntity: trackedEntityId,
                 program: program,
                 orgUnit: data.orgUnit,
                 occurredAt: data.period,
                 attributeOptionCombo: data.attribute,
                 status: "COMPLETED" as const,
                 programStage: data.programStage,
+                enrollment: enrollment,
                 dataValues,
             };
         })
@@ -422,42 +367,45 @@ async function getApiEvents(
         .value();
 }
 
-function getApiTeiToUpload(
+function getApiTrackedEntityToUpload(
     program: Program,
     metadata: Metadata,
-    tei: TrackedEntityInstance,
-    existingTeis: TrackedEntityInstance[]
-): TrackedEntityInstanceToPost {
-    const { orgUnit, enrollment, relationships } = tei;
+    trackedEntity: TrackedEntity,
+    existingTrackedEntities: TrackedEntity[]
+): D2TrackerTrackedEntity {
+    const { orgUnit, enrollment, relationships } = trackedEntity;
     const optionById = _.keyBy(metadata.options, option => option.id);
 
-    const existingTei = existingTeis.find(tei_ => tei_.id === tei.id);
-    const apiRelationships = getApiRelationships(existingTei, relationships, metadata.relationshipTypesById);
+    const existingTrackedEntity = existingTrackedEntities.find(
+        existingTrackedEntity => existingTrackedEntity.id === trackedEntity.id
+    );
+    const apiRelationships = getApiRelationships(existingTrackedEntity, relationships, metadata.relationshipTypesById);
 
-    const enrollmentId = existingTei?.enrollment?.id || getUid([tei.id, orgUnit.id, program.id].join("-"));
+    const enrollmentId =
+        existingTrackedEntity?.enrollment?.id || getUid([trackedEntity.id, orgUnit.id, program.id].join("-"));
 
     return {
-        trackedEntityInstance: tei.id,
+        trackedEntity: trackedEntity.id,
         trackedEntityType: program.trackedEntityType.id,
         orgUnit: orgUnit.id,
-        attributes: tei.attributeValues.map(av => ({
+        attributes: trackedEntity.attributeValues.map(av => ({
             attribute: av.attribute.id,
             value: getValue(av, optionById),
         })),
         enrollments:
-            enrollment && enrollment.enrollmentDate
+            enrollment && enrollment.enrolledAt
                 ? [
                       {
+                          ...enrollment,
                           enrollment: enrollmentId,
-                          orgUnit: orgUnit.id,
+                          trackedEntity: trackedEntity.id,
                           program: program.id,
-                          enrollmentDate: enrollment.enrollmentDate,
-                          incidentDate: enrollment.incidentDate || enrollment.enrollmentDate,
+                          orgUnit: orgUnit.id,
                       },
                   ]
                 : [],
         relationships: apiRelationships,
-        ...getD2TeiGeometryAttributes(tei),
+        geometry: (trackedEntity.geometry as any) || null,
     };
 }
 
@@ -499,9 +447,7 @@ async function getExistingTeis(api: D2Api): Promise<Ref[]> {
     return _.flatten(teisGroups);
 }
 
-type TeiKey = KeysOfUnion<TrackedEntityInstanceApi>;
-
-async function getTeisFromApi(options: {
+async function getTrackedEntitiesFromApi(options: {
     api: D2Api;
     program: Program;
     orgUnits: Ref[];
@@ -510,131 +456,96 @@ async function getTeisFromApi(options: {
     enrollmentStartDate?: Moment;
     enrollmentEndDate?: Moment;
     ouMode: RelationshipOrgUnitFilter;
-}): Promise<PaginatedTeiGetResponse> {
+}): Promise<TrackedEntitiesGetResponse> {
     const { api, program, orgUnits, page, pageSize, enrollmentStartDate, enrollmentEndDate, ouMode } = options;
 
-    const fields: TeiKey[] = [
-        "trackedEntityInstance",
-        "inactive",
-        "orgUnit",
-        "attributes",
-        "enrollments",
-        "relationships",
-        "featureType",
-        "geometry",
-    ];
-
-    const ouModeQuery =
-        ouMode === "SELECTED" || ouMode === "CHILDREN" || ouMode === "DESCENDANTS"
-            ? { ouMode, ou: orgUnits?.map(({ id }) => id) }
-            : { ouMode };
-
-    return api.trackedEntityInstances
+    return api.tracker.trackedEntities
         .get({
-            ...ouModeQuery,
-            order: "created:asc",
+            ouMode: ouMode,
+            orgUnit: orgUnits?.map(({ id }) => id).join(","),
             program: program.id,
             pageSize,
             page,
             totalPages: true,
-            fields: fields.join(","),
-            programStartDate: enrollmentStartDate?.format("YYYY-MM-DD[T]HH:mm"),
-            programEndDate: enrollmentEndDate?.format("YYYY-MM-DD[T]HH:mm"),
+            fields: {
+                trackedEntity: true,
+                inactive: true,
+                orgUnit: true,
+                attributes: true,
+                enrollments: true,
+                relationships: true,
+                geometry: true,
+            },
+            enrollmentEnrolledAfter: enrollmentStartDate?.format("YYYY-MM-DD[T]HH:mm"),
+            enrollmentEnrolledBefore: enrollmentEndDate?.format("YYYY-MM-DD[T]HH:mm"),
         })
         .getData();
 }
 
-function buildTei(
+function buildTrackedEntity(
     metadata: RelationshipMetadata,
     program: Program,
-    teiApi: TrackedEntityInstanceApi
-): TrackedEntityInstance {
-    const orgUnit = { id: teiApi.orgUnit };
+    trackedEntity: D2TrackerTrackedEntity
+): TrackedEntity {
+    const orgUnit = { id: trackedEntity.orgUnit };
     const attributesById = _.keyBy(program.attributes, attribute => attribute.id);
 
-    const enrollment: Enrollment | undefined = _(teiApi.enrollments)
+    const enrollment: D2TrackerEnrollment | undefined = _(trackedEntity.enrollments)
         .filter(e => e.program === program.id && orgUnit.id === e.orgUnit)
-        .map(enrollmentApi => ({
-            id: enrollmentApi.enrollment,
-            enrollmentDate: enrollmentApi.enrollmentDate,
-            incidentDate: enrollmentApi.incidentDate,
-        }))
         .first();
 
-    const attributeValues: AttributeValue[] = teiApi.attributes.map((attrApi): AttributeValue => {
-        const optionSet = attributesById[attrApi.attribute]?.optionSet;
-        const option = optionSet && optionSet.options.find(option => option.code === attrApi.value);
+    const attributeValues: AttributeValue[] =
+        trackedEntity.attributes?.map((attrApi): AttributeValue => {
+            const optionSet = attributesById[attrApi.attribute]?.optionSet;
+            const option = optionSet && optionSet.options.find(option => option.code === attrApi.value);
 
-        return {
-            attribute: {
-                id: attrApi.attribute,
-                valueType: attrApi.valueType as DataElementType,
-                ...(optionSet ? { optionSet } : {}),
-            },
-            value: attrApi.value,
-            ...(option ? { optionId: option.id } : {}),
-        };
-    });
+            return {
+                attribute: {
+                    id: attrApi.attribute,
+                    valueType: attrApi.valueType as DataElementType,
+                    ...(optionSet ? { optionSet } : {}),
+                },
+                value: attrApi.value,
+                ...(option ? { optionId: option.id } : {}),
+            };
+        }) || [];
 
     return {
         program: { id: program.id },
-        id: teiApi.trackedEntityInstance,
-        orgUnit: { id: teiApi.orgUnit },
-        disabled: teiApi.inactive || false,
+        id: trackedEntity.trackedEntity || "",
+        orgUnit: { id: trackedEntity.orgUnit || "" },
+        disabled: trackedEntity.inactive || false,
         enrollment,
         attributeValues,
-        relationships: fromApiRelationships(metadata, teiApi),
-        geometry: getGeometry(teiApi),
+        relationships: fromApiRelationships(metadata, trackedEntity),
+        geometry: getGeometry(trackedEntity),
     };
 }
 
-function getD2TeiGeometryAttributes(tei: TrackedEntityInstance): TrackedEntityInstanceGeometryAttributes {
-    const { geometry } = tei;
-
+function getGeometry(trackedEntity: D2TrackerTrackedEntity): Geometry | undefined {
+    const { geometry } = trackedEntity;
+    if (!geometry) return undefined;
     switch (geometry.type) {
-        case "none":
-            return { featureType: "NONE" };
-        case "point": {
-            const { coordinates } = geometry;
-            const coordinatesPair = [coordinates.longitude, coordinates.latitude] as [number, number];
-            return { featureType: "POINT", geometry: { type: "Point", coordinates: coordinatesPair } };
+        case "Point": {
+            const [longitude, latitude] = geometry.coordinates;
+            return { type: "Point", coordinates: { latitude, longitude } };
         }
-        case "polygon": {
-            const coordinatesPairs = geometry.coordinatesList.map(
-                coordinates => [coordinates.longitude, coordinates.latitude] as [number, number]
-            );
-            return { featureType: "POLYGON", geometry: { type: "Polygon", coordinates: [coordinatesPairs] } };
-        }
-    }
-}
-
-function getGeometry(teiApi: TrackedEntityInstanceApi): Geometry {
-    switch (teiApi.featureType) {
-        case "NONE":
-            return { type: "none" };
-        case "POINT": {
-            const [longitude, latitude] = teiApi.geometry.coordinates;
-            return { type: "point", coordinates: { latitude, longitude } };
-        }
-        case "POLYGON": {
-            const coordinatesPairs = teiApi.geometry.coordinates[0] || [];
+        case "Polygon": {
+            const coordinatesPairs = geometry.coordinates[0] || [];
             const coordinatesList = coordinatesPairs.map(([longitude, latitude]) => ({ latitude, longitude }));
-            return { type: "polygon", coordinatesList };
+            return { type: "Polygon", coordinates: coordinatesList };
         }
     }
 }
 
-export function updateTeiIds(
-    trackedEntityInstances: TrackedEntityInstance[],
-    teiSeed: string
-): TrackedEntityInstance[] {
-    return trackedEntityInstances.map(tei => ({
-        ...tei,
-        id: getUid(tei.id, teiSeed),
-        relationships: tei.relationships.map(rel => ({
+export function updateTrackedEntityIds(trackedEntities: TrackedEntity[], trackedEntitySeed: string): TrackedEntity[] {
+    return trackedEntities.map(trackedEntity => ({
+        ...trackedEntity,
+        id: getUid(trackedEntity.id, trackedEntitySeed),
+        relationships: trackedEntity.relationships.map(rel => ({
             ...rel,
-            fromId: getUid(rel.fromId, teiSeed),
-            toId: getUid(rel.toId, teiSeed),
+            fromId: getUid(rel.fromId, trackedEntitySeed),
+            toId: getUid(rel.toId, trackedEntitySeed),
         })),
     }));
 }

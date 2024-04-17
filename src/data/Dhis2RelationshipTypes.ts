@@ -2,29 +2,29 @@ import {
     Relationship as RelationshipApi,
     RelationshipItem as RelationshipItemApi,
     TeiOuRequest as TrackedEntityOURequestApi,
-    TrackedEntityInstance as TrackedEntityInstanceApi,
 } from "@eyeseetea/d2-api/api/trackedEntityInstances";
 import _ from "lodash";
 import moment from "moment";
 import { NamedRef } from "../domain/entities/ReferenceObject";
 import { Relationship } from "../domain/entities/Relationship";
 import { RelationshipConstraint, RelationshipType } from "../domain/entities/RelationshipType";
-import { isRelationshipValid, TrackedEntityInstance } from "../domain/entities/TrackedEntityInstance";
+import { isRelationshipValid, TrackedEntity } from "../domain/entities/TrackedEntityInstance";
 import { D2Api, D2RelationshipConstraint, D2RelationshipType, Id, Ref } from "../types/d2-api";
 import { memoizeAsync } from "../utils/cache";
 import { promiseMap } from "../utils/promises";
 import { getUid } from "./dhis2-uid";
+import { D2TrackerTrackedEntity } from "@eyeseetea/d2-api/api/trackerTrackedEntities";
 
 type RelationshipTypesById = Record<Id, Pick<D2RelationshipType, "id" | "toConstraint" | "fromConstraint">>;
 
 export type RelationshipOrgUnitFilter = TrackedEntityOURequestApi["ouMode"];
 
 export function getApiRelationships(
-    existingTei: TrackedEntityInstance | undefined,
+    existingTrackedEntity: TrackedEntity | undefined,
     relationships: Relationship[],
     relationshipTypesById: RelationshipTypesById
 ): RelationshipApi[] {
-    const existingRelationships = existingTei?.relationships || [];
+    const existingRelationships = existingTrackedEntity?.relationships || [];
 
     const apiRelationships = _(relationships)
         .concat(existingRelationships)
@@ -75,8 +75,11 @@ function getRelationshipConstraint(
         : { event: { event: id } };
 }
 
-export function fromApiRelationships(metadata: RelationshipMetadata, teiApi: TrackedEntityInstanceApi): Relationship[] {
-    return _(teiApi.relationships)
+export function fromApiRelationships(
+    metadata: RelationshipMetadata,
+    trackedEntity: D2TrackerTrackedEntity
+): Relationship[] {
+    return _(trackedEntity.relationships)
         .map((relApi): Relationship | null => {
             const relationshipType = metadata.relationshipTypes.find(relType => relType.id === relApi.relationshipType);
 
@@ -91,8 +94,8 @@ export function fromApiRelationships(metadata: RelationshipMetadata, teiApi: Tra
                 getFromToRelationship(relationshipType, relApi.to, relApi.from);
 
             if (!fromToRelationship) {
-                const from = relApi.from.trackedEntityInstance?.trackedEntityInstance || "undefined";
-                const to = relApi.to.trackedEntityInstance?.trackedEntityInstance || "undefined";
+                const from = relApi.from.trackedEntity?.trackedEntity || "undefined";
+                const to = relApi.to.trackedEntity?.trackedEntity || "undefined";
                 console.error(`No valid TEIs for relationship ${relApi.relationship}: ${from} -> ${to}`);
                 return null;
             }
