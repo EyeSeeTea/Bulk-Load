@@ -26,7 +26,7 @@ import {
     TrackerRelationship,
     ValueRef,
 } from "../entities/Template";
-import { TrackedEntityInstance } from "../entities/TrackedEntityInstance";
+import { TrackedEntity } from "../entities/TrackedEntityInstance";
 import { ExcelRepository, ExcelValue, ReadCellOptions } from "../repositories/ExcelRepository";
 import { InstanceRepository } from "../repositories/InstanceRepository";
 
@@ -46,7 +46,7 @@ export class ExcelReader {
         }
 
         const data: DataPackageData[] = [];
-        const teis: TrackedEntityInstance[] = [];
+        const trackedEntities: TrackedEntity[] = [];
         const relationships: Relationship[] = [];
 
         // This should be refactored but need to validate with @tokland about TEIs
@@ -59,13 +59,15 @@ export class ExcelReader {
                     (await this.readByRow(template, dataSource)).map(item => data.push(item));
                     break;
                 case "rowTei":
-                    (await this.readTeiRows(template, dataSource, dataForm)).map(item => teis.push(item));
+                    (await this.readTeiRows(template, dataSource, dataForm)).map(item => trackedEntities.push(item));
                     break;
                 case "rowTeiRelationship":
                     (await this.readTeiRelationships(template, dataSource)).map(item => relationships.push(item));
                     break;
                 case "rowTrackedEvent":
-                    (await this.readTeiEvents(template, dataSource, teis, dataForm)).map(item => data.push(item));
+                    (await this.readTeiEvents(template, dataSource, trackedEntities, dataForm)).map(item =>
+                        data.push(item)
+                    );
                     break;
                 default:
                     throw new Error(`Type ${dataSource.type} not supported`);
@@ -105,8 +107,11 @@ export class ExcelReader {
             .value();
 
         if (dataFormType === "trackerPrograms") {
-            const trackedEntityInstances = this.addTeiRelationships(teis, relationships);
-            return { type: "trackerPrograms", dataEntries, trackedEntityInstances };
+            const trackedEntitiesWithRelationships = this.addTrackedEntitiesRelationships(
+                trackedEntities,
+                relationships
+            );
+            return { type: "trackerPrograms", dataEntries, trackedEntities: trackedEntitiesWithRelationships };
         }
 
         return { type: dataFormType, dataEntries };
@@ -221,20 +226,26 @@ export class ExcelReader {
         );
     }
 
-    private addTeiRelationships(teis: TrackedEntityInstance[], relationships: Relationship[]): TrackedEntityInstance[] {
+    private addTrackedEntitiesRelationships(
+        trackedEntities: TrackedEntity[],
+        relationships: Relationship[]
+    ): TrackedEntity[] {
         const relationshipsByFromId = _.groupBy(relationships, relationship => relationship.fromId);
         const relationshipsByToId = _.groupBy(relationships, relationship => relationship.toId);
 
-        return teis.map(tei => ({
-            ...tei,
-            relationships: _.concat(relationshipsByFromId[tei.id] || [], relationshipsByToId[tei.id] || []),
+        return trackedEntities.map(trackedEntity => ({
+            ...trackedEntity,
+            relationships: _.concat(
+                relationshipsByFromId[trackedEntity.id] || [],
+                relationshipsByToId[trackedEntity.id] || []
+            ),
         }));
     }
 
     private async readTeiEvents(
         template: Template,
         dataSource: TrackerEventRowDataSource,
-        teis: TrackedEntityInstance[],
+        teis: TrackedEntity[],
         dataForm: DataForm
     ): Promise<DataPackageData[]> {
         const programId = await this.getFormulaCell(template, template.dataFormId);
@@ -339,7 +350,7 @@ export class ExcelReader {
         template: Template,
         dataSource: TeiRowDataSource,
         dataForm: DataForm
-    ): Promise<TrackedEntityInstance[]> {
+    ): Promise<TrackedEntity[]> {
         const programId = await this.getFormulaCell(template, template.dataFormId);
         if (!programId) return [];
 
@@ -391,21 +402,21 @@ export class ExcelReader {
 
             if (!teiId || !orgUnitId || !enrollmentDate) return undefined;
 
-            const trackedEntityInstance: TrackedEntityInstance = {
+            const trackedEntity: TrackedEntity = {
                 program: { id: String(programId) },
                 id: String(teiId),
                 orgUnit: { id: orgUnitId },
                 disabled: false,
                 attributeValues,
                 enrollment: {
-                    enrollmentDate: this.formatValue(enrollmentDate),
-                    incidentDate: this.formatValue(incidentDate || enrollmentDate),
+                    enrolledAt: this.formatValue(enrollmentDate),
+                    occurredAt: this.formatValue(incidentDate || enrollmentDate),
                 },
                 relationships: [],
                 geometry,
             };
 
-            return trackedEntityInstance;
+            return trackedEntity;
         });
 
         return _.compact(values);

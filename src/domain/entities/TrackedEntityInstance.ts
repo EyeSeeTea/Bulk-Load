@@ -1,10 +1,10 @@
 import _ from "lodash";
 import { DataElementType } from "./DataForm";
-import { Geometry } from "./Geometry";
 import { Id, Ref } from "./ReferenceObject";
 import { Relationship } from "./Relationship";
+import { Geometry } from "./Geometry";
 
-export interface TrackedEntityInstance {
+export interface TrackedEntity {
     program: Ref;
     id: Id;
     orgUnit: Ref;
@@ -12,13 +12,13 @@ export interface TrackedEntityInstance {
     attributeValues: AttributeValue[];
     enrollment: Enrollment | undefined;
     relationships: Relationship[];
-    geometry: Geometry;
+    geometry: Geometry | undefined;
 }
 
 export interface Enrollment {
     id?: Id;
-    enrollmentDate: string;
-    incidentDate: string;
+    enrolledAt: string;
+    occurredAt?: string;
 }
 
 export interface AttributeValue {
@@ -39,9 +39,9 @@ export interface Attribute {
     optionSet?: { id: Id; options: Array<{ id: string; code: string }> };
 }
 
-export function getRelationships(trackedEntityInstances: TrackedEntityInstance[]): Relationship[] {
-    return _(trackedEntityInstances)
-        .flatMap(tei => tei.relationships)
+export function getRelationships(trackedEntities: TrackedEntity[]): Relationship[] {
+    return _(trackedEntities)
+        .flatMap(trackedEntity => trackedEntity.relationships)
         .uniqWith(_.isEqual)
         .value();
 }

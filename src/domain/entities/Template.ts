@@ -138,8 +138,8 @@ interface BaseDataSource {
     attribute?: SheetRef | ValueRef;
     eventId?: SheetRef | ValueRef;
     coordinates?: {
-        latitude: SheetRef | ValueRef;
-        longitude: SheetRef | ValueRef;
+        latitude: ColumnRef | CellRef | ValueRef;
+        longitude: ColumnRef | CellRef | ValueRef;
     };
 }
 
@@ -247,6 +247,8 @@ export function setDataEntrySheet(dataSource: RowDataSource, sheets: SheetE[]): 
         get(dataSource.categoryOption),
         get(dataSource.attribute),
         get(dataSource.eventId),
+        get(dataSource.coordinates?.latitude),
+        get(dataSource.coordinates?.longitude),
     ]);
 
     const sheetsFromDataSource = _.uniq(sheetsFromDataSourceAll);
@@ -281,6 +283,13 @@ export function setDataEntrySheet(dataSource: RowDataSource, sheets: SheetE[]): 
             categoryOption: set(dataSource.categoryOption),
             attribute: set(dataSource.attribute),
             eventId: set(dataSource.eventId),
+            ...(dataSource.coordinates?.latitude &&
+                dataSource.coordinates?.longitude && {
+                    coordinates: {
+                        latitude: set(dataSource.coordinates.latitude),
+                        longitude: set(dataSource.coordinates.longitude),
+                    },
+                }),
         };
     });
 }

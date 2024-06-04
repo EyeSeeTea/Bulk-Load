@@ -1,97 +1,87 @@
 import _ from "lodash";
-import {
-    SynchronizationResult,
-    SynchronizationStats,
-    SynchronizationStatus,
-} from "../domain/entities/SynchronizationResult";
+import { SynchronizationResult, SynchronizationStats } from "../domain/entities/SynchronizationResult";
 import i18n from "../locales";
-
-type Status = "OK" | "ERROR";
-
-export interface ImportPostResponse {
-    status: Status;
-    message?: string;
-    response?: {
-        status: SynchronizationStatus;
-        imported: number;
-        updated: number;
-        deleted: number;
-        ignored: number;
-        total: number;
-        importSummaries?: Array<{
-            responseType: "ImportSummary";
-            description?: string;
-            status: SynchronizationStatus;
-            href?: string;
-            importCount: {
-                imported: number;
-                updated: number;
-                deleted: number;
-                ignored: number;
-            };
-            reference?: string;
-            conflicts?: {
-                object: string;
-                value: string;
-            }[];
-            // Only for TEI import
-            enrollments?: ImportPostResponse["response"];
-        }>;
-    };
-}
+import { TrackerPostResponse } from "@eyeseetea/d2-api/api/tracker";
 
 export function processImportResponse(options: {
     title: string;
     model: string;
-    importResult: ImportPostResponse;
+    importResult: TrackerPostResponse;
     splitStatsList: boolean;
 }): SynchronizationResult {
     const { title, model, importResult, splitStatsList } = options;
-    const { message, response } = importResult;
-    const status = response ? response.status : "ERROR";
+    const {
+        message,
+        bundleReport,
+        validationReport: { errorReports, warningReports },
+        status,
+        stats,
+    } = importResult;
 
-    if (!response) return { title, status, message, rawResponse: importResult };
+    const fields = ["created", "updated", "ignored", "deleted", "total"] as const;
+    const totalStats: SynchronizationStats = { type: "TOTAL", ..._.pick(stats, fields) };
 
-    // Add inner import summaries
-    const importSummaries = _(response.importSummaries)
-        .flatMap(importSummary => [importSummary, ...(importSummary.enrollments?.importSummaries || [])])
+    const statsList = _(bundleReport?.typeReportMap)
+        .values()
+        .filter(typeReportMap => typeReportMap.stats.total > 0)
+        .map(typeReportMap => {
+            const typeIds = typeReportMap.objectReports.map(({ uid }) => uid);
+            return {
+                type: i18n.t(`${model}`),
+                ids: typeIds,
+                ...bundleReport.typeReportMap[typeReportMap.trackerType].stats,
+            };
+        })
         .value();
 
-    const aggregatedStatus =
-        _(importSummaries)
-            .map(summary => summary.status)
-            .find(status => status !== "SUCCESS") || status;
+    const splitedStats: SynchronizationStats[] = splitStatsList
+        ? _.compact([statsList.length === 1 ? null : totalStats, ...statsList])
+        : [totalStats];
 
-    const errors =
-        _.flatMap(
-            importSummaries,
-            ({ reference = "", description, conflicts }) =>
-                conflicts?.map(({ object, value }) => ({
-                    id: reference,
-                    message: _([description, object, value]).compact().join(" "),
-                    details: "",
-                })) ?? (description ? [{ id: reference, message: description, details: "" }] : [])
-        ) ?? [];
-
-    const fields = ["imported", "updated", "ignored", "deleted", "total"] as const;
-    const totalStats: SynchronizationStats = { type: "TOTAL", ..._.pick(response, fields) };
-
-    const eventStatsList = (response.importSummaries || []).map((importSummary): SynchronizationStats => {
+    const errors = errorReports.map(warningReport => {
         return {
-            type: i18n.t(`${model} ${importSummary.reference || "-"}`),
-            ...importSummary.importCount,
+            id: warningReport.uid,
+            message: warningReport.message,
+            details: warningReport.errorCode,
         };
     });
 
-    const stats = splitStatsList
-        ? _.compact([eventStatsList.length === 1 ? null : totalStats, ...eventStatsList])
-        : [totalStats];
+    const warnings = warningReports.map(warningReport => {
+        return {
+            id: warningReport.uid,
+            message: warningReport.message,
+            details: warningReport.errorCode,
+        };
+    });
 
-    return { title, status: aggregatedStatus, message, errors, stats, rawResponse: importResult };
+    if (!bundleReport) return { title, status, stats: splitedStats, errors, message, rawResponse: importResult };
+
+    const objectReports = _.flatMap(bundleReport.typeReportMap, type => type.objectReports);
+
+    const objectReportErrors = _.flatMap(objectReports, objectReport =>
+        objectReport.errorReports.map(errorReport => {
+            return {
+                id: objectReport.uid,
+                message: errorReport.message,
+                details: errorReport.errorCode,
+            };
+        })
+    );
+
+    return {
+        title,
+        status,
+        message,
+        errors,
+        warnings,
+        objectReportErrors,
+        stats: splitedStats,
+        rawResponse: importResult,
+    };
 }
 
 export async function postImport(
-    postFn: () => Promise<ImportPostResponse>,
+    postFn: () => Promise<TrackerPostResponse>,
     options: { title: string; model: string; splitStatsList: boolean }
 ): Promise<SynchronizationResult> {
     const { title, model, splitStatsList } = options;

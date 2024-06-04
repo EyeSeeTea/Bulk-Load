@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load App\n"
-"POT-Creation-Date: 2023-06-29T07:07:25.389Z\n"
+"POT-Creation-Date: 2024-03-08T12:55:49.199Z\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -664,9 +664,6 @@ msgstr "Base de données"
 msgid "Value for field '{{field}}' is invalid - {{value}}"
 msgstr ""
 
-msgid "Imported"
-msgstr "Importé"
-
 msgid "Updated"
 msgstr "Actualisé"
 
@@ -688,6 +685,9 @@ msgstr ""
 msgid "Details"
 msgstr ""
 
+msgid "Ids"
+msgstr ""
+
 msgid "Synchronization Results"
 msgstr ""
 
@@ -695,6 +695,9 @@ msgid "Status"
 msgstr ""
 
 msgid "Summary"
+msgstr ""
+
+msgid "Import was successful"
 msgstr ""
 
 msgid "Messages"
@@ -1135,6 +1138,9 @@ msgstr ""
 
 msgid "Settings saved"
 msgstr "Paramètres sauvegardés"
+
+#~ msgid "Imported"
+#~ msgstr "Importé"
 
 #, fuzzy
 #~ msgid "Template Code"
