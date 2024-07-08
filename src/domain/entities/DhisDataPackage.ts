@@ -26,6 +26,10 @@ export interface Event {
         latitude: string;
         longitude: string;
     };
+    geometry?: {
+        type: "Point";
+        coordinates: number[];
+    };
     attributeOptionCombo?: string;
     trackedEntityInstance?: string;
     programStage?: string;

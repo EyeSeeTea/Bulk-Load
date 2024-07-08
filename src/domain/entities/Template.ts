@@ -192,6 +192,10 @@ export interface RowDataSource extends BaseDataSource {
     categoryOption?: ColumnRef | RowRef | ValueRef;
     attribute?: ColumnRef | CellRef | ValueRef;
     eventId?: ColumnRef | CellRef | ValueRef;
+    coordinates?: {
+        latitude: ColumnRef | CellRef | ValueRef;
+        longitude: ColumnRef | CellRef | ValueRef;
+    };
 }
 
 export interface TeiRowDataSource {
@@ -264,6 +268,8 @@ export function setDataEntrySheet(dataSource: RowDataSource, sheets: SheetE[]): 
         get(dataSource.categoryOption),
         get(dataSource.attribute),
         get(dataSource.eventId),
+        get(dataSource.coordinates?.latitude),
+        get(dataSource.coordinates?.longitude),
     ]);
 
     const sheetsFromDataSource = _.uniq(sheetsFromDataSourceAll);
@@ -298,6 +304,12 @@ export function setDataEntrySheet(dataSource: RowDataSource, sheets: SheetE[]): 
             categoryOption: set(dataSource.categoryOption),
             attribute: set(dataSource.attribute),
             eventId: set(dataSource.eventId),
+            coordinates: dataSource.coordinates
+                ? {
+                      latitude: set(dataSource.coordinates.latitude),
+                      longitude: set(dataSource.coordinates.longitude),
+                  }
+                : undefined,
         };
     });
 }

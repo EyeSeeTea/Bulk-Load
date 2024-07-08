@@ -349,6 +349,10 @@ export class InstanceDhisRepository implements InstanceRepository {
             attributeOptionCombo: attribute,
             dataValues: dataValues,
             coordinate,
+            geometry: {
+                type: "Point",
+                coordinates: [Number(coordinate?.longitude), Number(coordinate?.latitude)],
+            },
         }));
     }
 
@@ -616,6 +620,7 @@ export class InstanceDhisRepository implements InstanceRepository {
                         eventDate,
                         attributeOptionCombo,
                         coordinate,
+                        geometry,
                         dataValues,
                         trackedEntityInstance,
                         programStage,
@@ -625,7 +630,12 @@ export class InstanceDhisRepository implements InstanceRepository {
                         orgUnit,
                         period: moment(eventDate).format("YYYY-MM-DD"),
                         attribute: attributeOptionCombo,
-                        coordinate,
+                        coordinate: geometry
+                            ? {
+                                  longitude: geometry.coordinates[0]?.toString() ?? "",
+                                  latitude: geometry.coordinates[1]?.toString() ?? "",
+                              }
+                            : coordinate,
                         trackedEntityInstance,
                         programStage,
                         dataValues:
