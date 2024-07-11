@@ -8,26 +8,11 @@ import { promiseMap } from "../utils/promises";
 
 export async function postEvents(api: D2Api, events: Event[]): Promise<SynchronizationResult[]> {
     const eventsResult = await promiseMap(_.chunk(events, 200), eventsToSave => {
-        return postImport(
-            () =>
-                api
-                    .post<ImportPostResponse>(
-                        "/events",
-                        {},
-                        {
-                            events: eventsToSave.map(event => {
-                                const { geometry: _, ...rest } = event;
-                                return { ...rest };
-                            }),
-                        }
-                    )
-                    .getData(),
-            {
-                title: i18n.t("Data values - Create/update"),
-                model: i18n.t("Event"),
-                splitStatsList: true,
-            }
-        );
+        return postImport(() => api.post<ImportPostResponse>("/events", {}, { events: eventsToSave }).getData(), {
+            title: i18n.t("Data values - Create/update"),
+            model: i18n.t("Event"),
+            splitStatsList: true,
+        });
     });
     return eventsResult;
 }

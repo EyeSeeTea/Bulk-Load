@@ -349,10 +349,6 @@ export class InstanceDhisRepository implements InstanceRepository {
             attributeOptionCombo: attribute,
             dataValues: dataValues,
             coordinate,
-            geometry: {
-                type: "Point",
-                coordinates: [Number(coordinate?.longitude), Number(coordinate?.latitude)],
-            },
         }));
     }
 
