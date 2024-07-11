@@ -5,8 +5,8 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2024-01-19T18:27:08.201Z\n"
-"PO-Revision-Date: 2024-01-19T18:27:08.201Z\n"
+"POT-Creation-Date: 2024-07-11T14:55:21.258Z\n"
+"PO-Revision-Date: 2024-07-11T14:55:21.258Z\n"
 
 msgid "Data values - Create/update"
 msgstr ""
@@ -851,6 +851,9 @@ msgid "Create theme"
 msgstr ""
 
 msgid "Access to Themes"
+msgstr ""
+
+msgid "Error while updating sharing settings"
 msgstr ""
 
 msgid "Error deleting data values"
