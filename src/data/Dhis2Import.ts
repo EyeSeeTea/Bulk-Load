@@ -6,7 +6,7 @@ import {
 } from "../domain/entities/SynchronizationResult";
 import i18n from "../locales";
 
-type Status = "OK" | "ERROR";
+export type Status = "OK" | "ERROR";
 
 export interface ImportPostResponse {
     status: Status;
