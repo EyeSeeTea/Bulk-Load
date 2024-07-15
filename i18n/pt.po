@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2024-07-11T14:55:21.258Z\n"
+"POT-Creation-Date: 2024-07-15T17:11:25.165Z\n"
 "Language: pt\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -9,8 +9,8 @@ msgstr ""
 "X-Generator: POEditor.com\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-msgid "Data values - Create/update"
-msgstr "Valores dos dados - Criar/actualizar"
+msgid "Tracker data - Create/update"
+msgstr ""
 
 msgid "Event"
 msgstr "Evento"
@@ -30,6 +30,9 @@ msgstr "Planilha {{id}} não carregada"
 
 msgid "Data values - Delete"
 msgstr "Valores de dados - Eliminar"
+
+msgid "Data values - Create/update"
+msgstr "Valores dos dados - Criar/actualizar"
 
 msgid "Failed to import data values"
 msgstr ""
