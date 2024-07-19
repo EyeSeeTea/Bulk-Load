@@ -25,17 +25,12 @@ import {
     DataStore,
     DataValueSetsGetResponse,
     Id,
-    Pager,
     SelectedPick,
 } from "../types/d2-api";
 import { cache } from "../utils/cache";
 import { promiseMap } from "../utils/promises";
 import { postEvents } from "./Dhis2Events";
 import { getProgram, getTrackedEntityInstances, updateTrackedEntityInstances } from "./Dhis2TrackedEntityInstances";
-
-interface PagedEventsApiResponse extends EventsPackage {
-    pager: Pager;
-}
 
 export class InstanceDhisRepository implements InstanceRepository {
     private api: D2Api;
@@ -436,6 +431,7 @@ export class InstanceDhisRepository implements InstanceRepository {
 
     private async importTrackerProgramData(dataPackage: TrackerProgramPackage): Promise<SynchronizationResult[]> {
         const { trackedEntityInstances, dataEntries } = dataPackage;
+        console.log({ dataPackage });
         return updateTrackedEntityInstances(this.api, trackedEntityInstances, dataEntries);
     }
 
@@ -575,37 +571,49 @@ export class InstanceDhisRepository implements InstanceRepository {
             throw new Error(`Could not find category options for the program ${id}`);
         }
 
-        const getEvents = (orgUnit: Id, categoryOptionId: Id, page: number): Promise<PagedEventsApiResponse> => {
+        const getEvents = async (
+            orgUnit: Id,
+            categoryOptionId: Id,
+            page: number
+        ): Promise<{
+            instances: Event[];
+            pageCount: number;
+        }> => {
             // DHIS2 bug if we do not provide CC and COs, endpoint only works with ALL authority
-            return this.api
-                .get<PagedEventsApiResponse>("/events", {
+
+            const { instances, pageCount } = await this.api
+                .get<{
+                    instances: Event[];
+                    pageCount: number;
+                }>("/tracker/events", {
                     program: id,
                     orgUnit,
                     paging: true,
                     totalPages: true,
                     page,
                     pageSize: 250,
-                    attributeCc: categoryComboId,
-                    attributeCos: categoryOptionId,
-                    startDate: startDate?.format("YYYY-MM-DD"),
-                    endDate: endDate?.format("YYYY-MM-DD"),
+                    attributeCategoryCombo: categoryComboId,
+                    attributeCategoryOptions: categoryOptionId,
+                    occuredAfter: startDate?.format("YYYY-MM-DD"),
+                    occuredBefore: endDate?.format("YYYY-MM-DD"),
                     cache: Math.random(),
-                    // @ts-ignore FIXME: Add property in d2-api
                     fields: "*",
                 })
                 .getData();
+
+            return { instances, pageCount };
         };
 
         const programEvents: Event[] = [];
 
         for (const orgUnit of orgUnits) {
             for (const categoryOptionId of categoryOptions) {
-                const { events, pager } = await getEvents(orgUnit, categoryOptionId, 1);
+                const { instances: events, pageCount } = await getEvents(orgUnit, categoryOptionId, 1);
                 programEvents.push(...events);
 
-                await promiseMap(_.range(2, pager.pageCount + 1, 1), async page => {
-                    const { events } = await getEvents(orgUnit, categoryOptionId, page);
-                    programEvents.push(...events);
+                await promiseMap(_.range(2, pageCount + 1, 1), async page => {
+                    const { instances } = await getEvents(orgUnit, categoryOptionId, page);
+                    programEvents.push(...instances);
                 });
             }
         }
@@ -636,6 +644,7 @@ export class InstanceDhisRepository implements InstanceRepository {
                                   latitude: geometry.coordinates[1]?.toString() ?? "",
                               }
                             : coordinate,
+                        geometry: geometry,
                         trackedEntityInstance,
                         programStage,
                         dataValues:

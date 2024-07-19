@@ -206,6 +206,8 @@ export interface TeiRowDataSource {
     geometry?: ColumnRef;
     enrollmentDate: ColumnRef;
     incidentDate: ColumnRef;
+    enrolledAt?: ColumnRef;
+    occurredAt?: ColumnRef;
     attributes: Range;
     attributeId: RowRef;
 }

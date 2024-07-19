@@ -1,7 +1,5 @@
 import {
-    PaginatedTeiGetResponse,
     TeiGetRequest,
-    TrackedEntityInstance as TrackedEntityInstanceApi,
     TrackedEntityInstanceGeometryAttributes,
     TrackedEntityInstanceToPost,
 } from "@eyeseetea/d2-api/api/trackedEntityInstances";
@@ -15,7 +13,14 @@ import { Geometry } from "../domain/entities/Geometry";
 import { emptyImportSummary } from "../domain/entities/ImportSummary";
 import { Relationship } from "../domain/entities/Relationship";
 import { SynchronizationResult } from "../domain/entities/SynchronizationResult";
-import { AttributeValue, Enrollment, Program, TrackedEntityInstance } from "../domain/entities/TrackedEntityInstance";
+import {
+    AttributeValue,
+    Enrollment,
+    Program,
+    TrackedEntitiesApiRequest,
+    TrackedEntitiesResponse,
+    TrackedEntityInstance,
+} from "../domain/entities/TrackedEntityInstance";
 import { parseDate } from "../domain/helpers/ExcelReader";
 import i18n from "../locales";
 import { D2Api, D2RelationshipType, Id, Ref } from "../types/d2-api";
@@ -65,12 +70,12 @@ export async function getTrackedEntityInstances(options: GetOptions): Promise<Tr
     const orgUnitsList = _.chunk(orgUnits, 250);
 
     // Get TEIs for the first page:
-    const apiTeis: TrackedEntityInstanceApi[] = [];
+    const apiTeis: TrackedEntitiesApiRequest[] = [];
 
     for (const orgUnits of orgUnitsList) {
         // Limit response size by requesting paginated TEIs
         for (let page = 1; ; page++) {
-            const { pager, trackedEntityInstances } = await getTeisFromApi({
+            const { pageCount, instances } = await getTeisFromApi({
                 api,
                 program,
                 orgUnits,
@@ -80,8 +85,8 @@ export async function getTrackedEntityInstances(options: GetOptions): Promise<Tr
                 enrollmentEndDate,
                 ouMode: relationshipsOuFilter,
             });
-            apiTeis.push(...trackedEntityInstances);
-            if (pager.pageCount <= page) break;
+            apiTeis.push(...instances);
+            if (pageCount <= page) break;
         }
     }
 
@@ -155,6 +160,9 @@ export async function updateTrackedEntityInstances(
     const apiEvents = await getApiEvents(api, teis, dataEntries, metadata, teiSeed);
     const { preTeis, postTeis } = await splitTeis(api, teis, metadata);
     const options = { api, program, metadata, existingTeis };
+
+    console.log({ apiEvents, teis, dataEntries, metadata, teiSeed, existingTeis, program, programId });
+    debugger;
 
     return runSequentialPromisesOnSuccess([
         () => uploadTeis({ ...options, teis: preTeis, title: i18n.t("Create/update") }),
@@ -430,7 +438,7 @@ async function getExistingTeis(api: D2Api): Promise<Ref[]> {
     return _.flatten(teisGroups);
 }
 
-type TeiKey = KeysOfUnion<TrackedEntityInstanceApi>;
+type TeiKey = KeysOfUnion<TrackedEntitiesApiRequest>;
 
 async function getTeisFromApi(options: {
     api: D2Api;
@@ -441,17 +449,16 @@ async function getTeisFromApi(options: {
     enrollmentStartDate?: Moment;
     enrollmentEndDate?: Moment;
     ouMode: RelationshipOrgUnitFilter;
-}): Promise<PaginatedTeiGetResponse> {
+}): Promise<TrackedEntitiesResponse> {
     const { api, program, orgUnits, page, pageSize, enrollmentStartDate, enrollmentEndDate, ouMode } = options;
 
     const fields: TeiKey[] = [
-        "trackedEntityInstance",
+        "trackedEntity",
         "inactive",
         "orgUnit",
         "attributes",
         "enrollments",
         "relationships",
-        "featureType",
         "geometry",
     ];
 
@@ -460,25 +467,27 @@ async function getTeisFromApi(options: {
             ? { ouMode, ou: orgUnits?.map(({ id }) => id) }
             : { ouMode };
 
-    return api.trackedEntityInstances
-        .get({
-            ...ouModeQuery,
-            order: "created:asc",
+    const { instances, pageCount } = await api
+        .get<TrackedEntitiesResponse>("/tracker/trackedEntities", {
+            ouMode: ouModeQuery.ouMode,
+            orgUnit: ouModeQuery.ou,
             program: program.id,
-            pageSize,
-            page,
+            pageSize: pageSize,
+            page: page,
             totalPages: true,
             fields: fields.join(","),
-            programStartDate: enrollmentStartDate?.format("YYYY-MM-DD[T]HH:mm"),
-            programEndDate: enrollmentEndDate?.format("YYYY-MM-DD[T]HH:mm"),
+            enrollmentEnrolledAfter: enrollmentStartDate?.format("YYYY-MM-DD[T]HH:mm"),
+            enrollmentEnrolledBefore: enrollmentEndDate?.format("YYYY-MM-DD[T]HH:mm"),
         })
         .getData();
+
+    return { instances, pageCount };
 }
 
 function buildTei(
     metadata: RelationshipMetadata,
     program: Program,
-    teiApi: TrackedEntityInstanceApi
+    teiApi: TrackedEntitiesApiRequest
 ): TrackedEntityInstance {
     const orgUnit = { id: teiApi.orgUnit };
     const attributesById = _.keyBy(program.attributes, attribute => attribute.id);
@@ -487,8 +496,8 @@ function buildTei(
         .filter(e => e.program === program.id && orgUnit.id === e.orgUnit)
         .map(enrollmentApi => ({
             id: enrollmentApi.enrollment,
-            enrollmentDate: enrollmentApi.enrollmentDate,
-            incidentDate: enrollmentApi.incidentDate,
+            enrolledAt: enrollmentApi.enrolledAt,
+            occurredAt: enrollmentApi.occurredAt,
         }))
         .first();
 
@@ -509,7 +518,7 @@ function buildTei(
 
     return {
         program: { id: program.id },
-        id: teiApi.trackedEntityInstance,
+        id: teiApi.trackedEntity,
         orgUnit: { id: teiApi.orgUnit },
         disabled: teiApi.inactive || false,
         enrollment,
@@ -539,19 +548,19 @@ function getD2TeiGeometryAttributes(tei: TrackedEntityInstance): TrackedEntityIn
     }
 }
 
-function getGeometry(teiApi: TrackedEntityInstanceApi): Geometry {
-    switch (teiApi.featureType) {
-        case "NONE":
-            return { type: "none" };
-        case "POINT": {
+function getGeometry(teiApi: TrackedEntitiesApiRequest): Geometry {
+    switch (teiApi.geometry?.type) {
+        case "Point": {
             const [longitude, latitude] = teiApi.geometry.coordinates;
             return { type: "point", coordinates: { latitude, longitude } };
         }
-        case "POLYGON": {
+        case "Polygon": {
             const coordinatesPairs = teiApi.geometry.coordinates[0] || [];
             const coordinatesList = coordinatesPairs.map(([longitude, latitude]) => ({ latitude, longitude }));
             return { type: "polygon", coordinatesList };
         }
+        default:
+            return { type: "none" };
     }
 }
 

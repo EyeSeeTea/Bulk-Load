@@ -405,6 +405,8 @@ export class ExcelReader {
                 disabled: false,
                 attributeValues,
                 enrollment: {
+                    enrolledAt: this.formatValue(enrollmentDate),
+                    occurredAt: this.formatValue(incidentDate || enrollmentDate),
                     enrollmentDate: this.formatValue(enrollmentDate),
                     incidentDate: this.formatValue(incidentDate || enrollmentDate),
                 },

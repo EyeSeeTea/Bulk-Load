@@ -161,7 +161,7 @@ export class ExcelBuilder {
                 await this.excelRepository.writeCell(
                     template.id,
                     enrollmentDateCell,
-                    format(new Date(enrollment.enrollmentDate), dateFormatPattern)
+                    format(new Date(enrollment.enrolledAt), dateFormatPattern)
                 );
 
             const incidentDateCell = await this.excelRepository.findRelativeCell(
@@ -173,7 +173,7 @@ export class ExcelBuilder {
                 await this.excelRepository.writeCell(
                     template.id,
                     incidentDateCell,
-                    format(new Date(enrollment.incidentDate), dateFormatPattern)
+                    format(new Date(enrollment.occurredAt), dateFormatPattern)
                 );
 
             for (const cell of cells) {
