@@ -431,7 +431,6 @@ export class InstanceDhisRepository implements InstanceRepository {
 
     private async importTrackerProgramData(dataPackage: TrackerProgramPackage): Promise<SynchronizationResult[]> {
         const { trackedEntityInstances, dataEntries } = dataPackage;
-        console.log({ dataPackage });
         return updateTrackedEntityInstances(this.api, trackedEntityInstances, dataEntries);
     }
 

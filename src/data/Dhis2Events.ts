@@ -4,15 +4,15 @@ import { Event } from "../domain/entities/DhisDataPackage";
 import { SynchronizationResult } from "../domain/entities/SynchronizationResult";
 import i18n from "../locales";
 import { promiseMap } from "../utils/promises";
-import { postTrackerImport, TrackerImportPostResponse } from "./DhisTrackerImport";
+import { ImportPostResponse, postImport } from "./Dhis2Import";
 
 export async function postEvents(api: D2Api, events: Event[]): Promise<SynchronizationResult[]> {
     const eventsResult = await promiseMap(_.chunk(events, 200), async eventsToSave => {
-        const trackerPostImport = await postTrackerImport(
+        const trackerPostImport = await postImport(
             api,
             () =>
                 api
-                    .post<TrackerImportPostResponse>(
+                    .post<ImportPostResponse>(
                         "/tracker",
                         {},
                         { events: eventsToSave.map(event => ({ ...event, occurredAt: event.eventDate })) }

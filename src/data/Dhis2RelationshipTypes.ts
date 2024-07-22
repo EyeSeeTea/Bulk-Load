@@ -11,13 +11,13 @@ import {
     isRelationshipValid,
     RelationshipItem,
     TrackedEntitiesApiRequest,
-    TrackedEntitiesResponse,
     TrackedEntityInstance,
 } from "../domain/entities/TrackedEntityInstance";
 import { D2Api, D2RelationshipConstraint, D2RelationshipType, Id, Ref } from "../types/d2-api";
 import { memoizeAsync } from "../utils/cache";
 import { promiseMap } from "../utils/promises";
 import { getUid } from "./dhis2-uid";
+import { getTrackedEntities } from "./Dhis2TrackedEntityInstances";
 
 type RelationshipTypesById = Record<Id, Pick<D2RelationshipType, "id" | "toConstraint" | "fromConstraint">>;
 
@@ -291,14 +291,6 @@ async function getConstraintForTypeTei(
     const name = trackedEntityTypesById[constraint.trackedEntityType.id]?.name ?? "Unknown";
 
     return { type: "tei", name, program: constraint.program, teis };
-}
-
-async function getTrackedEntities(api: D2Api, filterQuery: any): Promise<TrackedEntitiesResponse> {
-    const { instances, pageCount } = await api
-        .get<TrackedEntitiesResponse>("/tracker/trackedEntities", filterQuery)
-        .getData();
-
-    return { instances, pageCount };
 }
 
 async function getConstraintForTypeProgram(
