@@ -1,8 +1,4 @@
-import {
-    TeiGetRequest,
-    TrackedEntityInstanceGeometryAttributes,
-    TrackedEntityInstanceToPost,
-} from "@eyeseetea/d2-api/api/trackedEntityInstances";
+import { TeiGetRequest, TrackedEntityInstanceGeometryAttributes } from "@eyeseetea/d2-api/api/trackedEntityInstances";
 import { generateUid } from "d2/uid";
 import _ from "lodash";
 import { Moment } from "moment";
@@ -13,14 +9,7 @@ import { Geometry } from "../domain/entities/Geometry";
 import { emptyImportSummary } from "../domain/entities/ImportSummary";
 import { Relationship } from "../domain/entities/Relationship";
 import { SynchronizationResult } from "../domain/entities/SynchronizationResult";
-import {
-    AttributeValue,
-    Enrollment,
-    Program,
-    TrackedEntitiesApiRequest,
-    TrackedEntitiesResponse,
-    TrackedEntityInstance,
-} from "../domain/entities/TrackedEntityInstance";
+import { AttributeValue, Enrollment, Program, TrackedEntityInstance } from "../domain/entities/TrackedEntityInstance";
 import { parseDate } from "../domain/helpers/ExcelReader";
 import i18n from "../locales";
 import { D2Api, D2RelationshipType, Id, Ref } from "../types/d2-api";
@@ -36,6 +25,8 @@ import {
     RelationshipOrgUnitFilter,
 } from "./Dhis2RelationshipTypes";
 import { ImportPostResponse, postImport } from "./Dhis2Import";
+import { TrackedEntitiesApiRequest, TrackedEntitiesResponse, TrackedEntity } from "../domain/entities/TrackedEntity";
+import { Params } from "@eyeseetea/d2-api/api/common";
 
 export interface GetOptions {
     api: D2Api;
@@ -45,6 +36,16 @@ export interface GetOptions {
     enrollmentStartDate?: Moment;
     enrollmentEndDate?: Moment;
     relationshipsOuFilter?: RelationshipOrgUnitFilter;
+}
+
+type TrackerParams = Params & Omit<TeiGetRequest, "ou" | "ouMode">;
+
+export interface TrackedEntityGetRequest extends TrackerParams {
+    orgUnit?: TeiGetRequest["ou"];
+    orgUnitMode?: TeiGetRequest["ouMode"];
+    trackedEntity?: string;
+    enrollmentEnrolledAfter?: string;
+    enrollmentEnrolledBefore?: string;
 }
 
 export async function getTrackedEntityInstances(options: GetOptions): Promise<TrackedEntityInstance[]> {
@@ -243,21 +244,7 @@ async function uploadTeis(options: {
             api,
             () => {
                 return api
-                    .post<ImportPostResponse>(
-                        "/tracker",
-                        { async: true },
-                        {
-                            trackedEntities: teisToSave.map(tei => ({
-                                ...tei,
-                                trackedEntity: tei.trackedEntityInstance,
-                                enrollments: tei.enrollments?.map(enrollment => ({
-                                    ...enrollment,
-                                    occurredAt: enrollment.incidentDate,
-                                    enrolledAt: enrollment.enrollmentDate,
-                                })),
-                            })),
-                        }
-                    )
+                    .post<ImportPostResponse>("/tracker", { async: true }, { trackedEntities: teisToSave })
                     .getData();
             },
             {
@@ -371,7 +358,7 @@ function getApiTeiToUpload(
     metadata: Metadata,
     tei: TrackedEntityInstance,
     existingTeis: TrackedEntityInstance[]
-): TrackedEntityInstanceToPost {
+): TrackedEntity {
     const { orgUnit, enrollment, relationships } = tei;
     const optionById = _.keyBy(metadata.options, option => option.id);
 
@@ -381,7 +368,7 @@ function getApiTeiToUpload(
     const enrollmentId = existingTei?.enrollment?.id || getUid([tei.id, orgUnit.id, program.id].join("-"));
 
     return {
-        trackedEntityInstance: tei.id,
+        trackedEntity: tei.id,
         trackedEntityType: program.trackedEntityType.id,
         orgUnit: orgUnit.id,
         attributes: tei.attributeValues.map(av => ({
@@ -389,14 +376,14 @@ function getApiTeiToUpload(
             value: getValue(av, optionById),
         })),
         enrollments:
-            enrollment && enrollment.enrollmentDate
+            enrollment && enrollment.enrolledAt
                 ? [
                       {
                           enrollment: enrollmentId,
                           orgUnit: orgUnit.id,
                           program: program.id,
-                          enrollmentDate: enrollment.enrollmentDate,
-                          incidentDate: enrollment.incidentDate || enrollment.enrollmentDate,
+                          enrolledAt: enrollment.enrolledAt,
+                          occurredAt: enrollment.occurredAt || enrollment.enrolledAt,
                       },
                   ]
                 : [],
@@ -407,10 +394,10 @@ function getApiTeiToUpload(
 
 async function getExistingTeis(api: D2Api): Promise<Ref[]> {
     const query = {
-        ouMode: "CAPTURE",
+        orgUnitMode: "CAPTURE",
         pageSize: 1000,
         totalPages: true,
-        fields: "trackedEntityInstance",
+        fields: "trackedEntity",
     } as const;
 
     // DHIS 2.37 added a new requirement: "Either Program or Tracked entity type should be specified"
@@ -420,7 +407,7 @@ async function getExistingTeis(api: D2Api): Promise<Ref[]> {
     const metadata = await api.metadata.get({ trackedEntityTypes: { fields: { id: true } } }).getData();
 
     const teisGroups = await promiseMap(metadata.trackedEntityTypes, async entityType => {
-        const queryWithEntityType: TeiGetRequest = { ...query, trackedEntityType: entityType.id };
+        const queryWithEntityType: TrackedEntityGetRequest = { ...query, trackedEntityType: entityType.id };
 
         const { instances: firstPage, pageCount } = await getTrackedEntities(api, queryWithEntityType);
 
@@ -470,16 +457,15 @@ async function getTeisFromApi(options: {
 
     const ouModeQuery =
         ouMode === "SELECTED" || ouMode === "CHILDREN" || ouMode === "DESCENDANTS"
-            ? { ouMode, ou: orgUnits?.map(({ id }) => id) }
-            : { ouMode };
+            ? { orgUnitMode: ouMode, orgUnit: orgUnits?.map(({ id }) => id) }
+            : { orgUnitMode: ouMode };
 
-    const filters = {
-        ouMode: ouModeQuery.ouMode,
-        orgUnit: ouModeQuery.ou,
+    const filters: TrackedEntityGetRequest = {
+        ...ouModeQuery,
         program: program.id,
         pageSize: pageSize,
         page: page,
-        totalPages: true,
+        totalPages: true as const,
         fields: fields.join(","),
         enrollmentEnrolledAfter: enrollmentStartDate?.format("YYYY-MM-DD[T]HH:mm"),
         enrollmentEnrolledBefore: enrollmentEndDate?.format("YYYY-MM-DD[T]HH:mm"),
@@ -489,7 +475,10 @@ async function getTeisFromApi(options: {
     return { instances, pageCount };
 }
 
-export async function getTrackedEntities(api: D2Api, filterQuery: any): Promise<TrackedEntitiesResponse> {
+export async function getTrackedEntities(
+    api: D2Api,
+    filterQuery: TrackedEntityGetRequest
+): Promise<TrackedEntitiesResponse> {
     const { instances, pageCount } = await api
         .get<TrackedEntitiesResponse>("/tracker/trackedEntities", filterQuery)
         .getData();
@@ -534,8 +523,8 @@ function buildTei(
         id: teiApi.trackedEntity,
         orgUnit: { id: teiApi.orgUnit },
         disabled: teiApi.inactive || false,
-        enrollment,
-        attributeValues,
+        enrollment: enrollment,
+        attributeValues: attributeValues,
         relationships: fromApiRelationships(metadata, teiApi),
         geometry: getGeometry(teiApi),
     };

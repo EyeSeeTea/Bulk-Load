@@ -10,14 +10,7 @@ export async function postEvents(api: D2Api, events: Event[]): Promise<Synchroni
     const eventsResult = await promiseMap(_.chunk(events, 200), async eventsToSave => {
         const trackerPostImport = await postImport(
             api,
-            () =>
-                api
-                    .post<ImportPostResponse>(
-                        "/tracker",
-                        {},
-                        { events: eventsToSave.map(event => ({ ...event, occurredAt: event.eventDate })) }
-                    )
-                    .getData(),
+            () => api.post<ImportPostResponse>("/tracker", {}, { events: eventsToSave }).getData(),
             {
                 title: i18n.t("Tracker data - Create/update"),
                 model: i18n.t("Event"),

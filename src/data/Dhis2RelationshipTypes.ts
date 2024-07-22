@@ -1,23 +1,16 @@
-import {
-    Relationship as RelationshipApi,
-    TeiOuRequest as TrackedEntityOURequestApi,
-} from "@eyeseetea/d2-api/api/trackedEntityInstances";
+import { TeiOuRequest as TrackedEntityOURequestApi } from "@eyeseetea/d2-api/api/trackedEntityInstances";
 import _ from "lodash";
 import moment from "moment";
 import { NamedRef } from "../domain/entities/ReferenceObject";
 import { Relationship } from "../domain/entities/Relationship";
 import { RelationshipConstraint, RelationshipType } from "../domain/entities/RelationshipType";
-import {
-    isRelationshipValid,
-    RelationshipItem,
-    TrackedEntitiesApiRequest,
-    TrackedEntityInstance,
-} from "../domain/entities/TrackedEntityInstance";
+import { isRelationshipValid, TrackedEntityInstance } from "../domain/entities/TrackedEntityInstance";
 import { D2Api, D2RelationshipConstraint, D2RelationshipType, Id, Ref } from "../types/d2-api";
 import { memoizeAsync } from "../utils/cache";
 import { promiseMap } from "../utils/promises";
 import { getUid } from "./dhis2-uid";
 import { getTrackedEntities } from "./Dhis2TrackedEntityInstances";
+import { TrackerRelationship, RelationshipItem, TrackedEntitiesApiRequest } from "../domain/entities/TrackedEntity";
 
 type RelationshipTypesById = Record<Id, Pick<D2RelationshipType, "id" | "toConstraint" | "fromConstraint">>;
 
@@ -27,7 +20,7 @@ export function getApiRelationships(
     existingTei: TrackedEntityInstance | undefined,
     relationships: Relationship[],
     relationshipTypesById: RelationshipTypesById
-): RelationshipApi[] {
+): TrackerRelationship[] {
     const existingRelationships = existingTei?.relationships || [];
 
     const apiRelationships = _(relationships)
@@ -47,7 +40,7 @@ export function getApiRelationships(
 
             if (!fromConstraint || !toConstraint) return undefined;
 
-            const relApi: RelationshipApi = {
+            const relApi: TrackerRelationship = {
                 relationship: relationshipId,
                 relationshipType: rel.typeId,
                 relationshipName: rel.typeName,
@@ -75,7 +68,7 @@ function getRelationshipConstraint(
             : [relationshipType.toConstraint, relationship.toId];
 
     return constraint.relationshipEntity === "TRACKED_ENTITY_INSTANCE"
-        ? { trackedEntityInstance: { trackedEntityInstance: id } }
+        ? { trackedEntity: { trackedEntity: id } }
         : { event: { event: id } };
 }
 

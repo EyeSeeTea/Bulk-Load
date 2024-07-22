@@ -578,8 +578,6 @@ export class InstanceDhisRepository implements InstanceRepository {
             instances: Event[];
             pageCount: number;
         }> => {
-            // DHIS2 bug if we do not provide CC and COs, endpoint only works with ALL authority
-
             const { instances, pageCount } = await this.api
                 .get<{
                     instances: Event[];

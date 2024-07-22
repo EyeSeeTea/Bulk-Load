@@ -1,4 +1,4 @@
-import { D2Coordinates } from "@eyeseetea/d2-api/schemas";
+import { D2Geometry } from "@eyeseetea/d2-api/schemas";
 
 export interface EventsPackage {
     events: Event[];
@@ -28,10 +28,7 @@ export interface Event {
         latitude: string;
         longitude: string;
     };
-    geometry?: {
-        type: "Point" | "Polygon";
-        coordinates: D2Coordinates | Array<D2Coordinates[]>;
-    };
+    geometry?: D2Geometry;
     attributeOptionCombo?: string;
     trackedEntityInstance?: string;
     programStage?: string;
