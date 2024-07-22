@@ -319,7 +319,7 @@ export class SheetBuilder {
                     );
                     if (isColumnExcluded) return;
 
-                    const { name, description } = this.translate(dataElement);
+                    const { name = "", description = "" } = this.translate(dataElement);
 
                     const validation = dataElement.optionSet ? dataElement.optionSet.id : dataElement.valueType;
                     this.createColumn(
