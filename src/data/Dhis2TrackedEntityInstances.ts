@@ -394,7 +394,7 @@ function getApiTeiToUpload(
 
 async function getExistingTeis(api: D2Api): Promise<Ref[]> {
     const query = {
-        orgUnitMode: "CAPTURE",
+        ouMode: "CAPTURE",
         pageSize: 1000,
         totalPages: true,
         fields: "trackedEntity",
