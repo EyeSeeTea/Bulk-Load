@@ -5,10 +5,10 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2024-07-15T17:11:25.165Z\n"
-"PO-Revision-Date: 2024-07-15T17:11:25.165Z\n"
+"POT-Creation-Date: 2024-07-23T19:05:21.307Z\n"
+"PO-Revision-Date: 2024-07-23T19:05:21.307Z\n"
 
-msgid "Tracker data - Create/update"
+msgid "Events - Create/update"
 msgstr ""
 
 msgid "Event"
