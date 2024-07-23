@@ -79,7 +79,7 @@ export class DownloadTemplateUseCase implements UseCase {
             showLanguage,
             orgUnitShortName,
         } = options;
-        i18n.setDefaultNamespace("bulk-load");
+
         const useShortNameInOrgUnit = orgUnitShortName || false;
         const templateId =
             templateType === "custom" && customTemplateId ? customTemplateId : getGeneratedTemplateId(type);
