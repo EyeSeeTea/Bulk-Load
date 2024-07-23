@@ -242,11 +242,10 @@ async function uploadTeis(options: {
     const teisResult = await promiseMap(_.chunk(apiTeis, 200), teisToSave => {
         return postImport(
             api,
-            () => {
-                return api
+            async () =>
+                await api
                     .post<ImportPostResponse>("/tracker", { async: true }, { trackedEntities: teisToSave })
-                    .getData();
-            },
+                    .getData(),
             {
                 title: `${model} - ${title}`,
                 model: model,
@@ -339,10 +338,10 @@ async function getApiEvents(
 
             return {
                 event: data.id,
-                trackedEntityInstance: teiId,
+                trackedEntity: teiId,
                 program: program,
                 orgUnit: data.orgUnit,
-                eventDate: data.period,
+                occurredAt: data.period,
                 attributeOptionCombo: data.attribute,
                 status: "COMPLETED" as const,
                 programStage: data.programStage,

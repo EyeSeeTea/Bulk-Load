@@ -340,7 +340,7 @@ export class InstanceDhisRepository implements InstanceRepository {
             program: dataForm,
             status: "COMPLETED",
             orgUnit,
-            eventDate: period,
+            occurredAt: period,
             attributeOptionCombo: attribute,
             dataValues: dataValues,
             coordinate,
@@ -622,18 +622,18 @@ export class InstanceDhisRepository implements InstanceRepository {
                     ({
                         event,
                         orgUnit,
-                        eventDate,
+                        occurredAt,
                         attributeOptionCombo,
                         coordinate,
                         geometry,
                         dataValues,
-                        trackedEntityInstance,
+                        trackedEntity,
                         programStage,
                     }) => ({
                         id: event,
                         dataForm: id,
                         orgUnit,
-                        period: moment(eventDate).format("YYYY-MM-DD"),
+                        period: moment(occurredAt).format("YYYY-MM-DD"),
                         attribute: attributeOptionCombo,
                         coordinate: geometry
                             ? {
@@ -642,7 +642,7 @@ export class InstanceDhisRepository implements InstanceRepository {
                               }
                             : coordinate,
                         geometry: geometry,
-                        trackedEntityInstance,
+                        trackedEntity: trackedEntity,
                         programStage,
                         dataValues:
                             dataValues?.map(({ dataElement, value }) => ({

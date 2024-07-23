@@ -7,18 +7,16 @@ import { promiseMap } from "../utils/promises";
 import { ImportPostResponse, postImport } from "./Dhis2Import";
 
 export async function postEvents(api: D2Api, events: Event[]): Promise<SynchronizationResult[]> {
-    const eventsResult = await promiseMap(_.chunk(events, 200), async eventsToSave => {
-        const trackerPostImport = await postImport(
+    const eventsResult = await promiseMap(_.chunk(events, 200), eventsToSave => {
+        return postImport(
             api,
-            () => api.post<ImportPostResponse>("/tracker", {}, { events: eventsToSave }).getData(),
+            async () => await api.post<ImportPostResponse>("/tracker", {}, { events: eventsToSave }).getData(),
             {
-                title: i18n.t("Tracker data - Create/update"),
+                title: i18n.t("Events - Create/update"),
                 model: i18n.t("Event"),
                 splitStatsList: true,
             }
         );
-
-        return trackerPostImport;
     });
 
     return eventsResult;
