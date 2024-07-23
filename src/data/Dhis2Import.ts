@@ -56,20 +56,21 @@ export function processImportResponse(options: {
     const { bundleReport, status, validationReport } = importResult;
     const message = status === "OK" ? "Import was successful" : "Import failed";
 
-    if (!bundleReport) {
-        return {
-            title: title,
-            status: status === "OK" ? "SUCCESS" : "ERROR",
-            message: message,
-            rawResponse: importResult,
-        };
-    }
-
     const errors = validationReport.errorReports.map(errorReport => ({
         id: errorReport.uid,
         message: errorReport.message,
         details: "",
     }));
+
+    if (!bundleReport) {
+        return {
+            title: title,
+            status: status === "OK" ? "SUCCESS" : "ERROR",
+            message: message,
+            errors: errors,
+            rawResponse: importResult,
+        };
+    }
 
     const totalStats: SynchronizationStats = {
         type: "TOTAL",
