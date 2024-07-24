@@ -4,7 +4,6 @@ import _ from "lodash";
 import { Moment } from "moment";
 import { UseCase } from "../../CompositionRoot";
 import { getRelationshipMetadata, RelationshipOrgUnitFilter } from "../../data/Dhis2RelationshipTypes";
-import i18n from "../../locales";
 import { D2Api } from "../../types/d2-api";
 import { getExtensionFile, XLSX_EXTENSION } from "../../utils/files";
 import { promiseMap } from "../../utils/promises";
