@@ -343,10 +343,10 @@ export class InstanceDhisRepository implements InstanceRepository {
             occurredAt: period,
             attributeOptionCombo: attribute,
             dataValues: dataValues,
-            coordinate,
-            geometry: {
+            coordinate: coordinate,
+            geometry: coordinate && {
                 type: "Point",
-                coordinates: [Number(coordinate?.longitude), Number(coordinate?.latitude)],
+                coordinates: [Number(coordinate.longitude), Number(coordinate.latitude)],
             },
         }));
     }
@@ -426,7 +426,28 @@ export class InstanceDhisRepository implements InstanceRepository {
 
     private async importEventsData(dataPackage: DataPackage): Promise<SynchronizationResult[]> {
         const events = this.buildEventsPayload(dataPackage);
-        return postEvents(this.api, events);
+        const eventsToSave = await promiseMap(events, async event => {
+            const eventProgramStage = event.programStage ?? (await this.getEventProgramStage(event.program))?.id;
+
+            return {
+                ...event,
+                programStage: eventProgramStage,
+            };
+        });
+        return postEvents(this.api, eventsToSave);
+    }
+
+    private async getEventProgramStage(programId: Id): Promise<Ref | undefined> {
+        const { api } = this;
+
+        const { objects } = await api.models.programs
+            .get({
+                fields: { programStages: true },
+                filter: { id: { eq: programId } },
+            })
+            .getData();
+
+        return _.first(objects)?.programStages[0];
     }
 
     private async importTrackerProgramData(dataPackage: TrackerProgramPackage): Promise<SynchronizationResult[]> {
