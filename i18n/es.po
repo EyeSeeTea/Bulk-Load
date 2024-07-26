@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2024-01-19T18:27:08.201Z\n"
+"POT-Creation-Date: 2024-07-23T19:05:21.307Z\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -9,7 +9,7 @@ msgstr ""
 "X-Generator: POEditor.com\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-msgid "Data values - Create/update"
+msgid "Events - Create/update"
 msgstr "Valores de los datos - Crear/actualizar"
 
 msgid "Event"
@@ -30,6 +30,9 @@ msgstr "La plantilla {{id}} no se pudo cargar"
 
 msgid "Data values - Delete"
 msgstr "Valores de los datos - Borrar"
+
+msgid "Data values - Create/update"
+msgstr "Valores de los datos - Crear/actualizar"
 
 msgid "Failed to import data values"
 msgstr ""
@@ -885,6 +888,9 @@ msgstr "Crear tema"
 #, fuzzy
 msgid "Access to Themes"
 msgstr "Acceso a plantillas"
+
+msgid "Error while updating sharing settings"
+msgstr ""
 
 msgid "Error deleting data values"
 msgstr "Se ha producido un error borrando valores de datos"

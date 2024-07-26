@@ -405,8 +405,8 @@ export class ExcelReader {
                 disabled: false,
                 attributeValues,
                 enrollment: {
-                    enrollmentDate: this.formatValue(enrollmentDate),
-                    incidentDate: this.formatValue(incidentDate || enrollmentDate),
+                    enrolledAt: this.formatValue(enrollmentDate),
+                    occurredAt: this.formatValue(incidentDate || enrollmentDate),
                 },
                 relationships: [],
                 geometry,

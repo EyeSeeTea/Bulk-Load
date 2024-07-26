@@ -161,7 +161,7 @@ export class ExcelBuilder {
                 await this.excelRepository.writeCell(
                     template.id,
                     enrollmentDateCell,
-                    format(new Date(enrollment.enrollmentDate), dateFormatPattern)
+                    format(new Date(enrollment.enrolledAt), dateFormatPattern)
                 );
 
             const incidentDateCell = await this.excelRepository.findRelativeCell(
@@ -173,7 +173,7 @@ export class ExcelBuilder {
                 await this.excelRepository.writeCell(
                     template.id,
                     incidentDateCell,
-                    format(new Date(enrollment.incidentDate), dateFormatPattern)
+                    format(new Date(enrollment.occurredAt), dateFormatPattern)
                 );
 
             for (const cell of cells) {
@@ -356,7 +356,7 @@ export class ExcelBuilder {
     private async fillRows(template: Template, dataSource: RowDataSource, payload: DataPackage) {
         let { rowStart } = dataSource.range;
 
-        for (const { id, orgUnit, period, attribute, dataValues } of payload.dataEntries) {
+        for (const { id, orgUnit, period, attribute, dataValues, coordinate } of payload.dataEntries) {
             const cells = await this.excelRepository.getCellsInRange(template.id, {
                 ...dataSource.range,
                 rowStart,
@@ -379,6 +379,16 @@ export class ExcelBuilder {
             const attributeCell = await this.findRelative(template, dataSource.attribute, cells[0]);
             if (attributeCell && attribute) {
                 await this.excelRepository.writeCell(template.id, attributeCell, attribute);
+            }
+
+            const longitudeCell = await this.findRelative(template, dataSource.coordinates?.longitude, cells[0]);
+            if (longitudeCell && coordinate) {
+                await this.excelRepository.writeCell(template.id, longitudeCell, coordinate.longitude);
+            }
+
+            const latitudeCell = await this.findRelative(template, dataSource.coordinates?.latitude, cells[0]);
+            if (latitudeCell && coordinate) {
+                await this.excelRepository.writeCell(template.id, latitudeCell, coordinate.latitude);
             }
 
             for (const cell of cells) {

@@ -25,17 +25,12 @@ import {
     DataStore,
     DataValueSetsGetResponse,
     Id,
-    Pager,
     SelectedPick,
 } from "../types/d2-api";
 import { cache } from "../utils/cache";
 import { promiseMap } from "../utils/promises";
 import { postEvents } from "./Dhis2Events";
 import { getProgram, getTrackedEntityInstances, updateTrackedEntityInstances } from "./Dhis2TrackedEntityInstances";
-
-interface PagedEventsApiResponse extends EventsPackage {
-    pager: Pager;
-}
 
 export class InstanceDhisRepository implements InstanceRepository {
     private api: D2Api;
@@ -345,10 +340,14 @@ export class InstanceDhisRepository implements InstanceRepository {
             program: dataForm,
             status: "COMPLETED",
             orgUnit,
-            eventDate: period,
+            occurredAt: period,
             attributeOptionCombo: attribute,
             dataValues: dataValues,
-            coordinate,
+            coordinate: coordinate,
+            geometry: coordinate && {
+                type: "Point",
+                coordinates: [Number(coordinate.longitude), Number(coordinate.latitude)],
+            },
         }));
     }
 
@@ -427,7 +426,42 @@ export class InstanceDhisRepository implements InstanceRepository {
 
     private async importEventsData(dataPackage: DataPackage): Promise<SynchronizationResult[]> {
         const events = this.buildEventsPayload(dataPackage);
-        return postEvents(this.api, events);
+
+        const programs = _(events).groupBy("program").keys().value();
+        const eventProgramStages = await promiseMap(programs, async program => {
+            const programStage = await this.getEventProgramStage(program);
+
+            return {
+                program: program,
+                programStage: programStage?.id,
+            };
+        });
+
+        const eventsToSave = events.map(event => {
+            const eventProgramStage = eventProgramStages.find(
+                programStage => programStage.program === event.program
+            )?.programStage;
+
+            return {
+                ...event,
+                programStage: event.programStage ?? eventProgramStage,
+            };
+        });
+
+        return postEvents(this.api, eventsToSave);
+    }
+
+    private async getEventProgramStage(programId: Id): Promise<Ref | undefined> {
+        const { api } = this;
+
+        const { objects } = await api.models.programs
+            .get({
+                fields: { programStages: true },
+                filter: { id: { eq: programId } },
+            })
+            .getData();
+
+        return _.first(objects)?.programStages[0];
     }
 
     private async importTrackerProgramData(dataPackage: TrackerProgramPackage): Promise<SynchronizationResult[]> {
@@ -571,37 +605,47 @@ export class InstanceDhisRepository implements InstanceRepository {
             throw new Error(`Could not find category options for the program ${id}`);
         }
 
-        const getEvents = (orgUnit: Id, categoryOptionId: Id, page: number): Promise<PagedEventsApiResponse> => {
-            // DHIS2 bug if we do not provide CC and COs, endpoint only works with ALL authority
-            return this.api
-                .get<PagedEventsApiResponse>("/events", {
+        const getEvents = async (
+            orgUnit: Id,
+            categoryOptionId: Id,
+            page: number
+        ): Promise<{
+            instances: Event[];
+            pageCount: number;
+        }> => {
+            const { instances, pageCount } = await this.api
+                .get<{
+                    instances: Event[];
+                    pageCount: number;
+                }>("/tracker/events", {
                     program: id,
                     orgUnit,
                     paging: true,
                     totalPages: true,
                     page,
                     pageSize: 250,
-                    attributeCc: categoryComboId,
-                    attributeCos: categoryOptionId,
-                    startDate: startDate?.format("YYYY-MM-DD"),
-                    endDate: endDate?.format("YYYY-MM-DD"),
+                    attributeCategoryCombo: categoryComboId,
+                    attributeCategoryOptions: categoryOptionId,
+                    occuredAfter: startDate?.format("YYYY-MM-DD"),
+                    occuredBefore: endDate?.format("YYYY-MM-DD"),
                     cache: Math.random(),
-                    // @ts-ignore FIXME: Add property in d2-api
                     fields: "*",
                 })
                 .getData();
+
+            return { instances, pageCount };
         };
 
         const programEvents: Event[] = [];
 
         for (const orgUnit of orgUnits) {
             for (const categoryOptionId of categoryOptions) {
-                const { events, pager } = await getEvents(orgUnit, categoryOptionId, 1);
+                const { instances: events, pageCount } = await getEvents(orgUnit, categoryOptionId, 1);
                 programEvents.push(...events);
 
-                await promiseMap(_.range(2, pager.pageCount + 1, 1), async page => {
-                    const { events } = await getEvents(orgUnit, categoryOptionId, page);
-                    programEvents.push(...events);
+                await promiseMap(_.range(2, pageCount + 1, 1), async page => {
+                    const { instances } = await getEvents(orgUnit, categoryOptionId, page);
+                    programEvents.push(...instances);
                 });
             }
         }
@@ -613,20 +657,27 @@ export class InstanceDhisRepository implements InstanceRepository {
                     ({
                         event,
                         orgUnit,
-                        eventDate,
+                        occurredAt,
                         attributeOptionCombo,
                         coordinate,
+                        geometry,
                         dataValues,
-                        trackedEntityInstance,
+                        trackedEntity,
                         programStage,
                     }) => ({
                         id: event,
                         dataForm: id,
                         orgUnit,
-                        period: moment(eventDate).format("YYYY-MM-DD"),
+                        period: moment(occurredAt).format("YYYY-MM-DD"),
                         attribute: attributeOptionCombo,
-                        coordinate,
-                        trackedEntityInstance,
+                        coordinate: geometry
+                            ? {
+                                  longitude: geometry.coordinates[0]?.toString() ?? "",
+                                  latitude: geometry.coordinates[1]?.toString() ?? "",
+                              }
+                            : coordinate,
+                        geometry: geometry,
+                        trackedEntity: trackedEntity,
                         programStage,
                         dataValues:
                             dataValues?.map(({ dataElement, value }) => ({
