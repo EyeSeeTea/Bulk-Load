@@ -426,14 +426,28 @@ export class InstanceDhisRepository implements InstanceRepository {
 
     private async importEventsData(dataPackage: DataPackage): Promise<SynchronizationResult[]> {
         const events = this.buildEventsPayload(dataPackage);
-        const eventsToSave = await promiseMap(events, async event => {
-            const eventProgramStage = event.programStage ?? (await this.getEventProgramStage(event.program))?.id;
+
+        const programs = _(events).groupBy("program").keys().value();
+        const eventProgramStages = await promiseMap(programs, async program => {
+            const programStage = await this.getEventProgramStage(program);
+
+            return {
+                program: program,
+                programStage: programStage?.id,
+            };
+        });
+
+        const eventsToSave = events.map(event => {
+            const eventProgramStage = eventProgramStages.find(
+                programStage => programStage.program === event.program
+            )?.programStage;
 
             return {
                 ...event,
-                programStage: eventProgramStage,
+                programStage: event.programStage ?? eventProgramStage,
             };
         });
+
         return postEvents(this.api, eventsToSave);
     }
 
