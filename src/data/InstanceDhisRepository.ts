@@ -201,10 +201,16 @@ export class InstanceDhisRepository implements InstanceRepository {
         return this.importAggregatedData("DELETE", dataPackage);
     }
 
-    public async importDataPackage(dataPackage: DataPackage): Promise<SynchronizationResult[]> {
+    public async importDataPackage(
+        dataPackage: DataPackage,
+        createAndUpdate: boolean
+    ): Promise<SynchronizationResult[]> {
         switch (dataPackage.type) {
             case "dataSets": {
-                const result = await this.importAggregatedData("CREATE_AND_UPDATE", dataPackage);
+                const result = await this.importAggregatedData(
+                    createAndUpdate ? "CREATE_AND_UPDATE" : "CREATE",
+                    dataPackage
+                );
                 return [result];
             }
             case "programs": {
