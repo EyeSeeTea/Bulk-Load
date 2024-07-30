@@ -302,6 +302,9 @@ async function getConstraintForTypeProgram(
                 orgUnit: orgUnit.id,
                 startDate: startDate ? moment(startDate).format("YYYY-MM-DD") : undefined,
                 endDate: endDate ? moment(endDate).format("YYYY-MM-DD") : undefined,
+                fields: {
+                    $all: true,
+                },
             })
             .getData();
 

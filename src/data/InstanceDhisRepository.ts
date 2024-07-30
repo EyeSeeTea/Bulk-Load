@@ -25,17 +25,13 @@ import {
     DataStore,
     DataValueSetsGetResponse,
     Id,
-    Pager,
     SelectedPick,
 } from "../types/d2-api";
 import { cache } from "../utils/cache";
 import { promiseMap } from "../utils/promises";
 import { postEvents } from "./Dhis2Events";
 import { getProgram, getTrackedEntityInstances, updateTrackedEntityInstances } from "./Dhis2TrackedEntityInstances";
-
-interface PagedEventsApiResponse extends EventsPackage {
-    pager: Pager;
-}
+import { TrackerEventsResponse } from "@eyeseetea/d2-api/api/trackerEvents";
 
 export class InstanceDhisRepository implements InstanceRepository {
     private api: D2Api;
@@ -345,7 +341,7 @@ export class InstanceDhisRepository implements InstanceRepository {
             program: dataForm,
             status: "COMPLETED",
             orgUnit,
-            eventDate: period,
+            occurredAt: period,
             attributeOptionCombo: attribute,
             dataValues: dataValues,
             coordinate,
@@ -571,10 +567,10 @@ export class InstanceDhisRepository implements InstanceRepository {
             throw new Error(`Could not find category options for the program ${id}`);
         }
 
-        const getEvents = (orgUnit: Id, categoryOptionId: Id, page: number): Promise<PagedEventsApiResponse> => {
+        const getEvents = (orgUnit: Id, categoryOptionId: Id, page: number): Promise<TrackerEventsResponse> => {
             // DHIS2 bug if we do not provide CC and COs, endpoint only works with ALL authority
             return this.api
-                .get<PagedEventsApiResponse>("/events", {
+                .get<TrackerEventsResponse>("/tracker/events", {
                     program: id,
                     orgUnit,
                     paging: true,
@@ -583,8 +579,8 @@ export class InstanceDhisRepository implements InstanceRepository {
                     pageSize: 250,
                     attributeCc: categoryComboId,
                     attributeCos: categoryOptionId,
-                    startDate: startDate?.format("YYYY-MM-DD"),
-                    endDate: endDate?.format("YYYY-MM-DD"),
+                    occurredAfter: startDate?.format("YYYY-MM-DD"),
+                    occurredBefore: endDate?.format("YYYY-MM-DD"),
                     cache: Math.random(),
                     // @ts-ignore FIXME: Add property in d2-api
                     fields: "*",
@@ -596,11 +592,12 @@ export class InstanceDhisRepository implements InstanceRepository {
 
         for (const orgUnit of orgUnits) {
             for (const categoryOptionId of categoryOptions) {
-                const { events, pager } = await getEvents(orgUnit, categoryOptionId, 1);
+                const { instances: events, page } = await getEvents(orgUnit, categoryOptionId, 1);
+
                 programEvents.push(...events);
 
-                await promiseMap(_.range(2, pager.pageCount + 1, 1), async page => {
-                    const { events } = await getEvents(orgUnit, categoryOptionId, page);
+                await promiseMap(_.range(2, page + 1, 1), async page => {
+                    const { instances: events } = await getEvents(orgUnit, categoryOptionId, page);
                     programEvents.push(...events);
                 });
             }
@@ -613,11 +610,11 @@ export class InstanceDhisRepository implements InstanceRepository {
                     ({
                         event,
                         orgUnit,
-                        eventDate,
+                        occurredAt: eventDate,
                         attributeOptionCombo,
-                        coordinate,
+                        geometry,
                         dataValues,
-                        trackedEntityInstance,
+                        trackedEntity,
                         programStage,
                     }) => ({
                         id: event,
@@ -625,8 +622,8 @@ export class InstanceDhisRepository implements InstanceRepository {
                         orgUnit,
                         period: moment(eventDate).format("YYYY-MM-DD"),
                         attribute: attributeOptionCombo,
-                        coordinate,
-                        trackedEntityInstance,
+                        geometry,
+                        trackedEntity,
                         programStage,
                         dataValues:
                             dataValues?.map(({ dataElement, value }) => ({
