@@ -5,8 +5,8 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2024-09-12T09:39:14.809Z\n"
-"PO-Revision-Date: 2024-09-12T09:39:14.809Z\n"
+"POT-Creation-Date: 2024-09-12T09:58:13.550Z\n"
+"PO-Revision-Date: 2024-09-12T09:58:13.550Z\n"
 
 msgid "Events - Create/update"
 msgstr ""
@@ -722,10 +722,10 @@ msgstr ""
 msgid "Template"
 msgstr ""
 
-msgid "Select template to export..."
+msgid "Data Model"
 msgstr ""
 
-msgid "Data Model"
+msgid "Select template to export..."
 msgstr ""
 
 msgid "Start period"
