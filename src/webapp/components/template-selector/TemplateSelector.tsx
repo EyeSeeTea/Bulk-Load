@@ -288,19 +288,10 @@ export const TemplateSelector = ({
     const selected = state.id && state.templateId ? getOptionValue({ id: state.id, templateId: state.templateId }) : "";
 
     return (
-        <React.Fragment>
+        <>
             <h3 className={classes.title}>{i18n.t("Template")}</h3>
 
             <div className={classes.row}>
-                <div className={classes.select}>
-                    <Select
-                        placeholder={i18n.t("Select template to export...")}
-                        onChange={onTemplateChange}
-                        options={templates}
-                        value={selected}
-                    />
-                </div>
-
                 {models.length > 1 && (
                     <div className={classes.select}>
                         <Select
@@ -311,6 +302,14 @@ export const TemplateSelector = ({
                         />
                     </div>
                 )}
+                <div className={classes.select}>
+                    <Select
+                        placeholder={i18n.t("Select template to export...")}
+                        onChange={onTemplateChange}
+                        options={templates}
+                        value={selected}
+                    />
+                </div>
             </div>
 
             {state.type === "dataSets" && state.templateType === "custom" && showPopulate && (
@@ -356,7 +355,7 @@ export const TemplateSelector = ({
             )}
 
             {settings.orgUnitSelection !== "import" && showPopulate && (
-                <React.Fragment>
+                <>
                     <h3>{i18n.t("Organisation units")}</h3>
 
                     <div>
@@ -399,7 +398,7 @@ export const TemplateSelector = ({
                                 {i18n.t("User does not have any capture organisations units")}
                             </div>
                         ))}
-                </React.Fragment>
+                </>
             )}
 
             {state.templateType !== "custom" && <h3>{i18n.t("Advanced template properties")}</h3>}
@@ -567,7 +566,7 @@ export const TemplateSelector = ({
                     />
                 </div>
             )}
-        </React.Fragment>
+        </>
     );
 };
 
