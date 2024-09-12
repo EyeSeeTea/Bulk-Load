@@ -4,32 +4,52 @@ import { Id, NamedRef, Ref } from "../../../domain/entities/ReferenceObject";
 import { DataElement, NRCModuleMetadata } from "../../../domain/entities/templates/NRCModuleMetadata";
 import { NRCModuleMetadataRepository } from "../../../domain/repositories/templates/NRCModuleMetadataRepository";
 import { User } from "../../../domain/entities/User";
+import { Maybe } from "../../../types/utils";
+
+type DataSetCategories = {
+    projects: boolean;
+    phaseOfEmergency: boolean;
+    actualTargets: boolean;
+};
 
 export class NRCModuleMetadataD2Repository implements NRCModuleMetadataRepository {
+    attributeCodes = {
+        createdByApp: "GL_CREATED_BY_DATASET_CONFIGURATION",
+    };
+
     categoryComboCodes = {
+        all: "GL_CATBOMBO_ProjectCCTarAct",
+    };
+
+    categoryCodes = {
+        project: "GL_Project",
         phaseOfEmergency: "GL_CORECOMP_CATCOMBO",
         actualTargets: "GL_Actual_Targets",
-        all: "GL_CATBOMBO_ProjectCCTarAct",
     };
 
     constructor(private api: D2Api) {}
 
     async get(options: { currentUser: User; dataSetId: Id }): Promise<NRCModuleMetadata> {
         const dataSet = await this.getDataSet(options);
-        const projectCategoryOption = await this.getProjectCategoryOption(dataSet);
-        const categoryOptions = await this.getCategoryOptions(projectCategoryOption);
-        const categoryOptionCombos = await this.getCategoryOptionCombos(projectCategoryOption);
+        const dataSetCategories = this.getDataSetCategories(dataSet);
+        const projectCategoryOptions = await this.getProjectCategoryOptions(dataSetCategories, dataSet);
+        const categoryOptions = await this.getCategoryOptions(dataSetCategories, projectCategoryOptions);
+        const categoryOptionCombos = await this.getCategoryOptionCombos(dataSet, projectCategoryOptions);
 
         return {
             dataSet: dataSet,
             dataElements: await this.getDataElementsWithDisaggregation(dataSet),
-            organisationUnits: this.getOrganisationUnits(options.currentUser, projectCategoryOption, dataSet),
+            organisationUnits: this.getOrganisationUnits(options.currentUser, projectCategoryOptions, dataSet),
             periods: this.getPeriods(dataSet),
             categoryCombo: {
                 categories: {
-                    project: { categoryOption: projectCategoryOption },
-                    phasesOfEmergency: { categoryOptions: categoryOptions.phasesOfEmergency },
-                    targetActual: { categoryOptions: categoryOptions.targetActual },
+                    projects: projectCategoryOptions ? { categoryOptions: projectCategoryOptions } : undefined,
+                    phasesOfEmergency: categoryOptions.phasesOfEmergency
+                        ? { categoryOptions: categoryOptions.phasesOfEmergency }
+                        : undefined,
+                    targetActual: categoryOptions.targetActual
+                        ? { categoryOptions: categoryOptions.targetActual }
+                        : undefined,
                 },
                 categoryOptionCombos: categoryOptionCombos,
             },
@@ -38,21 +58,25 @@ export class NRCModuleMetadataD2Repository implements NRCModuleMetadataRepositor
 
     private getOrganisationUnits(
         currentUser: User,
-        projectCategoryOption: D2CategoryOption,
+        projects: Maybe<D2CategoryOption[]>,
         dataSet: D2DataSet
     ): NamedRef[] {
-        const projectOrgUnits = projectCategoryOption.organisationUnits;
+        const projectsOrgUnits = projects
+            ? _(projects)
+                  .flatMap(project => project.organisationUnits)
+                  .uniqBy(ou => ou.id)
+                  .value()
+            : [];
 
         function isOrgUnitAvailableForCurrentUserAndProject(dataSetOrgUnit: { path: string }) {
-            const canUserAccessDataSetOrgUnit = currentUser.orgUnits.some(userOrgUnit =>
-                dataSetOrgUnit.path.includes(userOrgUnit.id)
-            );
+            const canUserAccessDataSetOrgUnit = () =>
+                currentUser.orgUnits.some(userOrgUnit => dataSetOrgUnit.path.includes(userOrgUnit.id));
 
-            const isProjectAssignedToDataSetOrgUnit =
-                projectOrgUnits.length === 0 ||
-                projectOrgUnits.some(projectOrgUnit => dataSetOrgUnit.path.includes(projectOrgUnit.id));
+            const isProjectAssignedToDataSetOrgUnit = () =>
+                projectsOrgUnits.length === 0 ||
+                projectsOrgUnits.some(projectOrgUnit => dataSetOrgUnit.path.includes(projectOrgUnit.id));
 
-            return canUserAccessDataSetOrgUnit && isProjectAssignedToDataSetOrgUnit;
+            return canUserAccessDataSetOrgUnit() && isProjectAssignedToDataSetOrgUnit();
         }
 
         return _(dataSet.organisationUnits)
@@ -68,14 +92,19 @@ export class NRCModuleMetadataD2Repository implements NRCModuleMetadataRepositor
             .value();
     }
 
-    private async getCategoryOptionCombos(projectCategoryOption: D2CategoryOption): Promise<D2Coc[]> {
+    private async getCategoryOptionCombos(
+        dataSet: D2DataSet,
+        projectCategoryOptions: Maybe<D2CategoryOption[]>
+    ): Promise<D2Coc[]> {
         const { categoryOptionCombos } = await this.api.metadata
             .get({
                 categoryOptionCombos: {
                     fields: { id: true, name: true, categoryOptions: { id: true } },
                     filter: {
-                        "categoryOptions.id": { eq: projectCategoryOption.id },
-                        "categoryCombo.code": { eq: this.categoryComboCodes.all },
+                        ...(projectCategoryOptions
+                            ? { "categoryOptions.id": { in: projectCategoryOptions.map(co => co.id) } }
+                            : {}),
+                        "categoryCombo.id": { eq: dataSet.categoryCombo.id },
                     },
                 },
             })
@@ -133,16 +162,27 @@ export class NRCModuleMetadataD2Repository implements NRCModuleMetadataRepositor
             .value();
     }
 
-    private async getCategoryOptions(projectCategoryOption: D2CategoryOption) {
-        const { categoryComboCodes } = this;
+    private async getCategoryOptions(
+        dataSetCategories: DataSetCategories,
+        projectCategoryOptions: Maybe<D2CategoryOption[]>
+    ) {
+        const { categoryCodes } = this;
 
         const { categories } = await this.api.metadata
             .get({
                 categories: {
-                    fields: { id: true, code: true, categoryOptions: { id: true, name: true } },
+                    fields: {
+                        id: true,
+                        code: true,
+                        categoryOptions: { id: true, name: true },
+                    },
                     filter: {
                         code: {
-                            in: [categoryComboCodes.phaseOfEmergency, categoryComboCodes.actualTargets],
+                            in: _.compact([
+                                dataSetCategories.phaseOfEmergency ? categoryCodes.phaseOfEmergency : null,
+                                dataSetCategories.actualTargets ? categoryCodes.actualTargets : null,
+                                "@@@", // placeholder to prevent passing an empty filter
+                            ]),
                         },
                     },
                 },
@@ -150,36 +190,87 @@ export class NRCModuleMetadataD2Repository implements NRCModuleMetadataRepositor
             .getData();
 
         const categoriesByCode = _.keyBy(categories, category => category.code);
-        const categoryPhaseOfEmergency = categoriesByCode[categoryComboCodes.phaseOfEmergency];
+        const categoryPhaseOfEmergency = categoriesByCode[categoryCodes.phaseOfEmergency];
+        const categoryActualTargets = categoriesByCode[categoryCodes.actualTargets];
 
         return {
-            project: [projectCategoryOption],
-            phasesOfEmergency: _(categoryPhaseOfEmergency?.categoryOptions || [])
-                .reject(categoryOption => categoryOption.name.includes("DEPRECATED"))
-                .value(),
-            targetActual: categoriesByCode[categoryComboCodes.actualTargets]?.categoryOptions || [],
+            projects: projectCategoryOptions,
+            phasesOfEmergency: categoryPhaseOfEmergency
+                ? _(categoryPhaseOfEmergency.categoryOptions || [])
+                      .reject(categoryOption => categoryOption.name.includes("DEPRECATED"))
+                      .value()
+                : undefined,
+            targetActual: categoryActualTargets ? categoryActualTargets.categoryOptions || [] : undefined,
         };
     }
 
-    private async getProjectCategoryOption(dataSet: D2DataSet) {
-        const categoryOptionCode = dataSet.code.replace(/Data Set$/, "").trim();
+    private getDataSetCategories(dataSet: D2DataSet): DataSetCategories {
+        const codes = this.categoryCodes;
+        const allCategories = [codes.project, codes.phaseOfEmergency, codes.actualTargets];
+        const dataSetCategoryCodes = dataSet.categoryCombo.categories.map(category => category.code);
 
-        const res = await this.api.metadata
-            .get({
-                categoryOptions: {
-                    fields: { id: true, name: true, organisationUnits: { id: true } },
-                    filter: { code: { eq: categoryOptionCode } },
-                },
-            })
-            .getData();
+        const dataSetCategoriesAreASubSetOfSupportedCategories =
+            _.intersection(allCategories, dataSetCategoryCodes).length >= 1 &&
+            _.difference(dataSetCategoryCodes, allCategories).length === 0;
 
-        const projectCategoryOption = res.categoryOptions[0];
-
-        if (!projectCategoryOption) {
-            throw new Error(`Project category option not found (code: ${categoryOptionCode})`);
+        if (!dataSetCategoriesAreASubSetOfSupportedCategories) {
+            throw new Error(`Data set categories must be a subset of: ${allCategories.join(", ")}`);
         } else {
-            return projectCategoryOption;
+            return {
+                projects: dataSetCategoryCodes.includes(codes.project),
+                phaseOfEmergency: dataSetCategoryCodes.includes(codes.phaseOfEmergency),
+                actualTargets: dataSetCategoryCodes.includes(codes.actualTargets),
+            };
         }
+    }
+
+    private async getProjectCategoryOptions(
+        dataSetCategories: DataSetCategories,
+        dataSet: D2DataSet
+    ): Promise<Maybe<D2CategoryOption[]>> {
+        if (!dataSetCategories.projects) {
+            return undefined;
+        } else if (this.isCreatedByDataSetConfigurationApp(dataSet)) {
+            const categoryOptionCode = dataSet.code ? dataSet.code.replace(/Data Set$/, "").trim() : undefined;
+
+            const res = await this.api.metadata
+                .get({
+                    categoryOptions: {
+                        fields: { id: true, name: true, organisationUnits: { id: true } },
+                        filter: { code: { eq: categoryOptionCode } },
+                    },
+                })
+                .getData();
+
+            const projectCategoryOption = res.categoryOptions[0];
+
+            if (!projectCategoryOption) {
+                throw new Error(`Project category option not found (code: ${categoryOptionCode})`);
+            } else {
+                return [projectCategoryOption];
+            }
+        } else {
+            // It's not a project dataSet, get list of projects accessible for the user (limited)
+            const res = await this.api.models.categoryOptions
+                .get({
+                    fields: { id: true, name: true, organisationUnits: { id: true } },
+                    filter: { "categories.code": { eq: this.categoryCodes.project } },
+                    order: "name:asc",
+                    paging: true,
+                    pageSize: 300,
+                })
+                .getData();
+
+            return res.objects;
+        }
+    }
+
+    private isCreatedByDataSetConfigurationApp(dataSet: D2DataSet): boolean {
+        const attributeValue = dataSet.attributeValues.find(attributeValue => {
+            return attributeValue.attribute.code === this.attributeCodes.createdByApp;
+        });
+
+        return attributeValue?.value === "true";
     }
 
     private async getDataSet(options: { dataSetId: Id }): Promise<D2DataSet> {
@@ -196,8 +287,6 @@ export class NRCModuleMetadataD2Repository implements NRCModuleMetadataRepositor
 
         if (!dataSet) {
             throw new Error(`Data set not found: ${options.dataSetId}`);
-        } else if (!dataSet.code) {
-            throw new Error(`Data set has no code, it's required to get the project category option`);
         } else {
             return dataSet;
         }
@@ -209,6 +298,10 @@ const dataSetFields = {
     name: true,
     code: true,
     categoryCombo: { id: true, categories: { id: true, code: true } },
+    attributeValues: {
+        attribute: { code: true },
+        value: true,
+    },
     dataSetElements: {
         dataElement: { id: true, name: true, categoryCombo: { id: true } },
         categoryCombo: { id: true },

@@ -14,6 +14,7 @@ import { InstanceRepository } from "../../../domain/repositories/InstanceReposit
 import { ModulesRepositories } from "../../../domain/repositories/ModulesRepositories";
 import { NRCModuleMetadataRepository } from "../../../domain/repositories/templates/NRCModuleMetadataRepository";
 import { Workbook } from "../../../webapp/logic/Workbook";
+import { Maybe } from "../../../types/utils";
 
 export class NRCModule101 implements CustomTemplateWithUrl {
     public readonly type = "custom";
@@ -86,12 +87,10 @@ class DownloadCustomization {
         await this.excelRepository.getOrCreateSheet(this.id, name);
     }
 
-    private getValidationCells(metadata: NRCModuleMetadata) {
-        const { categories } = metadata.categoryCombo;
-        const projectCategoryOption = categories.project.categoryOption;
-
-        const getCells = (items: Ref[], options: { column: string; useRef?: boolean }) => {
+    private getValidationCells(metadata: NRCModuleMetadata): Cell[] {
+        const getCells = (items: Maybe<Ref[]>, options: { column: string; useRef?: boolean }) => {
             const { useRef = true } = options;
+            if (!items) return [];
 
             return items.map((item, idx) => {
                 return cell({
@@ -103,29 +102,64 @@ class DownloadCustomization {
             });
         };
 
+        const categoryOptions = this.getCategoryOptionsObj(metadata);
+
         return _.flatten([
             getCells(metadata.organisationUnits, { column: "A" }),
-            getCells(categories.phasesOfEmergency.categoryOptions, { column: "B" }),
-            getCells(categories.targetActual.categoryOptions, { column: "C" }),
+            getCells(categoryOptions.projects, { column: "E" }),
+            getCells(categoryOptions.phasesOfEmergency, { column: "B" }),
+            getCells(categoryOptions.targetActual, { column: "C" }),
             getCells(metadata.dataElements, { column: "D" }),
             getCells([metadata.dataSet], { column: "G" }),
-            getCells([projectCategoryOption], { column: "E" }),
             getCells(metadata.periods, { column: "F", useRef: false }),
         ]);
     }
 
-    private getSheetData(metadata: NRCModuleMetadata): WorkbookData {
-        const validationCells = this.getValidationCells(metadata);
-        const metadataCells = this.getMetadataCells(metadata);
-        const aocCells = this.getAttributeOptionComboCells(metadata);
-        const cocCells = this.getCategoryOptionComboCells(metadata);
-        const miscCells = [
-            cell({ sheet: this.sheets.dataEntry, column: "F", row: 1, value: referenceToId(metadata.dataSet.id) }),
-        ];
+    private getCategoryOptionsObj(metadata: NRCModuleMetadata): CategoryOptions {
+        const { categories } = metadata.categoryCombo;
 
         return {
-            cells: _.concat(miscCells, validationCells, metadataCells, aocCells, cocCells),
+            projects: categories.projects?.categoryOptions,
+            phasesOfEmergency: categories.phasesOfEmergency?.categoryOptions,
+            targetActual: categories.targetActual?.categoryOptions,
         };
+    }
+
+    private getSheetData(metadata: NRCModuleMetadata): WorkbookData {
+        const cellGroups = [
+            this.getValidationCells(metadata),
+            this.getMetadataCells(metadata),
+            this.getAttributeOptionComboCells(metadata),
+            this.getCategoryOptionComboCells(metadata),
+            this.getDataSetCells(metadata),
+            this.getClearedOutCellsByCategories(metadata),
+        ];
+
+        return { cells: _.flatten(cellGroups) };
+    }
+
+    private getDataSetCells(metadata: NRCModuleMetadata) {
+        return [
+            cell({
+                sheet: this.sheets.dataEntry,
+                column: "F",
+                row: 1,
+                value: referenceToId(metadata.dataSet.id),
+            }),
+        ];
+    }
+
+    private getClearedOutCellsByCategories(metadata: NRCModuleMetadata): Cell[] {
+        const { categories } = metadata.categoryCombo;
+
+        const emptyCell = (options: { row: number; column: string }) =>
+            cell({ row: options.row, column: options.column, sheet: this.sheets.dataEntry, value: "" });
+
+        return _.flatten([
+            categories.projects ? [] : [emptyCell({ column: "A", row: 1 }), emptyCell({ column: "B", row: 1 })],
+            categories.phasesOfEmergency ? [] : [emptyCell({ column: "B", row: 3 })],
+            categories.targetActual ? [] : [emptyCell({ column: "E", row: 3 })],
+        ]);
     }
 
     private getCategoryOptionComboCells(metadata: NRCModuleMetadata): Cell[] {
@@ -159,22 +193,20 @@ class DownloadCustomization {
 
     private getAttributeOptionComboCells(metadata: NRCModuleMetadata) {
         const { categories } = metadata.categoryCombo;
-        const projectCategoryOption = categories.project.categoryOption;
+        const projectCategoryOptions = categories.projects?.categoryOptions;
+        const empty: NamedRef[] = [{ id: "", name: "EMPTY" }];
 
-        const categoryOptionsProduct = _.product(
-            [categories.project.categoryOption],
-            categories.phasesOfEmergency.categoryOptions,
-            categories.targetActual.categoryOptions
-        );
+        const groups = [
+            projectCategoryOptions ? projectCategoryOptions : empty,
+            categories.phasesOfEmergency?.categoryOptions || empty,
+            categories.targetActual?.categoryOptions || empty,
+        ];
+
+        const categoryOptionsProduct = _.product(...groups);
 
         const cocsByKey = _.keyBy(metadata.categoryCombo.categoryOptionCombos, getCocKey);
 
-        const projectCategoryOptionCell = cell({
-            sheet: this.sheets.dataEntry,
-            column: "B",
-            row: 1,
-            value: referenceToId(projectCategoryOption.id),
-        });
+        const projectCategoryOptionCell = this.getProjectCategoryOptionCell(projectCategoryOptions);
 
         const aocCells = _(categoryOptionsProduct)
             .map(categoryOptions => {
@@ -184,41 +216,46 @@ class DownloadCustomization {
                     console.error(`Category option combo not found: categoryOptionIds=${key}`);
                     return null;
                 } else {
-                    return { categoryOptions, categoryOptionCombo: coc };
+                    return { categoryOptions: categoryOptions, categoryOptionCombo: coc };
                 }
             })
             .compact()
             .flatMap((obj, idx) => {
                 const row = this.initialValidationRow + idx;
                 const sum = { id: "=" + [`I${row}`, `J${row}`, `K${row}`].join(" & ") };
+                const objs = [obj.categoryOptionCombo, ...obj.categoryOptions, sum];
+                const sheet = this.sheets.validation;
 
-                return _.zip([obj.categoryOptionCombo, ...obj.categoryOptions, sum], ["H", "I", "J", "K", "L"]).map(
-                    ([obj, column]) => {
-                        if (!obj || !column) return null;
-
-                        return cell({
-                            sheet: this.sheets.validation,
-                            column: column,
-                            row: row,
-                            value: obj.id,
-                        });
-                    }
-                );
+                return _.zip(objs, ["H", "I", "J", "K", "L"]).map(([obj, column]) => {
+                    return !obj || !column ? null : cell({ sheet, column, row, value: obj.id });
+                });
             })
             .compact()
-            .concat([projectCategoryOptionCell])
+            .concat(projectCategoryOptionCell ? [projectCategoryOptionCell] : [])
             .value();
 
         return aocCells;
     }
 
-    private getMetadataCells(metadata: NRCModuleMetadata) {
-        const { categories } = metadata.categoryCombo;
-        const projectCategoryOption = categories.project.categoryOption;
+    private getProjectCategoryOptionCell(projectCategoryOptions: NamedRef[] | undefined) {
+        const firstProject = _.first(projectCategoryOptions);
+        const onlyOneCategoryOption = projectCategoryOptions?.length === 1;
 
-        const categoryOptions = _([projectCategoryOption])
-            .concat(categories.phasesOfEmergency.categoryOptions)
-            .concat(categories.targetActual.categoryOptions)
+        return cell({
+            sheet: this.sheets.dataEntry,
+            column: "B",
+            row: 1,
+            value: firstProject && onlyOneCategoryOption ? referenceToId(firstProject.id) : "",
+        });
+    }
+
+    private getMetadataCells(metadata: NRCModuleMetadata) {
+        const categoryOptionsObj = this.getCategoryOptionsObj(metadata);
+
+        const categoryOptions = _([{ id: "", name: "" }]) // Blank option to match empty categoryOption
+            .concat(categoryOptionsObj.projects || [])
+            .concat(categoryOptionsObj.phasesOfEmergency || [])
+            .concat(categoryOptionsObj.targetActual || [])
             .value();
 
         const categoryOptionCombos = _(metadata.dataElements)
@@ -262,14 +299,6 @@ class DownloadCustomization {
         };
         const value = `Validation!$${columns.validation}$${row}:$${columns.validation}$${row + objects.length - 1}`;
 
-        /*
-        await excelRepository.defineName(this.id, nameForId(cell.id), {
-            type: "cell" as const,
-            sheet: cell.sheet,
-            ref: cell.ref,
-        });
-        */
-
         await this.excelRepository.setDataValidation(this.id, range, value);
     }
 
@@ -285,15 +314,6 @@ class DownloadCustomization {
 
     private async fillWorkbook(_metadata: NRCModuleMetadata, sheetData: WorkbookData) {
         const { excelRepository } = this;
-        /*
-        const { categories } = metadata.categoryCombo;
-
-        await this.setDropdown({ data: "A", validation: "A" }, metadata.organisationUnits);
-        await this.setDropdown({ data: "B", validation: "B" }, categories.phasesOfEmergency.categoryOptions);
-        await this.setDropdown({ data: "C", validation: "D" }, metadata.dataElements);
-        await this.setDropdown({ data: "E", validation: "C" }, categories.targetActual.categoryOptions);
-        await this.setDropdownCell("D1", { validation: "F" }, metadata.periods);
-        */
 
         for (const cell of sheetData.cells) {
             await excelRepository.writeCell(
@@ -319,8 +339,19 @@ class DownloadCustomization {
             });
         }
 
+        this.hideIdCells(excelRepository);
+
         excelRepository.protectSheet(this.id, this.sheets.validation, this.password);
         excelRepository.protectSheet(this.id, this.sheets.metadata, this.password);
+    }
+
+    private hideIdCells(excelRepository: ExcelRepository) {
+        const idColumns = ["G", "H", "I", "J"];
+        const sheet = this.sheets.dataEntry;
+
+        idColumns.forEach(idColumn => {
+            excelRepository.hideCells(this.id, { sheet: sheet, type: "column", ref: idColumn }, true);
+        });
     }
 }
 
@@ -347,6 +378,7 @@ function getCocKey(categoryOptionCombo: { categoryOptions: Ref[] }): string {
     return _(categoryOptionCombo.categoryOptions)
         .map(co => co.id)
         .sortBy()
+        .reject(id => id === "")
         .join(".");
 }
 
@@ -358,3 +390,9 @@ function cell(options: { sheet: string; column: string; row: number; value: stri
         id: options.id,
     };
 }
+
+type CategoryOptions = {
+    projects?: NamedRef[];
+    phasesOfEmergency?: NamedRef[];
+    targetActual?: NamedRef[];
+};

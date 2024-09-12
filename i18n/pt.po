@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2024-06-25T17:49:07.727Z\n"
+"POT-Creation-Date: 2024-08-27T07:14:29.248Z\n"
 "Language: pt\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -800,11 +800,11 @@ msgstr "Resposta do JSON"
 msgid "Template"
 msgstr "Modelo"
 
-msgid "Select template to export..."
-msgstr "Selecione o planilha para exportar ..."
-
 msgid "Data Model"
 msgstr "Modelo de dados"
+
+msgid "Select template to export..."
+msgstr "Selecione o planilha para exportar ..."
 
 msgid "Start period"
 msgstr "Período inicial"

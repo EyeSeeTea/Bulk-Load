@@ -7,13 +7,16 @@ export interface NRCModuleMetadata {
     periods: Period[];
     categoryCombo: {
         categories: {
-            project: { categoryOption: NamedRef };
-            phasesOfEmergency: { categoryOptions: NamedRef[] };
-            targetActual: { categoryOptions: NamedRef[] };
+            projects?: { categoryOptions: CategoryOption[] };
+            phasesOfEmergency?: { categoryOptions: CategoryOption[] };
+            targetActual?: { categoryOptions: CategoryOption[] };
         };
+
         categoryOptionCombos: Array<{ id: Id; name: string; categoryOptions: Ref[] }>;
     };
 }
+
+export type CategoryOption = NamedRef;
 
 export interface DataElement extends NamedRef {
     categoryCombo: CategoryCombo;
