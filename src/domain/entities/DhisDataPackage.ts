@@ -1,4 +1,4 @@
-import { D2Geometry } from "@eyeseetea/d2-api/schemas";
+import { Id } from "./ReferenceObject";
 
 export interface EventsPackage {
     events: Event[];
@@ -28,12 +28,24 @@ export interface Event {
         latitude: string;
         longitude: string;
     };
-    geometry?: D2Geometry;
+    geometry?: Geometry;
     attributeOptionCombo?: string;
-    trackedEntity?: string;
+    trackedEntity?: Id;
     programStage?: string;
     dataValues: EventDataValue[];
 }
+
+type Coordinates = [number, number];
+
+export type Geometry =
+    | {
+          type: "Point";
+          coordinates: Coordinates;
+      }
+    | {
+          type: "Polygon";
+          coordinates: Array<Coordinates[]>;
+      };
 
 export interface EventDataValue {
     dataElement: string;

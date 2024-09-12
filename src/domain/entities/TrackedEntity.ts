@@ -1,4 +1,3 @@
-import { Attribute as AttributeApi } from "@eyeseetea/d2-api/api/trackedEntityInstances";
 import { Id } from "./ReferenceObject";
 import { Enrollment } from "./TrackedEntityInstance";
 import { DataElementType } from "./DataForm";
@@ -18,12 +17,17 @@ export type TrackerRelationship = {
 };
 
 export type TrackedEntity = {
-    attributes: AttributeApi[];
+    attributes: Attribute[];
     enrollments: Enrollment[];
     orgUnit: Id;
     trackedEntity: Id;
     trackedEntityType: Id;
     relationships: TrackerRelationship[];
+};
+
+type Attribute = {
+    attribute: Id;
+    value: string;
 };
 
 export type TrackedEntitiesApiRequest = {

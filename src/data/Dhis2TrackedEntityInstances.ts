@@ -461,6 +461,7 @@ async function getTeisFromApi(options: {
 
     const filters: TrackedEntityGetRequest = {
         ...ouModeQuery,
+        order: "created:asc",
         program: program.id,
         pageSize: pageSize,
         page: page,

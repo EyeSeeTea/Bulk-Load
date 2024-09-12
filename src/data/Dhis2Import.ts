@@ -1,7 +1,7 @@
 import _ from "lodash";
 import { SynchronizationResult, SynchronizationStats } from "../domain/entities/SynchronizationResult";
 import i18n from "../locales";
-import { D2Api } from "@eyeseetea/d2-api/2.33";
+import { D2Api, Id } from "../types/d2-api";
 import { Ref } from "../domain/entities/ReferenceObject";
 
 export type Status = "OK" | "ERROR";
@@ -19,6 +19,13 @@ export type ImportPostResponse = {
     response: Ref;
 };
 
+export type TrackerType = "TRACKED_ENTITY" | "EVENT" | "ENROLLMENT" | "RELATIONSHIP";
+
+export type TypeReportMap = Record<
+    TrackerType,
+    { trackerType: TrackerType; stats: ImportStats; objectReports: { uid: Id } }
+>;
+
 export type ImportReportResponse = {
     status: Status;
     validationReport: {
@@ -33,15 +40,7 @@ export type ImportReportResponse = {
     bundleReport?: {
         status: Status;
         stats: ImportStats;
-        typeReportMap: {
-            [type: string]: {
-                trackerType: string;
-                stats: ImportStats;
-                objectReports: {
-                    uid: string;
-                };
-            };
-        };
+        typeReportMap: TypeReportMap;
     };
 };
 
@@ -54,7 +53,7 @@ export function processImportResponse(options: {
     const { title, model, importResult, splitStatsList } = options;
 
     const { bundleReport, status, validationReport } = importResult;
-    const message = status === "OK" ? "Import was successful" : "Import failed";
+    const message = status === "OK" ? i18n.t("Import was successful") : i18n.t("Import failed");
 
     const errors = validationReport.errorReports.map(errorReport => ({
         id: errorReport.uid,

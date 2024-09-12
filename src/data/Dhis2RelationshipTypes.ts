@@ -294,23 +294,54 @@ async function getConstraintForTypeProgram(
 ): Promise<RelationshipConstraint | undefined> {
     if (!program) return undefined;
     const { organisationUnits = [], startDate, endDate } = filters ?? {};
+    const pageSize = 250;
 
-    // to-do: get all events
-    const events = await promiseMap(organisationUnits, async orgUnit => {
-        const { instances } = await api
-            .get<{ instances: { event: Id }[] }>("/tracker/events", {
-                program: program.id,
-                programStage: programStage?.id,
-                orgUnit: orgUnit.id,
+    async function fetchEvents(options: {
+        program: Id;
+        programStage: Id;
+        orgUnit: Id;
+        page: number;
+        pageSize: number;
+    }) {
+        const { program, programStage, orgUnit, page, pageSize } = options;
+
+        return await api
+            .get<{ instances: { event: Id }[]; pageCount: number }>("/tracker/events", {
+                program: program,
+                programStage: programStage,
+                orgUnit: orgUnit,
                 occuredAfter: startDate ? moment(startDate).format("YYYY-MM-DD") : undefined,
                 occuredBefore: endDate ? moment(endDate).format("YYYY-MM-DD") : undefined,
                 fields: "event",
-                paging: false,
+                page: page,
+                pageSize: pageSize,
                 totalPages: true,
             })
             .getData();
+    }
 
-        return instances;
+    const events = await promiseMap(organisationUnits, async orgUnit => {
+        const { instances, pageCount } = await fetchEvents({
+            program: program.id,
+            programStage: programStage?.id ?? "",
+            orgUnit: orgUnit.id,
+            page: 1,
+            pageSize: pageSize,
+        });
+
+        const paginatedEvents = await promiseMap(_.range(2, pageCount + 1), async page => {
+            const { instances } = await fetchEvents({
+                program: program.id,
+                programStage: programStage?.id ?? "",
+                orgUnit: orgUnit.id,
+                page: page,
+                pageSize: pageSize,
+            });
+
+            return instances;
+        });
+
+        return [...instances, ..._.flatten(paginatedEvents)];
     });
 
     return {
