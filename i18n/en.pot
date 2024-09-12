@@ -5,13 +5,19 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2024-07-23T19:05:21.307Z\n"
-"PO-Revision-Date: 2024-07-23T19:05:21.307Z\n"
+"POT-Creation-Date: 2024-09-12T09:39:14.809Z\n"
+"PO-Revision-Date: 2024-09-12T09:39:14.809Z\n"
 
 msgid "Events - Create/update"
 msgstr ""
 
 msgid "Event"
+msgstr ""
+
+msgid "Import was successful"
+msgstr ""
+
+msgid "Import failed"
 msgstr ""
 
 msgid "Create/update"
