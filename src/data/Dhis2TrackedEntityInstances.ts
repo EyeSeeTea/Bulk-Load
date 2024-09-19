@@ -456,12 +456,12 @@ async function getTeisFromApi(options: {
 
     const ouModeQuery =
         ouMode === "SELECTED" || ouMode === "CHILDREN" || ouMode === "DESCENDANTS"
-            ? { orgUnitMode: ouMode, orgUnit: orgUnits?.map(({ id }) => id) }
-            : { orgUnitMode: ouMode };
+            ? { ouMode: ouMode, orgUnit: orgUnits?.map(({ id }) => id) }
+            : { ouMode: ouMode };
 
     const filters: TrackedEntityGetRequest = {
         ...ouModeQuery,
-        order: "created:asc",
+        order: "createdAt:asc",
         program: program.id,
         pageSize: pageSize,
         page: page,
