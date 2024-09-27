@@ -27,6 +27,7 @@ import {
 import { ImportPostResponse, postImport } from "./Dhis2Import";
 import { TrackedEntitiesApiRequest, TrackedEntitiesResponse, TrackedEntity } from "../domain/entities/TrackedEntity";
 import { Params } from "@eyeseetea/d2-api/api/common";
+import { buildOrgUnitsParameter } from "../domain/entities/OrgUnit";
 
 export interface GetOptions {
     api: D2Api;
@@ -456,7 +457,7 @@ async function getTeisFromApi(options: {
 
     const ouModeQuery =
         ouMode === "SELECTED" || ouMode === "CHILDREN" || ouMode === "DESCENDANTS"
-            ? { ouMode: ouMode, orgUnit: orgUnits?.map(({ id }) => id).join(";") }
+            ? { ouMode: ouMode, orgUnit: orgUnits ? buildOrgUnitsParameter(orgUnits) : "" }
             : { ouMode: ouMode };
 
     const filters: TrackedEntityGetRequest = {

@@ -11,6 +11,7 @@ import { promiseMap } from "../utils/promises";
 import { getUid } from "./dhis2-uid";
 import { getTrackedEntities, TrackedEntityGetRequest } from "./Dhis2TrackedEntityInstances";
 import { TrackerRelationship, RelationshipItem, TrackedEntitiesApiRequest } from "../domain/entities/TrackedEntity";
+import { buildOrgUnitsParameter } from "../domain/entities/OrgUnit";
 
 type RelationshipTypesById = Record<Id, Pick<D2RelationshipType, "id" | "toConstraint" | "fromConstraint">>;
 
@@ -239,7 +240,7 @@ async function getConstraintForTypeTei(
 
     const ouModeQuery =
         ouMode === "SELECTED" || ouMode === "CHILDREN" || ouMode === "DESCENDANTS"
-            ? { orgUnitMode: ouMode, orgUnit: organisationUnits?.map(({ id }) => id).join(";") }
+            ? { orgUnitMode: ouMode, orgUnit: organisationUnits ? buildOrgUnitsParameter(organisationUnits) : "" }
             : { orgUnitMode: ouMode };
 
     const query = {
