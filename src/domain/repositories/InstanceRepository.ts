@@ -37,7 +37,7 @@ export interface InstanceRepository {
     getLocales(): Promise<Locale[]>;
     getDefaultIds(filter?: string): Promise<string[]>;
     deleteAggregatedData(dataPackage: DataPackage): Promise<SynchronizationResult>;
-    importDataPackage(dataPackage: DataPackage): Promise<SynchronizationResult[]>;
+    importDataPackage(dataPackage: DataPackage, createAndUpdate: boolean): Promise<SynchronizationResult[]>;
     getProgram(programId: Id): Promise<Program | undefined>;
     convertDataPackage(dataPackage: DataPackage): EventsPackage | AggregatedPackage;
     getBuilderMetadata(teis: TrackedEntityInstance[]): Promise<BuilderMetadata>;

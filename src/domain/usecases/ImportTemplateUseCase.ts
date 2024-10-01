@@ -33,7 +33,7 @@ export type ImportTemplateError =
           instanceDataValues: DataPackage;
       };
 
-export type DuplicateImportStrategy = "ERROR" | "IMPORT" | "IGNORE";
+export type DuplicateImportStrategy = "ERROR" | "IMPORT" | "IGNORE" | "IMPORT_WITHOUT_DELETE";
 export type OrganisationUnitImportStrategy = "ERROR" | "IGNORE";
 
 export interface ImportTemplateUseCaseParams {
@@ -142,12 +142,17 @@ export class ImportTemplateUseCase implements UseCase {
             });
         }
 
-        const deleteResult =
-            duplicateStrategy === "IGNORE" || dataForm.type !== "dataSets"
-                ? undefined
-                : await this.instanceRepository.deleteAggregatedData(instanceDataValues);
+        const shouldDeleteExistingData =
+            dataForm.type === "dataSets" ? this.shouldDeleteAggregatedData(duplicateStrategy) : false;
 
-        const importResult = await this.instanceRepository.importDataPackage(dataValues);
+        const deleteResult = shouldDeleteExistingData
+            ? await this.instanceRepository.deleteAggregatedData(instanceDataValues)
+            : undefined;
+
+        const importResult = await this.instanceRepository.importDataPackage(
+            dataValues,
+            duplicateStrategy === "IMPORT_WITHOUT_DELETE"
+        );
 
         const importResultHasErrors = importResult.flatMap(result => result.errors);
         if (importResultHasErrors.length > 0 || deleteResult) {
@@ -163,6 +168,14 @@ export class ImportTemplateUseCase implements UseCase {
             return Either.success(_.compact([deleteResultWithErrorsDetails, ...importResultWithErrorsDetails]));
         } else {
             return Either.success(_.compact([deleteResult, ...importResult]));
+        }
+    }
+
+    private shouldDeleteAggregatedData(strategy: DuplicateImportStrategy): boolean {
+        if (strategy === "IMPORT") {
+            return true;
+        } else {
+            return false;
         }
     }
 
@@ -256,7 +269,7 @@ export class ImportTemplateUseCase implements UseCase {
         );
 
         const existingDataValues =
-            duplicateStrategy === "IMPORT"
+            duplicateStrategy === "IMPORT_WITHOUT_DELETE" || duplicateStrategy === "IMPORT"
                 ? []
                 : _.remove(excelFile, base => {
                       return instanceDataValues.find(dataPackage =>
