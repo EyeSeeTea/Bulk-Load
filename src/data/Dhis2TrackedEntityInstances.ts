@@ -41,7 +41,7 @@ export interface GetOptions {
 type TrackerParams = Params & Omit<TeiGetRequest, "ou" | "ouMode">;
 
 export interface TrackedEntityGetRequest extends TrackerParams {
-    orgUnit?: TeiGetRequest["ou"];
+    orgUnit?: string;
     orgUnitMode?: TeiGetRequest["ouMode"];
     trackedEntity?: string;
     enrollmentEnrolledAfter?: string;
@@ -456,7 +456,7 @@ async function getTeisFromApi(options: {
 
     const ouModeQuery =
         ouMode === "SELECTED" || ouMode === "CHILDREN" || ouMode === "DESCENDANTS"
-            ? { ouMode: ouMode, orgUnit: orgUnits?.map(({ id }) => id) }
+            ? { ouMode: ouMode, orgUnit: orgUnits?.map(({ id }) => id).join(";") }
             : { ouMode: ouMode };
 
     const filters: TrackedEntityGetRequest = {
