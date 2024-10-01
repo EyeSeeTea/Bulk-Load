@@ -148,10 +148,9 @@ export class ImportTemplateUseCase implements UseCase {
             ? await this.instanceRepository.deleteAggregatedData(instanceDataValues)
             : undefined;
 
-        const importResult = await this.instanceRepository.importDataPackage(
-            dataValues,
-            duplicateStrategy === "IMPORT_WITHOUT_DELETE"
-        );
+        const importResult = await this.instanceRepository.importDataPackage(dataValues, {
+            createAndUpdate: duplicateStrategy === "IMPORT_WITHOUT_DELETE" || duplicateStrategy === "ERROR",
+        });
 
         const importResultHasErrors = importResult.flatMap(result => result.errors);
         if (importResultHasErrors.length > 0 || deleteResult) {
@@ -171,11 +170,7 @@ export class ImportTemplateUseCase implements UseCase {
     }
 
     private shouldDeleteAggregatedData(strategy: DuplicateImportStrategy): boolean {
-        if (strategy === "IMPORT") {
-            return true;
-        } else {
-            return false;
-        }
+        return strategy === "IMPORT";
     }
 
     private validateOrgUnitAccess(

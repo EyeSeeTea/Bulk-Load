@@ -14,6 +14,7 @@ import {
     BuilderMetadata,
     GetDataFormsParams,
     GetDataPackageParams,
+    ImportDataPackageOptions,
     InstanceRepository,
 } from "../domain/repositories/InstanceRepository";
 import i18n from "../locales";
@@ -203,8 +204,9 @@ export class InstanceDhisRepository implements InstanceRepository {
 
     public async importDataPackage(
         dataPackage: DataPackage,
-        createAndUpdate: boolean
+        options: ImportDataPackageOptions
     ): Promise<SynchronizationResult[]> {
+        const { createAndUpdate } = options;
         switch (dataPackage.type) {
             case "dataSets": {
                 const result = await this.importAggregatedData(
