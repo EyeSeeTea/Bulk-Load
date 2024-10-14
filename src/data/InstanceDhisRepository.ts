@@ -629,8 +629,9 @@ export class InstanceDhisRepository implements InstanceRepository {
                     pageSize: 250,
                     attributeCategoryCombo: categoryComboId,
                     attributeCategoryOptions: categoryOptionId,
-                    occuredAfter: startDate?.format("YYYY-MM-DD"),
-                    occuredBefore: endDate?.format("YYYY-MM-DD"),
+                    // TODO: Get typesafety for this object
+                    occurredAfter: startDate?.format("YYYY-MM-DD"),
+                    occurredBefore: endDate?.format("YYYY-MM-DD"),
                     cache: Math.random(),
                     fields: "*",
                 })
