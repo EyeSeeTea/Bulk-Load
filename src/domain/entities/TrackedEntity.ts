@@ -17,17 +17,11 @@ export type TrackerRelationship = {
 };
 
 export type TrackedEntity = {
-    attributes: Attribute[];
     enrollments: Enrollment[];
     orgUnit: Id;
     trackedEntity: Id;
     trackedEntityType: Id;
     relationships: TrackerRelationship[];
-};
-
-type Attribute = {
-    attribute: Id;
-    value: string;
 };
 
 export type TrackedEntitiesApiRequest = {

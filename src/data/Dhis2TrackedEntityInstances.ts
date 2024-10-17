@@ -371,10 +371,6 @@ function getApiTeiToUpload(
         trackedEntity: tei.id,
         trackedEntityType: program.trackedEntityType.id,
         orgUnit: orgUnit.id,
-        attributes: tei.attributeValues.map(av => ({
-            attribute: av.attribute.id,
-            value: getValue(av, optionById),
-        })),
         enrollments:
             enrollment && enrollment.enrolledAt
                 ? [
@@ -384,6 +380,10 @@ function getApiTeiToUpload(
                           program: program.id,
                           enrolledAt: enrollment.enrolledAt,
                           occurredAt: enrollment.occurredAt || enrollment.enrolledAt,
+                          attributes: tei.attributeValues.map(attributeValue => ({
+                              attribute: attributeValue.attribute.id,
+                              value: getValue(attributeValue, optionById),
+                          })),
                       },
                   ]
                 : [],
@@ -586,7 +586,7 @@ function getValue(
     dataValue: { optionId?: string; value: EventDataValue["value"] },
     optionById: Record<Id, { id: Id; code: string } | undefined>
 ): string {
-    if (dataValue.optionId) {
+    if (dataValue.optionId && dataValue.optionId !== "true" && dataValue.optionId !== "false") {
         return optionById[dataValue.optionId]?.code || dataValue.optionId;
     } else {
         return dataValue.value.toString();

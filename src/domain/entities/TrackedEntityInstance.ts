@@ -22,6 +22,10 @@ export interface Enrollment {
     enrollment?: string;
     enrolledAt: string;
     occurredAt: string;
+    attributes?: {
+        attribute: Id;
+        value: string;
+    }[];
 }
 
 export interface AttributeValue {
