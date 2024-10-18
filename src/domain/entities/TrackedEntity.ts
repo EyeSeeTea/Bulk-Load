@@ -21,7 +21,13 @@ export type TrackedEntity = {
     orgUnit: Id;
     trackedEntity: Id;
     trackedEntityType: Id;
+    attributes: D2TrackerAttribute[];
     relationships: TrackerRelationship[];
+};
+
+export type D2TrackerAttribute = {
+    attribute: Id;
+    value: string;
 };
 
 export type TrackedEntitiesApiRequest = {

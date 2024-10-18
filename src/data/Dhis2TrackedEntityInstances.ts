@@ -367,10 +367,16 @@ function getApiTeiToUpload(
 
     const enrollmentId = existingTei?.enrollment?.id || getUid([tei.id, orgUnit.id, program.id].join("-"));
 
+    const attributes = tei.attributeValues.map(attributeValue => ({
+        attribute: attributeValue.attribute.id,
+        value: getValue(attributeValue, optionById),
+    }));
+
     return {
         trackedEntity: tei.id,
         trackedEntityType: program.trackedEntityType.id,
         orgUnit: orgUnit.id,
+        attributes: attributes,
         enrollments:
             enrollment && enrollment.enrolledAt
                 ? [
@@ -380,10 +386,7 @@ function getApiTeiToUpload(
                           program: program.id,
                           enrolledAt: enrollment.enrolledAt,
                           occurredAt: enrollment.occurredAt || enrollment.enrolledAt,
-                          attributes: tei.attributeValues.map(attributeValue => ({
-                              attribute: attributeValue.attribute.id,
-                              value: getValue(attributeValue, optionById),
-                          })),
+                          attributes: attributes,
                       },
                   ]
                 : [],
