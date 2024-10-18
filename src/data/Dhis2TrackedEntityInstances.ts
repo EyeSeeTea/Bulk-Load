@@ -27,6 +27,7 @@ import {
 import { ImportPostResponse, postImport } from "./Dhis2Import";
 import { TrackedEntitiesApiRequest, TrackedEntitiesResponse, TrackedEntity } from "../domain/entities/TrackedEntity";
 import { Params } from "@eyeseetea/d2-api/api/common";
+import { buildOrgUnitsParameter } from "../domain/entities/OrgUnit";
 
 export interface GetOptions {
     api: D2Api;
@@ -41,7 +42,7 @@ export interface GetOptions {
 type TrackerParams = Params & Omit<TeiGetRequest, "ou" | "ouMode">;
 
 export interface TrackedEntityGetRequest extends TrackerParams {
-    orgUnit?: TeiGetRequest["ou"];
+    orgUnit?: string;
     orgUnitMode?: TeiGetRequest["ouMode"];
     trackedEntity?: string;
     enrollmentEnrolledAfter?: string;
@@ -366,14 +367,16 @@ function getApiTeiToUpload(
 
     const enrollmentId = existingTei?.enrollment?.id || getUid([tei.id, orgUnit.id, program.id].join("-"));
 
+    const attributes = tei.attributeValues.map(attributeValue => ({
+        attribute: attributeValue.attribute.id,
+        value: getValue(attributeValue, optionById),
+    }));
+
     return {
         trackedEntity: tei.id,
         trackedEntityType: program.trackedEntityType.id,
         orgUnit: orgUnit.id,
-        attributes: tei.attributeValues.map(av => ({
-            attribute: av.attribute.id,
-            value: getValue(av, optionById),
-        })),
+        attributes: attributes,
         enrollments:
             enrollment && enrollment.enrolledAt
                 ? [
@@ -383,6 +386,7 @@ function getApiTeiToUpload(
                           program: program.id,
                           enrolledAt: enrollment.enrolledAt,
                           occurredAt: enrollment.occurredAt || enrollment.enrolledAt,
+                          attributes: attributes,
                       },
                   ]
                 : [],
@@ -456,7 +460,7 @@ async function getTeisFromApi(options: {
 
     const ouModeQuery =
         ouMode === "SELECTED" || ouMode === "CHILDREN" || ouMode === "DESCENDANTS"
-            ? { ouMode: ouMode, orgUnit: orgUnits?.map(({ id }) => id) }
+            ? { ouMode: ouMode, orgUnit: orgUnits ? buildOrgUnitsParameter(orgUnits) : "" }
             : { ouMode: ouMode };
 
     const filters: TrackedEntityGetRequest = {
@@ -585,7 +589,7 @@ function getValue(
     dataValue: { optionId?: string; value: EventDataValue["value"] },
     optionById: Record<Id, { id: Id; code: string } | undefined>
 ): string {
-    if (dataValue.optionId) {
+    if (dataValue.optionId && dataValue.optionId !== "true" && dataValue.optionId !== "false") {
         return optionById[dataValue.optionId]?.code || dataValue.optionId;
     } else {
         return dataValue.value.toString();

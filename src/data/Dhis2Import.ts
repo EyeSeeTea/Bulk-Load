@@ -110,9 +110,17 @@ export async function postImport(
     try {
         const response = await postFn();
         const { response: trackerImportResponse } = response;
-        const trackerJobReport = await api
-            .get<ImportReportResponse>(`/tracker/jobs/${trackerImportResponse.id}/report`)
-            .getData();
+        let trackerJobReport: ImportReportResponse | null = null;
+
+        while (!trackerJobReport) {
+            const trackerJobs = await getTrackerJobs(api, trackerImportResponse.id);
+
+            if (trackerJobs.some(job => job.completed)) {
+                trackerJobReport = await api
+                    .get<ImportReportResponse>(`/tracker/jobs/${trackerImportResponse.id}/report`)
+                    .getData();
+            }
+        }
 
         return processImportResponse({
             title,
@@ -132,4 +140,8 @@ export async function postImport(
             return { title: model, status: "NETWORK ERROR", rawResponse: {} };
         }
     }
+}
+
+async function getTrackerJobs(api: D2Api, trackerImportResponseId: Id): Promise<{ completed: boolean }[]> {
+    return await api.get<{ completed: boolean }[]>(`/tracker/jobs/${trackerImportResponseId}`).getData();
 }

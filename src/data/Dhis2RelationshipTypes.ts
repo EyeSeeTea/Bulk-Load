@@ -9,8 +9,9 @@ import { D2Api, D2RelationshipConstraint, D2RelationshipType, Id, Ref } from "..
 import { memoizeAsync } from "../utils/cache";
 import { promiseMap } from "../utils/promises";
 import { getUid } from "./dhis2-uid";
-import { getTrackedEntities } from "./Dhis2TrackedEntityInstances";
+import { getTrackedEntities, TrackedEntityGetRequest } from "./Dhis2TrackedEntityInstances";
 import { TrackerRelationship, RelationshipItem, TrackedEntitiesApiRequest } from "../domain/entities/TrackedEntity";
+import { buildOrgUnitsParameter } from "../domain/entities/OrgUnit";
 
 type RelationshipTypesById = Record<Id, Pick<D2RelationshipType, "id" | "toConstraint" | "fromConstraint">>;
 
@@ -239,7 +240,7 @@ async function getConstraintForTypeTei(
 
     const ouModeQuery =
         ouMode === "SELECTED" || ouMode === "CHILDREN" || ouMode === "DESCENDANTS"
-            ? { orgUnitMode: ouMode, orgUnit: organisationUnits?.map(({ id }) => id) }
+            ? { orgUnitMode: ouMode, orgUnit: organisationUnits ? buildOrgUnitsParameter(organisationUnits) : "" }
             : { orgUnitMode: ouMode };
 
     const query = {
@@ -253,29 +254,8 @@ async function getConstraintForTypeTei(
         fields: "trackedEntity",
     } as const;
 
-    const orgUnitsChunks = query.orgUnit ? _.chunk(query.orgUnit, 250) : [[]];
-
-    const results = await promiseMap(orgUnitsChunks, async ouChunk => {
-        const filterQuery =
-            query.orgUnitMode === "SELECTED" || query.orgUnitMode === "CHILDREN" || query.orgUnitMode === "DESCENDANTS"
-                ? {
-                      ...query,
-                      orgUnit: ouChunk,
-                  }
-                : query;
-
-        const { instances: firstPage, pageCount } = await getTrackedEntities(api, filterQuery);
-
-        const pages = _.range(2, pageCount + 1);
-        const otherPages = await promiseMap(pages, async page => {
-            const { instances } = await getTrackedEntities(api, { ...filterQuery, page });
-            return instances;
-        });
-
-        return [...firstPage, ..._.flatten(otherPages)];
-    });
-
-    const trackedEntityInstances = _.flatten(results).map(({ trackedEntity, ...rest }) => ({
+    const results = await getAllTrackedEntities(api, query);
+    const trackedEntityInstances = results.map(({ trackedEntity, ...rest }) => ({
         ...rest,
         id: trackedEntity,
     }));
@@ -284,6 +264,17 @@ async function getConstraintForTypeTei(
     const name = trackedEntityTypesById[constraint.trackedEntityType.id]?.name ?? "Unknown";
 
     return { type: "tei", name, program: constraint.program, teis };
+}
+
+async function getAllTrackedEntities(api: D2Api, query: TrackedEntityGetRequest): Promise<TrackedEntitiesApiRequest[]> {
+    const { instances: firstPage, pageCount } = await getTrackedEntities(api, query);
+    const pages = _.range(2, pageCount + 1);
+    const otherPages = await promiseMap(pages, async page => {
+        const { instances } = await getTrackedEntities(api, { ...query, page });
+        return instances;
+    });
+
+    return [...firstPage, ..._.flatten(otherPages)];
 }
 
 async function getConstraintForTypeProgram(

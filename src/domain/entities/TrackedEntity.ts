@@ -17,15 +17,15 @@ export type TrackerRelationship = {
 };
 
 export type TrackedEntity = {
-    attributes: Attribute[];
     enrollments: Enrollment[];
     orgUnit: Id;
     trackedEntity: Id;
     trackedEntityType: Id;
+    attributes: D2TrackerAttribute[];
     relationships: TrackerRelationship[];
 };
 
-type Attribute = {
+export type D2TrackerAttribute = {
     attribute: Id;
     value: string;
 };
