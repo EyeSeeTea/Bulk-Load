@@ -19,9 +19,11 @@ export class AnalyzeTemplateUseCase implements UseCase {
         const templateId = await this.excelRepository.loadTemplate({ type: "file", file: excelFile });
         const template = await this.templateRepository.getTemplate(templateId);
 
-        const dataFormId = await this.excelRepository.readCell(templateId, template.dataFormId, {
+        const dataFormId1 = await this.excelRepository.readCell(templateId, template.dataFormId, {
             formula: true,
         });
+        const dataFormId2 = await this.excelRepository.readCell(templateId, template.dataFormId);
+        const dataFormId = dataFormId1 || dataFormId2;
 
         if (!dataFormId || typeof dataFormId !== "string") {
             throw new Error(i18n.t("Cannot read data form id"));

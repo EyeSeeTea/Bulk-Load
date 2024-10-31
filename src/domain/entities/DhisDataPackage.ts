@@ -1,3 +1,5 @@
+import { Id } from "./ReferenceObject";
+
 export interface EventsPackage {
     events: Event[];
 }
@@ -21,16 +23,29 @@ export interface Event {
     orgUnit: string;
     program: string;
     status: string;
-    eventDate: string;
+    occurredAt: string;
     coordinate?: {
         latitude: string;
         longitude: string;
     };
+    geometry?: Geometry;
     attributeOptionCombo?: string;
-    trackedEntityInstance?: string;
+    trackedEntity?: Id;
     programStage?: string;
     dataValues: EventDataValue[];
 }
+
+type Coordinates = [number, number];
+
+export type Geometry =
+    | {
+          type: "Point";
+          coordinates: Coordinates;
+      }
+    | {
+          type: "Polygon";
+          coordinates: Array<Coordinates[]>;
+      };
 
 export interface EventDataValue {
     dataElement: string;

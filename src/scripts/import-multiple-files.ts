@@ -1,4 +1,3 @@
-import _ from "lodash";
 import path from "path";
 import { command, run, string, option } from "cmd-ts";
 import { resolve, basename } from "node:path";

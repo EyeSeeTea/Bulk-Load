@@ -17,8 +17,11 @@ export interface TrackedEntityInstance {
 
 export interface Enrollment {
     id?: Id;
-    enrollmentDate: string;
-    incidentDate: string;
+    program?: Id;
+    orgUnit?: Id;
+    enrollment?: string;
+    enrolledAt: string;
+    occurredAt: string;
 }
 
 export interface AttributeValue {

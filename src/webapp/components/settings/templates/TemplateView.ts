@@ -26,6 +26,8 @@ import i18n from "../../../../locales";
 
 export interface TemplateView extends BasicView, AdvancedView {
     mode: "basic" | "advanced";
+    generateMetadata: boolean;
+    isDefault: boolean;
 }
 
 type ValidView = { [K in keyof TemplateView]: NonNullable<TemplateView[K]> };
@@ -47,6 +49,8 @@ interface BaseView {
 export interface AdvancedView extends BaseView {
     dataSources: Maybe<File>;
     styleSources: Maybe<File>;
+    showLanguage: boolean;
+    showPeriod: boolean;
 }
 
 export interface BasicView extends BaseView {
@@ -137,7 +141,9 @@ function definition<T>(defaultValue: T, validations?: ValidationKey[]): Definiti
 }
 const viewDefs = {
     action: definition("create"),
+    isDefault: definition(undefined),
     mode: definition("basic"),
+    generateMetadata: definition(false),
     code: definition(""),
     name: definition(""),
     dataFormType: definition(undefined),
@@ -214,6 +220,8 @@ const viewDefs = {
     spreadsheet: definition(undefined),
     dataSources: definition(undefined),
     styleSources: definition(undefined),
+    showLanguage: definition(false),
+    showPeriod: definition(false),
 } as const;
 
 const viewEmpty = _.mapValues(viewDefs, def => def.default) as TemplateView;
@@ -286,12 +294,17 @@ export class TemplateViewActions {
     async fromCustomTemplate(template: CustomTemplate): Promise<TemplateView> {
         const base: Partial<TemplateView> = {
             action: "edit",
+            isDefault: template.isDefault,
+            generateMetadata: template.generateMetadata,
             code: template.id,
             name: template.name,
-            dataFormId: template.dataFormId.type === "value" ? template.dataFormId.id : undefined,
+            dataFormId:
+                template.dataFormId.type === "value" ? template.dataFormId.id : template.isDefault ? "ALL" : undefined,
             dataFormType: template.dataFormType.type === "value" ? template.dataFormType.id : undefined,
             description: template.description,
             spreadsheet: await getSpreadsheetFile(template.file).catch(() => undefined),
+            showLanguage: template.showLanguage || false,
+            showPeriod: template.showPeriod || false,
         };
 
         return { ...viewEmpty, ...base, ...this.get(template) };
@@ -368,12 +381,17 @@ export class TemplateViewActions {
             stylesLogoRange: stylesBySection["logo"]?.source.ref,
         });
 
+        const mode1 = template.type === "custom" ? template.mode : "advanced";
+        const defaultMode = dataSources && dataSources.length > 1 ? "advanced" : "basic";
+        const mode = mode1 ?? defaultMode;
+        if (mode === "advanced") return advancedView;
+
         switch (dataFormType) {
             case "dataSets":
             case "programs": {
                 const dataSource = dataSources?.[0];
                 const dataSourceHasTypeRow = dataSource && "type" in dataSource && dataSource.type === "row";
-                if (!dataSourceHasTypeRow || dataSources?.length !== 1) return advancedView;
+                if (!dataSourceHasTypeRow) return advancedView;
 
                 const view: Partial<TemplateView> = {
                     mode: "basic",
@@ -434,6 +452,8 @@ export class TemplateViewActions {
     async toCustomTemplate(view: ValidView): Promise<CustomTemplate> {
         type BaseField =
             | "type"
+            | "isDefault"
+            | "generateMetadata"
             | "id"
             | "name"
             | "dataFormType"
@@ -441,10 +461,14 @@ export class TemplateViewActions {
             | "description"
             | "file"
             | "created"
-            | "lastUpdated";
+            | "lastUpdated"
+            | "mode";
 
         const base: Pick<CustomTemplate, BaseField> = {
             type: "custom",
+            mode: view.mode,
+            isDefault: view.isDefault,
+            generateMetadata: view.generateMetadata,
             id: view.code,
             name: view.name,
             dataFormType: { type: "value", id: view.dataFormType },
@@ -538,6 +562,8 @@ export class TemplateViewActions {
                     ...base,
                     dataSources: await arrayFromFile<DataSource>(view.dataSources),
                     styleSources: await arrayFromFile<StyleSource>(view.styleSources),
+                    showLanguage: view.showLanguage,
+                    showPeriod: view.showPeriod,
                 };
         }
     }
@@ -592,7 +618,9 @@ export class TemplateViewActions {
     static getTranslations() {
         return ofType<Translations>({
             action: i18n.t("Action"),
+            isDefault: i18n.t("Is default"),
             mode: i18n.t("Mode"),
+            generateMetadata: i18n.t("Generate automatic metadata"),
             code: i18n.t("Code"),
             name: i18n.t("Name"),
             description: i18n.t("Description"),
@@ -670,6 +698,8 @@ export class TemplateViewActions {
 
             dataSources: i18n.t("Data Source"),
             styleSources: i18n.t("Styles"),
+            showLanguage: i18n.t("Show Language"),
+            showPeriod: i18n.t("Show Period"),
         });
     }
 }
@@ -707,7 +737,10 @@ function getColumnAttrs<Field extends DataSourceColumnField>(columnRef: Maybe<Sh
 
 type DataSourceRowField = "dataElement" | "categoryOption" | "teiAttributeId";
 
-function getRowAttrs<Field extends DataSourceRowField>(rowRef: RowRef | ValueRef | undefined, field: Field) {
+function getRowAttrs<Field extends DataSourceRowField>(
+    rowRef: ColumnRef | RowRef | ValueRef | undefined,
+    field: Field
+) {
     if (rowRef?.type !== "row") return;
 
     const sheetField = (field + "Sheet") as `${typeof field}Sheet`;

@@ -4,7 +4,6 @@ import _ from "lodash";
 import { Moment } from "moment";
 import { UseCase } from "../../CompositionRoot";
 import { getRelationshipMetadata, RelationshipOrgUnitFilter } from "../../data/Dhis2RelationshipTypes";
-import i18n from "../../locales";
 import { D2Api } from "../../types/d2-api";
 import { getExtensionFile, XLSX_EXTENSION } from "../../utils/files";
 import { promiseMap } from "../../utils/promises";
@@ -16,7 +15,10 @@ import { TemplateType } from "../entities/Template";
 import { ExcelBuilder } from "../helpers/ExcelBuilder";
 import { ExcelRepository } from "../repositories/ExcelRepository";
 import { InstanceRepository } from "../repositories/InstanceRepository";
+import { ModulesRepositories } from "../repositories/ModulesRepositories";
 import { TemplateRepository } from "../repositories/TemplateRepository";
+import { UsersRepository } from "../repositories/UsersRepository";
+import { buildAllPossiblePeriods } from "../../webapp/utils/periods";
 
 export interface DownloadTemplateProps {
     type: DataFormType;
@@ -34,22 +36,26 @@ export interface DownloadTemplateProps {
     downloadRelationships: boolean;
     filterTEIEnrollmentDate?: boolean;
     relationshipsOuFilter?: RelationshipOrgUnitFilter;
-    templateId?: string;
-    templateType?: TemplateType;
+    templateId: string;
+    templateType: TemplateType;
     splitDataEntryTabsBySection: boolean;
     useCodesForMetadata: boolean;
+    showLanguage: boolean;
+    showPeriod: boolean;
+    orgUnitShortName?: boolean;
 }
 
 export class DownloadTemplateUseCase implements UseCase {
     constructor(
         private instanceRepository: InstanceRepository,
         private templateRepository: TemplateRepository,
-        private excelRepository: ExcelRepository
+        private excelRepository: ExcelRepository,
+        private modulesRepositories: ModulesRepositories,
+        private usersRepository: UsersRepository
     ) {}
 
-    public async execute(
-        api: D2Api,
-        {
+    public async execute(api: D2Api, options: DownloadTemplateProps): Promise<void> {
+        const {
             type,
             id,
             theme: themeId,
@@ -69,25 +75,20 @@ export class DownloadTemplateUseCase implements UseCase {
             templateType,
             splitDataEntryTabsBySection,
             useCodesForMetadata,
-        }: DownloadTemplateProps
-    ): Promise<void> {
-        i18n.setDefaultNamespace("bulk-load");
+            showLanguage,
+            orgUnitShortName,
+        } = options;
+
+        const useShortNameInOrgUnit = orgUnitShortName || false;
         const templateId =
             templateType === "custom" && customTemplateId ? customTemplateId : getGeneratedTemplateId(type);
+        const currentUser = await this.usersRepository.getCurrentUser();
         const template = await this.templateRepository.getTemplate(templateId);
-
         const theme = themeId ? await this.templateRepository.getTheme(themeId) : undefined;
-
         const element = await getElement(api, type, id);
         const name = element.displayName ?? element.name;
 
-        if (template.type === "custom") {
-            await this.excelRepository.loadTemplate({
-                type: "file-base64",
-                contents: template.file.contents,
-                templateId: template.id,
-            });
-        } else {
+        async function getGenerateFile() {
             const result = await getElementMetadata({
                 api,
                 element,
@@ -98,6 +99,7 @@ export class DownloadTemplateUseCase implements UseCase {
                 populateStartDate: populateStartDate?.toDate(),
                 populateEndDate: populateEndDate?.toDate(),
                 relationshipsOuFilter,
+                orgUnitShortName: useShortNameInOrgUnit,
             });
 
             // FIXME: Legacy code, sheet generator
@@ -112,11 +114,26 @@ export class DownloadTemplateUseCase implements UseCase {
                 downloadRelationships,
                 splitDataEntryTabsBySection,
                 useCodesForMetadata,
+                orgUnitShortName: useShortNameInOrgUnit,
             });
+
             const workbook = await sheetBuilder.generate();
+            return workbook.writeToBuffer();
+        }
 
-            const file = await workbook.writeToBuffer();
-
+        if (template.type === "custom") {
+            if (template.generateMetadata) {
+                const file = await getGenerateFile();
+                await this.excelRepository.loadTemplate({ type: "file", file: file });
+            } else {
+                await this.excelRepository.loadTemplate({
+                    type: "file-base64",
+                    contents: template.file.contents,
+                    templateId: template.id,
+                });
+            }
+        } else {
+            const file = await getGenerateFile();
             await this.excelRepository.loadTemplate({ type: "file", file });
         }
 
@@ -134,29 +151,41 @@ export class DownloadTemplateUseCase implements UseCase {
               })
             : undefined;
 
-        const builder = new ExcelBuilder(this.excelRepository, this.instanceRepository);
-        await builder.templateCustomization(template, { populate, dataPackage, orgUnits });
+        const builder = new ExcelBuilder(this.excelRepository, this.instanceRepository, this.modulesRepositories);
+
+        await builder.templateCustomization(template, {
+            currentUser,
+            type,
+            id,
+            populate,
+            dataPackage,
+            orgUnits,
+            language: showLanguage ? language : undefined,
+        });
 
         if (theme) await builder.applyTheme(template, theme);
 
-        if (enablePopulate && dataPackage) {
+        if (enablePopulate) {
             if (template.type === "custom" && template.fixedOrgUnit) {
                 await this.excelRepository.writeCell(
                     template.id,
                     template.fixedOrgUnit,
-                    dataPackage.dataEntries[0]?.orgUnit ?? ""
+                    dataPackage?.dataEntries[0]?.orgUnit ?? this.getFirstValueOrEmpty(orgUnits)
                 );
             }
 
             if (template.type === "custom" && template.fixedPeriod) {
+                const periods = buildAllPossiblePeriods(element.periodType, populateStartDate, populateEndDate);
                 await this.excelRepository.writeCell(
                     template.id,
                     template.fixedPeriod,
-                    dataPackage.dataEntries[0]?.period ?? ""
+                    dataPackage?.dataEntries[0]?.period ?? this.getFirstValueOrEmpty(periods)
                 );
             }
 
-            await builder.populateTemplate(template, dataPackage, settings);
+            if (dataPackage) {
+                await builder.populateTemplate(template, dataPackage, settings);
+            }
         }
 
         const extension = template.type === "custom" ? getExtensionFile(template.file.name) : XLSX_EXTENSION;
@@ -169,6 +198,10 @@ export class DownloadTemplateUseCase implements UseCase {
             const data = await this.excelRepository.toBlob(templateId);
             saveAs(data, filename);
         }
+    }
+
+    private getFirstValueOrEmpty(model: string[]): string {
+        return _(model).first() || "";
     }
 }
 
@@ -206,6 +239,7 @@ async function getElementMetadata({
     populateEndDate,
     downloadRelationships,
     relationshipsOuFilter,
+    orgUnitShortName,
 }: {
     element: any;
     api: D2Api;
@@ -216,6 +250,7 @@ async function getElementMetadata({
     populateEndDate?: Date;
     downloadRelationships: boolean;
     relationshipsOuFilter?: RelationshipOrgUnitFilter;
+    orgUnitShortName: boolean;
 }) {
     const elementMetadataMap = new Map();
     const endpoint = element.type === "dataSets" ? "dataSets" : "programs";
@@ -239,13 +274,19 @@ async function getElementMetadata({
 
     const responses = await promiseMap(_.chunk(_.uniq(requestOrgUnits), 400), orgUnits =>
         api
-            .get<{ organisationUnits: { id: string; displayName: string; code?: string; translations: unknown }[] }>(
-                "/metadata",
-                {
-                    fields: "id,displayName,code,translations",
-                    filter: `id:in:[${orgUnits}]`,
-                }
-            )
+            .get<{
+                organisationUnits: {
+                    id: string;
+                    displayShortName: string;
+                    displayName: string;
+                    code?: string;
+                    translations: unknown;
+                }[];
+            }>("/metadata", {
+                fields: "id,displayName,code,translations,displayShortName",
+                filter: `id:in:[${orgUnits}]`,
+                order: orgUnitShortName ? "displayShortName:asc" : "displayName:asc",
+            })
             .getData()
     );
 

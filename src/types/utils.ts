@@ -47,3 +47,11 @@ export function assertUnreachable(_value: never): never {
 }
 
 export type OkOrError = { status: true } | { status: false; error: string };
+
+export type RecursivePartial<T> = {
+    [P in keyof T]?: T[P] extends (infer U)[]
+        ? RecursivePartial<U>[]
+        : T[P] extends object
+        ? RecursivePartial<T[P]>
+        : T[P];
+};

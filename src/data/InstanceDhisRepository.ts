@@ -7,7 +7,7 @@ import { AggregatedDataValue, AggregatedPackage, Event, EventsPackage } from "..
 import { DhisInstance } from "../domain/entities/DhisInstance";
 import { Locale } from "../domain/entities/Locale";
 import { OrgUnit } from "../domain/entities/OrgUnit";
-import { NamedRef } from "../domain/entities/ReferenceObject";
+import { NamedRef, Ref } from "../domain/entities/ReferenceObject";
 import { SynchronizationResult } from "../domain/entities/SynchronizationResult";
 import { Program, TrackedEntityInstance } from "../domain/entities/TrackedEntityInstance";
 import {
@@ -26,17 +26,12 @@ import {
     DataStore,
     DataValueSetsGetResponse,
     Id,
-    Pager,
     SelectedPick,
 } from "../types/d2-api";
 import { cache } from "../utils/cache";
 import { promiseMap } from "../utils/promises";
 import { postEvents } from "./Dhis2Events";
 import { getProgram, getTrackedEntityInstances, updateTrackedEntityInstances } from "./Dhis2TrackedEntityInstances";
-
-interface PagedEventsApiResponse extends EventsPackage {
-    pager: Pager;
-}
 
 export class InstanceDhisRepository implements InstanceRepository {
     private api: D2Api;
@@ -282,7 +277,7 @@ export class InstanceDhisRepository implements InstanceRepository {
     }
 
     public async getBuilderMetadata(teis: TrackedEntityInstance[]): Promise<BuilderMetadata> {
-        const orgUnitIds = teis.map(tei => tei.orgUnit.id);
+        const orgUnitIds = _.uniq(teis.map(tei => tei.orgUnit.id));
         const orgUnitIdsList = _.chunk(orgUnitIds, 250);
 
         const orgUnits: NamedRef[] = _.flatten(
@@ -353,10 +348,14 @@ export class InstanceDhisRepository implements InstanceRepository {
             program: dataForm,
             status: "COMPLETED",
             orgUnit,
-            eventDate: period,
+            occurredAt: period,
             attributeOptionCombo: attribute,
             dataValues: dataValues,
-            coordinate,
+            coordinate: coordinate,
+            geometry: coordinate && {
+                type: "Point",
+                coordinates: [Number(coordinate.longitude), Number(coordinate.latitude)],
+            },
         }));
     }
 
@@ -366,10 +365,19 @@ export class InstanceDhisRepository implements InstanceRepository {
     ): Promise<SynchronizationResult> {
         const dataValues = await this.validateAggregateImportPackage(this.buildAggregatedPayload(dataPackage));
 
+        const dataSetIds = _(dataPackage.dataEntries)
+            .map(entry => entry.dataForm)
+            .uniq()
+            .value();
+        const dataSetIdFirst = dataSetIds[0];
+        const dataSetId = dataSetIdFirst && dataSetIds.length === 1 ? dataSetIdFirst : undefined;
+
         const title =
             importStrategy === "DELETE" ? i18n.t("Data values - Delete") : i18n.t("Data values - Create/update");
 
-        const { response } = await this.api.dataValues.postSetAsync({ importStrategy }, { dataValues }).getData();
+        const { response } = await this.api.dataValues
+            .postSetAsync({ importStrategy }, { dataSet: dataSetId, dataValues })
+            .getData();
 
         const importSummary = await this.api.system.waitFor(response.jobType, response.id).getData();
 
@@ -426,12 +434,112 @@ export class InstanceDhisRepository implements InstanceRepository {
 
     private async importEventsData(dataPackage: DataPackage): Promise<SynchronizationResult[]> {
         const events = this.buildEventsPayload(dataPackage);
-        return postEvents(this.api, events);
+
+        const programs = _(events)
+            .groupBy(event => event.program)
+            .keys()
+            .value();
+        const eventProgramStages = await promiseMap(programs, async program => {
+            const programStage = await this.getEventProgramStage(program);
+
+            return {
+                program: program,
+                programStage: programStage?.id,
+            };
+        });
+
+        const eventsToSave = events.map(event => {
+            const eventProgramStage = eventProgramStages.find(
+                programStage => programStage.program === event.program
+            )?.programStage;
+
+            return {
+                ...event,
+                programStage: event.programStage ?? eventProgramStage,
+            };
+        });
+
+        return postEvents(this.api, eventsToSave);
+    }
+
+    private async getEventProgramStage(programId: Id): Promise<Ref | undefined> {
+        const { api } = this;
+
+        const { objects } = await api.models.programs
+            .get({
+                fields: { programStages: true },
+                filter: { id: { eq: programId } },
+            })
+            .getData();
+
+        return _.first(objects)?.programStages[0];
     }
 
     private async importTrackerProgramData(dataPackage: TrackerProgramPackage): Promise<SynchronizationResult[]> {
         const { trackedEntityInstances, dataEntries } = dataPackage;
         return updateTrackedEntityInstances(this.api, trackedEntityInstances, dataEntries);
+    }
+
+    private async getDataSetMetadata(formOptions: { id: Id }) {
+        /* Make specific calls to /api/metadata instead of /api/dataSets/ID/metadata to
+           minimize the size/response times. That's specially important for NRC instances,
+           which returned a huge amount of categoryOptionCombos (later unused). */
+        const { dataSets } = await this.api.metadata
+            .get({
+                dataSets: {
+                    fields: {
+                        id: true,
+                        categoryCombo: { id: true },
+                        dataSetElements: {
+                            dataElement: { id: true, optionSet: { id: true } },
+                            categoryCombo: { id: true },
+                        },
+                    },
+                    filter: { id: { eq: formOptions.id } },
+                },
+            })
+            .getData();
+
+        const dataSet = dataSets[0];
+        if (!dataSet) throw new Error(`Data set not found: ${formOptions.id}`);
+
+        const categoryComboIds = _(dataSet.categoryCombo)
+            .concat(dataSet.dataSetElements.map(dse => dse.categoryCombo))
+            .compact()
+            .map(categoryCombo => categoryCombo.id)
+            .uniq()
+            .value();
+
+        const optionSetIds = _(dataSet.dataSetElements)
+            .map(dse => dse.dataElement.optionSet)
+            .compact()
+            .map(optionSet => optionSet.id)
+            .uniq()
+            .value();
+
+        const { categoryCombos, options } = await this.api.metadata
+            .get({
+                categoryCombos: {
+                    fields: { id: true, categories: { id: true, categoryOptions: { id: true } } },
+                    filter: { id: { in: categoryComboIds } },
+                },
+                options: {
+                    fields: { id: true, code: true, optionSet: { id: true } },
+                    filter: { "optionSet.id": { in: optionSetIds } },
+                },
+            })
+            .getData();
+
+        return {
+            form: dataSet,
+            dataElements: dataSet.dataSetElements.map(dse => dse.dataElement),
+            categoryCombos: categoryCombos,
+            categories: _(categoryCombos)
+                .flatMap(categoryCombo => categoryCombo.categories)
+                .uniqBy(category => category.id)
+                .value(),
+            options: options,
+        };
     }
 
     private async getDataSetPackage({
@@ -443,7 +551,7 @@ export class InstanceDhisRepository implements InstanceRepository {
         translateCodes = true,
     }: GetDataPackageParams): Promise<DataPackage> {
         const defaultIds = await this.getDefaultIds();
-        const metadata = await this.api.get<MetadataPackage>(`/dataSets/${id}/metadata`).getData();
+        const metadata = await this.getDataSetMetadata({ id });
         const response = await promiseMap(_.chunk(orgUnits, 200), async orgUnit => {
             const query = (period?: string[]): Promise<DataValueSetsGetResponse> =>
                 this.api.dataValues
@@ -497,44 +605,59 @@ export class InstanceDhisRepository implements InstanceRepository {
         endDate,
         translateCodes = true,
     }: GetDataPackageParams): Promise<DataPackage> {
-        const metadata = await this.api.get<MetadataPackage>(`/programs/${id}/metadata`).getData();
-        const categoryComboId: string = _.find(metadata.programs, { id })?.categoryCombo.id;
+        const res = await this.api.get<MetadataProgramPackage>(`/programs/${id}/metadata`).getData();
+        const program = res.programs?.[0];
+        if (!program) throw new Error(`Program not found: ${id}`);
+
+        const metadata = { ...res, form: program };
+        const categoryComboId = program.categoryCombo.id;
         const categoryOptions = this.buildProgramAttributeOptions(metadata, categoryComboId);
         if (categoryOptions.length === 0) {
             throw new Error(`Could not find category options for the program ${id}`);
         }
 
-        const getEvents = (orgUnit: Id, categoryOptionId: Id, page: number): Promise<PagedEventsApiResponse> => {
-            // DHIS2 bug if we do not provide CC and COs, endpoint only works with ALL authority
-            return this.api
-                .get<PagedEventsApiResponse>("/events", {
+        const getEvents = async (
+            orgUnit: Id,
+            categoryOptionId: Id,
+            page: number
+        ): Promise<{
+            instances: Event[];
+            pageCount: number;
+        }> => {
+            const { instances, pageCount } = await this.api
+                .get<{
+                    instances: Event[];
+                    pageCount: number;
+                }>("/tracker/events", {
                     program: id,
                     orgUnit,
                     paging: true,
                     totalPages: true,
                     page,
                     pageSize: 250,
-                    attributeCc: categoryComboId,
-                    attributeCos: categoryOptionId,
-                    startDate: startDate?.format("YYYY-MM-DD"),
-                    endDate: endDate?.format("YYYY-MM-DD"),
+                    attributeCategoryCombo: categoryComboId,
+                    attributeCategoryOptions: categoryOptionId,
+                    // TODO: Get typesafety for this object
+                    occurredAfter: startDate?.format("YYYY-MM-DD"),
+                    occurredBefore: endDate?.format("YYYY-MM-DD"),
                     cache: Math.random(),
-                    // @ts-ignore FIXME: Add property in d2-api
                     fields: "*",
                 })
                 .getData();
+
+            return { instances, pageCount };
         };
 
         const programEvents: Event[] = [];
 
         for (const orgUnit of orgUnits) {
             for (const categoryOptionId of categoryOptions) {
-                const { events, pager } = await getEvents(orgUnit, categoryOptionId, 1);
+                const { instances: events, pageCount } = await getEvents(orgUnit, categoryOptionId, 1);
                 programEvents.push(...events);
 
-                await promiseMap(_.range(2, pager.pageCount + 1, 1), async page => {
-                    const { events } = await getEvents(orgUnit, categoryOptionId, page);
-                    programEvents.push(...events);
+                await promiseMap(_.range(2, pageCount + 1, 1), async page => {
+                    const { instances } = await getEvents(orgUnit, categoryOptionId, page);
+                    programEvents.push(...instances);
                 });
             }
         }
@@ -546,20 +669,27 @@ export class InstanceDhisRepository implements InstanceRepository {
                     ({
                         event,
                         orgUnit,
-                        eventDate,
+                        occurredAt,
                         attributeOptionCombo,
                         coordinate,
+                        geometry,
                         dataValues,
-                        trackedEntityInstance,
+                        trackedEntity,
                         programStage,
                     }) => ({
                         id: event,
                         dataForm: id,
                         orgUnit,
-                        period: moment(eventDate).format("YYYY-MM-DD"),
+                        period: moment(occurredAt).format("YYYY-MM-DD"),
                         attribute: attributeOptionCombo,
-                        coordinate,
-                        trackedEntityInstance,
+                        coordinate: geometry
+                            ? {
+                                  longitude: geometry.coordinates[0]?.toString() ?? "",
+                                  latitude: geometry.coordinates[1]?.toString() ?? "",
+                              }
+                            : coordinate,
+                        geometry: geometry,
+                        trackedEntity: trackedEntity,
                         programStage,
                         dataValues:
                             dataValues?.map(({ dataElement, value }) => ({
@@ -594,7 +724,7 @@ export class InstanceDhisRepository implements InstanceRepository {
 
         // Get all the categories assigned to the categoryCombo of the program
         const categoryCombo = _.find(metadata?.categoryCombos, { id: categoryComboId });
-        const categoryIds: string[] = _.compact(categoryCombo?.categories?.map(({ id }: MetadataItem) => id));
+        const categoryIds = _.compact(categoryCombo?.categories?.map(({ id }) => id));
 
         // Get all the category options for each category on the categoryCombo
         const categories = _.compact(categoryIds.map(id => _.find(metadata?.categories, { id })));
@@ -608,14 +738,19 @@ export class InstanceDhisRepository implements InstanceRepository {
     }
 }
 
-interface MetadataItem {
-    id: string;
-    code: string;
-    categoryOptions: MetadataItem[];
-    [key: string]: any;
+interface MetadataProgramPackage extends Omit<MetadataPackage, "form"> {
+    programs: Array<MetadataPackage["form"]>;
 }
 
-type MetadataPackage = Record<string, MetadataItem[] | undefined>;
+type MaybeA<T> = T[] | undefined;
+
+interface MetadataPackage {
+    form: Ref & { categoryCombo: Ref };
+    dataElements: MaybeA<Ref & { optionSet?: Ref }>;
+    options: MaybeA<Ref & { code: string; optionSet: Ref }>;
+    categoryCombos: MaybeA<Ref & { categories: Ref[] }>;
+    categories: MaybeA<Ref & { categoryOptions: Ref[] }>;
+}
 
 const dataElementFields = {
     id: true,

@@ -3,6 +3,7 @@ import "@testing-library/jest-dom/extend-expect";
 import { act, render, screen } from "@testing-library/react";
 import _ from "lodash";
 import { getCompositionRoot } from "../CompositionRoot";
+import { CustomTemplate } from "../domain/entities/Template";
 import { AppContext } from "../webapp/contexts/app-context";
 import Settings from "../webapp/logic/settings";
 import ImportTemplatePage from "../webapp/pages/import-template/ImportTemplatePage";
@@ -26,13 +27,23 @@ const renderComponent = async () => {
             <AppContext.Provider value={{ api, d2: {}, compositionRoot }}>
                 <LoadingProvider>
                     <SnackbarProvider>
-                        <ImportTemplatePage settings={settings} themes={[]} setSettings={_.noop} setThemes={_.noop} />
+                        <ImportTemplatePage
+                            settings={settings}
+                            themes={[]}
+                            setSettings={_.noop}
+                            setThemes={_.noop}
+                            customTemplates={templates}
+                            setCustomTemplates={setTemplates}
+                        />
                     </SnackbarProvider>
                 </LoadingProvider>
             </AppContext.Provider>
         );
     });
 };
+
+const templates = [] as CustomTemplate[];
+const setTemplates = () => {};
 
 describe("ImportTemplatePage", () => {
     beforeAll(async () => {

@@ -1,7 +1,14 @@
 import moment from "moment";
+import { getFinancialFormat, isFinancialPeriodType } from "./period";
 
 export function buildAllPossiblePeriods(periodType, startDate, endDate) {
     let unit, format;
+
+    if (isFinancialPeriodType(periodType)) {
+        const financialUnitFormat = getFinancialFormat(periodType);
+        return generateDatesByPeriod({ startDate, endDate, ...financialUnitFormat });
+    }
+
     switch (periodType) {
         case "Daily":
             unit = "days";
@@ -27,10 +34,14 @@ export function buildAllPossiblePeriods(periodType, startDate, endDate) {
             throw new Error("Unsupported period type");
     }
 
+    return generateDatesByPeriod({ startDate, endDate, format, unit });
+}
+
+function generateDatesByPeriod(options) {
+    const { startDate, endDate, unit, format } = options;
     const dates = [];
     for (const current = moment(startDate); current.isSameOrBefore(moment(endDate)); current.add(1, unit)) {
         dates.push(current.format(format));
     }
-
     return dates;
 }

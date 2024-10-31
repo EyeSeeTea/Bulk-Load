@@ -7,3 +7,5 @@ export interface Ref {
 export interface NamedRef extends Ref {
     name: string;
 }
+
+export type i18nShortCode = string;

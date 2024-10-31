@@ -1,6 +1,7 @@
 import {
     Button,
     ButtonProps,
+    Checkbox,
     FormControlLabel,
     Grid,
     GridSize,
@@ -14,7 +15,7 @@ import {
 import { ConfirmationDialog, useSnackbar } from "@eyeseetea/d2-ui-components";
 import { useDropzone } from "react-dropzone";
 import i18n from "../../../locales";
-import { Select } from "../select/Select";
+import { Select, SelectOption } from "../select/Select";
 import { CustomTemplate } from "../../../domain/entities/Template";
 import React from "react";
 import { useDataFormsSelector } from "../../hooks/useDataForms";
@@ -25,7 +26,9 @@ import {
 } from "./templates/TemplateView";
 import { downloadFile } from "../../utils/download";
 import { useAppContext } from "../../contexts/app-context";
-import { getExtensionFile, MIME_TYPES_BY_EXTENSION, xlsxMacroMimeType, xlsxMimeType } from "../../../utils/files";
+import { isValueInUnionType } from "../../../types/utils";
+import { xlsxMimeTypes } from "../../../utils/files";
+import { getExtensionFile, MIME_TYPES_BY_EXTENSION } from "../../../utils/files";
 
 export interface CustomTemplateEditDialogProps {
     formMode: FormMode;
@@ -98,7 +101,7 @@ export const CustomTemplateEditDialog: React.FC<CustomTemplateEditDialogProps> =
 });
 
 const EditDialog: React.FC<CustomTemplateEditDialogProps2> = React.memo(props => {
-    const { formMode, actions, onSave, onCancel, template, setTemplate } = props;
+    const { formMode, actions, onSave, onCancel, template, setTemplate, customTemplates } = props;
 
     const translations = React.useMemo(() => ViewModelActions.getTranslations(), []);
     const snackbar = useSnackbar();
@@ -128,6 +131,15 @@ const EditDialog: React.FC<CustomTemplateEditDialogProps2> = React.memo(props =>
         [setTemplate]
     );
 
+    const generateMetadata = template.generateMetadata;
+    const toggleGenerateMetadata = React.useCallback<NonNullable<SwitchProps["onChange"]>>(
+        ev => {
+            const newValue = ev.target.checked;
+            setTemplate(update("generateMetadata", newValue));
+        },
+        [setTemplate]
+    );
+
     React.useEffect(() => {
         const dataForm = dataForms.selected;
         if (!dataForm) return;
@@ -138,6 +150,16 @@ const EditDialog: React.FC<CustomTemplateEditDialogProps2> = React.memo(props =>
     const data = React.useMemo(() => ({ template, setTemplate }), [template, setTemplate]);
 
     const hasDataFormType = Boolean(template.dataFormType);
+
+    const applyTo = useApplyTo(customTemplates, template, setTemplate);
+
+    const onLanguageChange = (_: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
+        setTemplate(update("showLanguage", checked));
+    };
+
+    const onPeriodChange = (_: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
+        setTemplate(update("showPeriod", checked));
+    };
 
     return (
         <ConfirmationDialog
@@ -154,22 +176,56 @@ const EditDialog: React.FC<CustomTemplateEditDialogProps2> = React.memo(props =>
                 <Field field="description" data={data} />
 
                 <Select
-                    placeholder={translations.dataFormId}
-                    options={dataForms.options}
-                    value={dataForms.selected?.id}
-                    onChange={dataForms.setSelected}
+                    placeholder={i18n.t("Apply to")}
+                    options={applyTo.options}
+                    value={applyTo.current?.value}
+                    onChange={applyTo.set}
                 />
+
+                <div>
+                    <FormControlLabel
+                        control={<Checkbox checked={template.showLanguage} onChange={onLanguageChange} />}
+                        label={i18n.t("Show languages in download template")}
+                    />
+                </div>
+
+                <div>
+                    <FormControlLabel
+                        control={<Checkbox checked={template.showPeriod} onChange={onPeriodChange} />}
+                        label={i18n.t("Show periods in download template")}
+                    />
+                </div>
+
+                {applyTo.current.value === "select" && (
+                    <Select
+                        placeholder={translations.dataFormId}
+                        options={dataForms.options}
+                        value={dataForms.selected?.id}
+                        onChange={dataForms.setSelected}
+                    />
+                )}
             </Group>
 
             <Div key={template.dataFormType} visible={hasDataFormType}>
-                <FormControlLabel
-                    control={<Switch checked={isAdvancedMode} onChange={toggleMode} />}
-                    label={isAdvancedMode ? i18n.t("Advanced") : i18n.t("Basic (only row schema)")}
-                />
+                <div>
+                    <FormControlLabel
+                        control={<Switch checked={isAdvancedMode} onChange={toggleMode} />}
+                        label={isAdvancedMode ? i18n.t("Advanced") : i18n.t("Basic (only row schema)")}
+                    />
+                </div>
 
                 <Group title={i18n.t("Data Source Configuration")}>
+                    {false && (
+                        <div>
+                            <FormControlLabel
+                                control={<Switch checked={generateMetadata} onChange={toggleGenerateMetadata} />}
+                                label={i18n.t("Fixed Metadata / Dynamic Metadata (TODO)")}
+                            />
+                        </div>
+                    )}
+
                     {isAdvancedMode ? (
-                        <FileField data={data} field="dataSources" mimeType="application/json" />
+                        <FileField data={data} field="dataSources" mimeType={["application/json"]} />
                     ) : (
                         actions
                             .getFieldsForDataFormType(template.dataFormType)
@@ -180,7 +236,7 @@ const EditDialog: React.FC<CustomTemplateEditDialogProps2> = React.memo(props =>
                 <Group title={i18n.t("Styles")}>
                     {isAdvancedMode ? (
                         <>
-                            <FileField data={data} field="styleSources" mimeType="application/json" />
+                            <FileField data={data} field="styleSources" mimeType={["application/json"]} />
                         </>
                     ) : (
                         <>
@@ -192,7 +248,7 @@ const EditDialog: React.FC<CustomTemplateEditDialogProps2> = React.memo(props =>
                 </Group>
 
                 <Group title={i18n.t("File")}>
-                    <FileField data={data} field="spreadsheet" mimeType={[xlsxMimeType, xlsxMacroMimeType]} />
+                    <FileField data={data} field="spreadsheet" mimeType={xlsxMimeTypes} />
                 </Group>
             </Div>
         </ConfirmationDialog>
@@ -367,4 +423,46 @@ const Group: React.FC<{ title?: string; visible?: boolean }> = React.memo(props 
 
 function update<Field extends ViewModelField>(field: Field, value: ViewModel[Field]) {
     return { field, value };
+}
+
+function useApplyTo(customTemplates: CustomTemplate[], template: ViewModel, setTemplate: SetTemplate) {
+    const [optionsObj, options, values] = React.useMemo(() => {
+        const obj = {
+            select: { value: "select" as const, label: i18n.t("Specific program/dataset") },
+            dataSets: { value: "dataSets" as const, label: i18n.t("All datasets") },
+            programs: { value: "programs" as const, label: i18n.t("All programs") },
+            trackerPrograms: { value: "trackerPrograms" as const, label: i18n.t("All tracker programs") },
+        };
+
+        const options = [obj.select, obj.dataSets, obj.programs, obj.trackerPrograms];
+        const values = options.map(opt => opt.value);
+
+        return [obj, options, values];
+    }, []);
+
+    const defaultOption =
+        template.isDefault && template.dataFormType ? optionsObj[template.dataFormType] : optionsObj.select;
+
+    const [currentOption, setCurrentOption] = React.useState(defaultOption);
+
+    const setFromString = React.useCallback(
+        (option: SelectOption) => {
+            const { value } = option;
+
+            if (isValueInUnionType(value, values)) {
+                setCurrentOption({ value: value, label: option.label });
+                if (value !== "select") {
+                    setTemplate(update("dataFormId", "ALL"));
+                    setTemplate(update("dataFormType", value));
+                    setTemplate(update("isDefault", true));
+                } else {
+                    setTemplate(update("isDefault", false));
+                    setTemplate(update("dataFormId", undefined));
+                }
+            }
+        },
+        [values, setTemplate]
+    );
+
+    return { current: currentOption, options: options, set: setFromString };
 }

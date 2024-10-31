@@ -13,6 +13,7 @@ import {
 import { ThemeStyle } from "../../../domain/entities/Theme";
 import { ExcelRepository } from "../../../domain/repositories/ExcelRepository";
 import { InstanceRepository } from "../../../domain/repositories/InstanceRepository";
+import { ModulesRepositories } from "../../../domain/repositories/ModulesRepositories";
 import i18n from "../../../locales";
 import { cache } from "../../../utils/cache";
 import { GetSchemaType, Schema } from "../../../utils/codec";
@@ -84,6 +85,7 @@ export class SnakebiteAnnualReport implements CustomTemplateWithUrl {
     public async downloadCustomization(
         excelRepository: ExcelRepository,
         instanceRepository: InstanceRepository,
+        modulesRepositories: ModulesRepositories,
         options: DownloadCustomizationOptions
     ): Promise<void> {
         const { populate, dataPackage, orgUnits } = options;

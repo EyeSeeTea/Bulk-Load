@@ -32,17 +32,19 @@ import { ImportTemplateUseCase } from "./domain/usecases/ImportTemplateUseCase";
 import { ListDataFormsUseCase } from "./domain/usecases/ListDataFormsUseCase";
 import { ListLanguagesUseCase } from "./domain/usecases/ListLanguagesUseCase";
 import { ListThemesUseCase } from "./domain/usecases/ListThemesUseCase";
-import { PersistTemplatesFromStaticModulesUseCase } from "./domain/usecases/PersistTemplatesFromStaticModulesUseCase";
 import { ReadSettingsUseCase } from "./domain/usecases/ReadSettingsUseCase";
 import { RunMigrationsUseCase } from "./domain/usecases/RunMigrationsUseCase";
 import { SaveCustomTemplateUseCase } from "./domain/usecases/SaveCustomTemplateUseCase";
 import { SaveThemeUseCase } from "./domain/usecases/SaveThemeUseCase";
 import { SearchUsersUseCase } from "./domain/usecases/SearchUsersUseCase";
 import { WriteSettingsUseCase } from "./domain/usecases/WriteSettingsUseCase";
-import { D2Api } from "./types/d2-api";
+import { D2Api, D2ApiDefault } from "./types/d2-api";
 import { GetFilteredThemesUseCase } from "./domain/usecases/GetFilteredThemesUseCase";
+import { NRCModuleMetadataD2Repository } from "./data/templates/nrc/NRCModuleMetadataD2Repository";
 import { FileD2Repository } from "./data/FileD2Repository";
 import { ImportSourceZipRepository } from "./data/ImportSourceZipRepository";
+import { MSFModuleMetadataD2Repository } from "./data/templates/nrc/MSFModuleMetadataD2Repository";
+import { ModulesRepositories } from "./domain/repositories/ModulesRepositories";
 import { ImportSourceNodeRepository } from "./data/ImportSourceNodeRepository";
 
 export interface CompositionRootOptions {
@@ -53,6 +55,7 @@ export interface CompositionRootOptions {
 }
 
 export function getCompositionRoot({ appConfig, dhisInstance, mockApi, importSource = "zip" }: CompositionRootOptions) {
+    const api = mockApi ?? new D2ApiDefault({ baseUrl: dhisInstance.url });
     const instance: InstanceRepository = new InstanceDhisRepository(dhisInstance, mockApi);
     const config: ConfigRepository = new ConfigWebRepository(appConfig);
     const storage: StorageRepository =
@@ -63,6 +66,10 @@ export function getCompositionRoot({ appConfig, dhisInstance, mockApi, importSou
     const excelReader: ExcelRepository = new ExcelPopulateRepository();
     const migrations: MigrationsRepository = new MigrationsAppRepository(storage, dhisInstance);
     const usersRepository = new D2UsersRepository(dhisInstance);
+    const modulesRepository: ModulesRepositories = {
+        nrc: new NRCModuleMetadataD2Repository(api),
+        msf: new MSFModuleMetadataD2Repository(api),
+    };
     const fileRepository = new FileD2Repository(dhisInstance);
     const importSourceRepository =
         importSource === "zip" ? new ImportSourceZipRepository() : new ImportSourceNodeRepository();
@@ -78,7 +85,13 @@ export function getCompositionRoot({ appConfig, dhisInstance, mockApi, importSou
         }),
         templates: getExecute({
             analyze: new AnalyzeTemplateUseCase(instance, templateManager, excelReader),
-            download: new DownloadTemplateUseCase(instance, templateManager, excelReader),
+            download: new DownloadTemplateUseCase(
+                instance,
+                templateManager,
+                excelReader,
+                modulesRepository,
+                usersRepository
+            ),
             import: new ImportTemplateUseCase(
                 instance,
                 templateManager,
@@ -89,7 +102,6 @@ export function getCompositionRoot({ appConfig, dhisInstance, mockApi, importSou
             list: new ListDataFormsUseCase(instance),
             getDataFormsForGeneration: new GetDataFormsForGenerationUseCase(instance),
             get: new GetDataFormsUseCase(instance),
-            persistFromStaticModules: new PersistTemplatesFromStaticModulesUseCase(templateManager, usersRepository),
             getCustom: new GetCustomTemplatesUseCase(templateManager),
             getGenerated: new GetGeneratedTemplatesUseCase(templateManager),
             delete: new DeleteCustomTemplateUseCase(templateManager),

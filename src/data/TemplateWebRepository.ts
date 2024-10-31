@@ -14,9 +14,32 @@ export class TemplateWebRepository implements TemplateRepository {
     constructor(private storage: StorageRepository) {}
 
     public async getTemplates(): Promise<Template[]> {
-        const customTemplates = await this.storage.getObject<Template[]>(templatesCollectionKey, []);
-        const genericTemplates = _.values(templates).map(TemplateClass => new TemplateClass());
-        return _.concat(genericTemplates, customTemplates);
+        const customTemplatesFromDataStore = await this.storage.getObject<Template[]>(templatesCollectionKey, []);
+
+        const customTemplatesById = _(customTemplates)
+            .values()
+            .map(TemplateClass => new TemplateClass() as CustomTemplateWithUrl)
+            .keyBy(t => t.id)
+            .value();
+
+        const customTemplatesMerged = customTemplatesFromDataStore.map((template): typeof template => {
+            const customTemplate = customTemplatesById[template.id];
+            if (!customTemplate) return template;
+            const { downloadCustomization, importCustomization } = customTemplate;
+
+            return customTemplate && customTemplate.downloadCustomization
+                ? {
+                      ...template,
+                      dataFormId: customTemplate.dataFormId,
+                      ...(downloadCustomization ? { downloadCustomization } : {}),
+                      ...(importCustomization ? { importCustomization } : {}),
+                      generateMetadata: customTemplate.generateMetadata ?? false,
+                  }
+                : template;
+        });
+
+        const genericTemplates: Template[] = _.values(templates).map(TemplateClass => new TemplateClass());
+        return _.concat(genericTemplates, customTemplatesMerged);
     }
 
     public getCustomTemplates(): CustomTemplateWithUrl[] {

@@ -15,6 +15,8 @@ module.exports = {
         "@typescript-eslint/explicit-function-return-type": ["off"],
         "unused-imports/no-unused-imports": "warn",
         "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+        "no-unreachable": "off",
+        "no-constant-condition": "warn",
         "react/prop-types": "off",
         "react/display-name": "off",
         "react/react-in-jsx-scope": "off",

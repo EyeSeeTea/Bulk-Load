@@ -119,3 +119,5 @@ export async function getExcelOrThrow(file: File) {
         throw new Error("Zip file does not have a xlsx file");
     }
 }
+
+export const xlsxMimeTypes = [xlsxMimeType, xlsxMacroMimeType];

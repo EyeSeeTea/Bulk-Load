@@ -19,6 +19,7 @@ import { FileRepository } from "../repositories/FileRepository";
 import { FileResource } from "../entities/FileResource";
 import { ImportSourceRepository } from "../repositories/ImportSourceRepository";
 import { TrackedEntityInstance } from "../entities/TrackedEntityInstance";
+import { Maybe } from "../../types/utils";
 
 export type ImportTemplateError =
     | {
@@ -526,12 +527,32 @@ export const compareDataPackages = (
     return true;
 };
 
+const trueValues = ["y", "yes", "true", "1"];
+const falseValues = ["n", "no", "false", "0"];
+
+function getBooleanValue(item: DataPackageDataValue): Maybe<boolean> {
+    const strValue = String(item.value).toLowerCase();
+
+    switch (true) {
+        case String(item.optionId) === "true" || item.optionId === "true":
+            return true;
+        case String(item.optionId) === "false" || item.optionId === "false":
+            return false;
+        case trueValues.includes(strValue):
+            return true;
+        case falseValues.includes(strValue):
+            return false;
+        default:
+            return undefined;
+    }
+}
+
 const formatDhis2Value = (item: DataPackageDataValue, dataForm: DataForm): DataPackageDataValue | undefined => {
     const dataElement = dataForm.dataElements.find(({ id }) => item.dataElement === id);
-    const booleanValue = String(item.optionId) === "true" || item.optionId === "true";
+    const booleanValue = getBooleanValue(item);
 
     if (dataElement?.valueType === "BOOLEAN") {
-        return { ...item, value: booleanValue };
+        return { ...item, value: booleanValue ?? "" };
     }
 
     if (dataElement?.valueType === "TRUE_ONLY") {

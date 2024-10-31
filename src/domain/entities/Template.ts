@@ -2,12 +2,17 @@ import { Maybe } from "../../types/utils";
 import _ from "lodash";
 import { ExcelRepository } from "../repositories/ExcelRepository";
 import { InstanceRepository } from "../repositories/InstanceRepository";
-import { DataFormType } from "./DataForm";
+import { DataForm, DataFormType } from "./DataForm";
 import { DataPackage } from "./DataPackage";
-import { Id } from "./ReferenceObject";
+import { i18nShortCode, Id } from "./ReferenceObject";
 import { ImageSections, ThemeableSections } from "./Theme";
-import { UserTimestamp } from "./User";
+import { User, UserTimestamp } from "./User";
 import { Sheet as SheetE } from "./Sheet";
+import { ModulesRepositories } from "../repositories/ModulesRepositories";
+
+export interface DataFormTemplate extends DataForm {
+    templateId: string;
+}
 
 export type TemplateType = "generated" | "custom";
 export type DataSourceType = "row" | "column" | "cell";
@@ -35,9 +40,12 @@ export type StyleSource = {
 type Base64String = string;
 
 export interface CustomTemplate extends Omit<CustomTemplateWithUrl, "url"> {
+    type: "custom";
+    isDefault: boolean;
     file: { name: string; contents: Base64String };
     created: Maybe<UserTimestamp>;
     lastUpdated: Maybe<UserTimestamp>;
+    mode?: "basic" | "advanced";
 }
 
 export type Template = GeneratedTemplate | CustomTemplate;
@@ -55,12 +63,17 @@ interface BaseTemplate {
 export interface GeneratedTemplate extends BaseTemplate {
     type: "generated";
     rowOffset: number;
+    generateMetadata?: boolean;
 }
 
 export interface DownloadCustomizationOptions {
+    type: DataFormType;
+    id: string;
     populate: boolean;
     dataPackage?: DataPackage;
     orgUnits: string[];
+    language?: i18nShortCode;
+    currentUser: User;
 }
 
 export interface ImportCustomizationOptions {
@@ -69,13 +82,17 @@ export interface ImportCustomizationOptions {
 
 export interface CustomTemplateWithUrl extends BaseTemplate {
     type: "custom";
+    generateMetadata?: boolean;
     url: string;
     description: string;
     fixedOrgUnit?: CellRef;
     fixedPeriod?: CellRef;
+    showLanguage?: boolean;
+    showPeriod?: boolean;
     downloadCustomization?: (
         excelRepository: ExcelRepository,
         instanceRepository: InstanceRepository,
+        modulesRepositories: ModulesRepositories,
         options: DownloadCustomizationOptions
     ) => Promise<void>;
     importCustomization?: (
@@ -171,10 +188,14 @@ export interface RowDataSource extends BaseDataSource {
     range: Range;
     orgUnit: ColumnRef | CellRef | ValueRef;
     period: ColumnRef | CellRef | ValueRef;
-    dataElement: RowRef | ValueRef;
-    categoryOption?: RowRef | ValueRef;
+    dataElement: ColumnRef | RowRef | ValueRef;
+    categoryOption?: ColumnRef | RowRef | ValueRef;
     attribute?: ColumnRef | CellRef | ValueRef;
     eventId?: ColumnRef | CellRef | ValueRef;
+    coordinates?: {
+        latitude: ColumnRef | CellRef | ValueRef;
+        longitude: ColumnRef | CellRef | ValueRef;
+    };
 }
 
 export interface TeiRowDataSource {
@@ -185,6 +206,8 @@ export interface TeiRowDataSource {
     geometry?: ColumnRef;
     enrollmentDate: ColumnRef;
     incidentDate: ColumnRef;
+    enrolledAt?: ColumnRef;
+    occurredAt?: ColumnRef;
     attributes: Range;
     attributeId: RowRef;
 }
@@ -247,6 +270,8 @@ export function setDataEntrySheet(dataSource: RowDataSource, sheets: SheetE[]): 
         get(dataSource.categoryOption),
         get(dataSource.attribute),
         get(dataSource.eventId),
+        get(dataSource.coordinates?.latitude),
+        get(dataSource.coordinates?.longitude),
     ]);
 
     const sheetsFromDataSource = _.uniq(sheetsFromDataSourceAll);
@@ -281,6 +306,12 @@ export function setDataEntrySheet(dataSource: RowDataSource, sheets: SheetE[]): 
             categoryOption: set(dataSource.categoryOption),
             attribute: set(dataSource.attribute),
             eventId: set(dataSource.eventId),
+            coordinates: dataSource.coordinates
+                ? {
+                      latitude: set(dataSource.coordinates.latitude),
+                      longitude: set(dataSource.coordinates.longitude),
+                  }
+                : undefined,
         };
     });
 }
@@ -312,4 +343,16 @@ export function setSheet<DS extends TrackerRelationship | TrackerEventRowDataSou
                 dataElements: { ...dataSource.dataElements, sheet },
             };
     }
+}
+
+export function getDataSources(template: Template, sheetName: string): DataSourceValue[] {
+    return _.flatMap(template.dataSources, dataSource => {
+        if (!dataSource) {
+            return [];
+        } else if (typeof dataSource === "function") {
+            return dataSource(sheetName) || [];
+        } else {
+            return [dataSource];
+        }
+    });
 }
