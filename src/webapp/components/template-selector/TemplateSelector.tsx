@@ -176,7 +176,7 @@ export const TemplateSelector = ({
     };
 
     const onTemplateChange = ({ value }: SelectOption) => {
-        const [dataFormId, templateId] = value.split("-");
+        const [dataFormId, templateId] = value.split(/-(.+)/).map(str => str.trim());
 
         if (dataSource) {
             const {
@@ -600,10 +600,12 @@ function modelToSelectOption<T extends { id: string; name: string }>(array: T[])
 }
 
 function dataFormsToSelectOptions(forms: DataFormTemplate[]) {
-    return forms.map(form => ({
-        value: getOptionValue(form),
-        label: form.name,
-    }));
+    return forms
+        .map(form => ({
+            value: getOptionValue(form),
+            label: form.name,
+        }))
+        .sort((formA, formB) => formA.label.localeCompare(formB.label));
 }
 
 function getOptionValue<T extends { id: Id; templateId: Id }>(form: T) {
