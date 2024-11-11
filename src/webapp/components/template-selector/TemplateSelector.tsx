@@ -429,7 +429,7 @@ export const TemplateSelector = ({
                 />
             )}
 
-            {themeOptions.length > 0 && state.templateType !== "custom" && (
+            {themeOptions.length > 0 && (
                 <div className={classes.row}>
                     <div className={classes.select}>
                         <Select
