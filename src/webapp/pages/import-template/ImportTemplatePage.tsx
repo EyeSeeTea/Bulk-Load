@@ -1,10 +1,4 @@
-import {
-    ConfirmationDialog,
-    ConfirmationDialogProps,
-    OrgUnitsSelector,
-    useLoading,
-    useSnackbar,
-} from "@eyeseetea/d2-ui-components";
+import { OrgUnitsSelector, useLoading, useSnackbar } from "@eyeseetea/d2-ui-components";
 import { Button, Checkbox, FormControlLabel, makeStyles } from "@material-ui/core";
 import CloudDoneIcon from "@material-ui/icons/CloudDone";
 import CloudUploadIcon from "@material-ui/icons/CloudUpload";
@@ -18,6 +12,7 @@ import { DataPackage } from "../../../domain/entities/DataPackage";
 import { SynchronizationResult } from "../../../domain/entities/SynchronizationResult";
 import { ImportTemplateUseCaseParams } from "../../../domain/usecases/ImportTemplateUseCase";
 import i18n from "../../../locales";
+import ModalDialog, { ModalDialogProps } from "../../components/modal-dialog/ModalDialog";
 import SyncSummary from "../../components/sync-summary/SyncSummary";
 import { useAppContext } from "../../contexts/app-context";
 import { orgUnitListParams } from "../../utils/template";
@@ -47,7 +42,7 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
     const [orgUnitTreeFilter, setOrgUnitTreeFilter] = useState<string[]>([]);
     const [importState, setImportState] = useState<ImportState>();
     const [messages, setMessages] = useState<string[]>([]);
-    const [dialogProps, updateDialog] = useState<ConfirmationDialogProps | null>(null);
+    const [dialogProps, updateDialog] = useState<ModalDialogProps>();
 
     useEffect(() => {
         compositionRoot.orgUnits.getUserRoots().then(setOrgUnitTreeRootIds);
@@ -117,7 +112,6 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
 
     const startImport = async (params: ImportTemplateUseCaseParams) => {
         loading.show(true, i18n.t("Importing data..."));
-
         const result = await compositionRoot.templates.import(params);
 
         result.match({
@@ -141,12 +135,23 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
                             const dataSetConfig = {
                                 title: i18n.t("Existing data values"),
                                 message: i18n.t(
-                                    "There are {{totalExisting}} data values in the database for this organisation unit and periods. If you proceed, all those data values will be deleted and only the ones in the spreadsheet will be saved. Are you sure?",
+                                    "There are {{totalExisting}} data values in the database for this organisation unit and periods. All those data values can either be completely deleted or will be kept and only the ones with different values will be updated. What do you want to do?",
                                     { totalExisting }
                                 ),
-                                save: i18n.t("Proceed"),
+                                save: i18n.t("Delete and Import"),
                                 cancel: i18n.t("Cancel"),
                                 info: i18n.t("Import only new data values"),
+                                updateText: i18n.t("Import and Update"),
+                                saveButtonPrimary: false,
+                                saveTooltipText: i18n.t(
+                                    "Delete all existing values and import the ones in the spreadsheet"
+                                ),
+                                infoTooltipText: i18n.t(
+                                    "Import only new data values. Without updating or deleting current ones"
+                                ),
+                                updateTooltipText: i18n.t(
+                                    "Import and update data values without deleting the remaining existing data"
+                                ),
                             };
 
                             const programConfig = {
@@ -160,32 +165,58 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
                                 save: i18n.t("Import everything anyway"),
                                 cancel: i18n.t("Cancel import"),
                                 info: i18n.t("Import only new records"),
+                                updateText: "",
+                                saveButtonPrimary: true,
+                                saveTooltipText: "",
+                                infoTooltipText: "",
+                                updateTooltipText: "",
                             };
 
-                            const { title, message, save, cancel, info } =
-                                dataValues.type === "dataSets" ? dataSetConfig : programConfig;
+                            const {
+                                title,
+                                message,
+                                save,
+                                cancel,
+                                info,
+                                updateText,
+                                saveButtonPrimary,
+                                saveTooltipText,
+                                infoTooltipText,
+                                updateTooltipText,
+                            } = dataValues.type === "dataSets" ? dataSetConfig : programConfig;
 
                             updateDialog({
                                 title,
                                 description: message,
                                 onSave: async () => {
-                                    updateDialog(null);
+                                    updateDialog(undefined);
                                     loading.show(true, i18n.t("Importing data..."));
                                     await startImport({ ...params, duplicateStrategy: "IMPORT" });
                                     loading.reset();
                                 },
+                                onUpdate: async () => {
+                                    updateDialog(undefined);
+                                    loading.show(true, i18n.t("Importing data..."));
+                                    await startImport({ ...params, duplicateStrategy: "IMPORT_WITHOUT_DELETE" });
+                                    loading.reset();
+                                },
                                 onInfoAction: async () => {
-                                    updateDialog(null);
+                                    updateDialog(undefined);
                                     loading.show(true, i18n.t("Importing data..."));
                                     await startImport({ ...params, duplicateStrategy: "IGNORE" });
                                     loading.reset();
                                 },
                                 onCancel: () => {
-                                    updateDialog(null);
+                                    updateDialog(undefined);
                                 },
                                 saveText: save,
                                 cancelText: cancel,
                                 infoActionText: info,
+                                updateText,
+                                saveButtonPrimary,
+                                saveTooltipText,
+                                updateTooltipText,
+                                infoTooltipText,
                             });
                         }
                         break;
@@ -206,10 +237,10 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
                                     { totalInvalid }
                                 ),
                                 onCancel: () => {
-                                    updateDialog(null);
+                                    updateDialog(undefined);
                                 },
                                 onSave: async () => {
-                                    updateDialog(null);
+                                    updateDialog(undefined);
                                     await startImport({
                                         ...params,
                                         organisationUnitStrategy: "IGNORE",
@@ -268,7 +299,7 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
 
     return (
         <React.Fragment>
-            {dialogProps && <ConfirmationDialog isOpen={true} maxWidth={"xl"} {...dialogProps} />}
+            {dialogProps && <ModalDialog isOpen={true} maxWidth={"xl"} {...dialogProps} />}
 
             {syncResults && <SyncSummary results={syncResults} onClose={hideSyncResults} />}
 
