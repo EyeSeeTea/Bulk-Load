@@ -291,10 +291,6 @@ export const TemplateSelector = ({
     const showPopulate = !(state.templateType === "custom" && !settings.showPopulateInCustomForms);
     const selected = state.id && state.templateId ? getOptionValue({ id: state.id, templateId: state.templateId }) : "";
 
-    useEffect(() => {
-        console.log(selectedOrgUnits);
-    }, [selectedOrgUnits]);
-
     return (
         <>
             <Section
@@ -321,6 +317,10 @@ export const TemplateSelector = ({
                         />
                     </div>
                 </div>
+
+                {state.type === "dataSets" && (
+                    <h4 className={classes.subSectionTitle}>Periods</h4>
+                )}
 
                 {state.type === "dataSets" && state.templateType === "custom" && showPopulate && (
                     <DatePicker
