@@ -1,10 +1,10 @@
 import { Icon, IconButton, makeStyles, Paper } from "@material-ui/core";
-import React from "react";
+import React, {useMemo} from "react";
 
 type iconPosition = "left" | "right";
-type arrowStyle = "upDown" | "rightLeft";
+type arrowStyle = "up_down" | "right_left" | "down_right";
 
-export interface SectionProps {
+interface SectionProps {
     isOpen?: boolean;
     setOpen?: (open: boolean) => void;
     children: React.ReactNode;
@@ -13,53 +13,62 @@ export interface SectionProps {
     elevation?: number;
     iconPos?: iconPosition;
     classProps?: {
-        section?: string;
-        header?: string;
-        content?: string;
+        sectionPaper?: string;
+        sectionHeader?: string;
+        sectionContent?: string;
     };
     arrowStyle?: arrowStyle;
 }
 
-export const Section = ({
-    children,
-    title,
-    collapsible,
-    isOpen = true,
-    setOpen = () => {},
-    elevation = 1,
-    iconPos = "right",
-    classProps = {},
-    arrowStyle = "upDown",
-}: SectionProps) => {
+export const Section = (props: SectionProps) => {
+    const {
+        children,
+        title,
+        collapsible,
+        isOpen = true,
+        setOpen = () => {},
+        elevation = 1,
+        iconPos = "right",
+        classProps = {},
+        arrowStyle = "up_down",
+    } = props;
     const classes = useStyles();
     const leftIcon = iconPos === "left" ? classes.leftIcon : null;
     const toggle = () => setOpen(!isOpen);
 
+    const paperClasses = useMemo(() => ( _.compact([classes.paper, classProps.sectionPaper]).join(" ")),
+        [classes.paper, classProps.sectionPaper]);
+    const headerClasses = useMemo(() => ( _.compact([classes.header, leftIcon, classProps.sectionHeader, (isOpen ? null : classes.noBorder)]).join(" ")),
+        [classes.header, leftIcon, classProps.sectionHeader, isOpen, classes.noBorder]);
+    const contentClasses = useMemo(() => (_.compact([classProps.sectionContent, (isOpen ? null : classes.hidden)]).join(" ")),
+        [classProps.sectionContent, isOpen, classes.hidden]);
+
     return (
-        <Paper elevation={elevation} className={`${classes.paper} ${classProps.section}`}>
+        <Paper elevation={elevation} className={paperClasses}>
             <div
-                className={`${classes.header} ${leftIcon} ${classProps.header} ${isOpen ? "" : classes.noBorder}`}
+                className={headerClasses}
                 onClick={toggle}
             >
                 {collapsible && leftIcon && <CollapsibleToggle isOpen={isOpen} arrowStyle={arrowStyle} />}
                 {title}
                 {collapsible && !leftIcon && <CollapsibleToggle isOpen={isOpen} arrowStyle={arrowStyle} />}
             </div>
-            <div className={`${classProps.content}`} style={{ display: isOpen ? "" : "none" }}>
+            <div className={contentClasses}>
                 {children}
             </div>
         </Paper>
     );
 };
 
-export interface CollapsibleToggleProps {
+interface CollapsibleToggleProps {
     isOpen: boolean;
-    arrowStyle: "upDown" | "rightLeft";
+    arrowStyle: arrowStyle;
 }
 
-export const CollapsibleToggle = ({ isOpen, arrowStyle }: CollapsibleToggleProps) => {
+const CollapsibleToggle = (props: CollapsibleToggleProps) => {
+    const { isOpen, arrowStyle } = props;
     const classes = useStyles();
-    const [open, close] = arrowStyle === "upDown" ? ["up", "down"] : ["right", "left"];
+    const [open, close] = arrowStyle.split("_");
 
     return (
         <IconButton disableTouchRipple={true} style={isOpen ? {} : { left: 0 }} className={classes.button}>
@@ -86,4 +95,5 @@ const useStyles = makeStyles({
     },
     paper: { padding: "1em", paddingTop: "0.5em", marginBottom: "1em" },
     button: { padding: 0 },
+    hidden: { display: "none" },
 });
