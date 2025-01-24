@@ -83,7 +83,7 @@ export const TemplateSelector = ({
             showLanguage: false,
         }
     );
-    const [showAdvancedOptions, setShowAdvancedOptions] = useState<boolean>(true);
+    const [showAdvancedOptions, setShowAdvancedOptions] = useState(true);
 
     const dataSets = dataSource?.dataSets;
     const { templateId, id } = state;
@@ -274,11 +274,6 @@ export const TemplateSelector = ({
     };
 
     const onFilterOrgUnitsChange = (filterOrgUnits: boolean) => {
-        //do not reset populate
-        // const isCustomProgram = state.templateType === "custom" && state.type !== "dataSets";
-        // const populate = isCustomProgram && filterOrgUnits;
-        // setState(state => ({ ...state, populate }));
-        // clearPopulateDates();
         setFilterOrgUnits(filterOrgUnits);
     };
 
@@ -291,11 +286,13 @@ export const TemplateSelector = ({
     const showPopulate = !(state.templateType === "custom" && !settings.showPopulateInCustomForms);
     const selected = state.id && state.templateId ? getOptionValue({ id: state.id, templateId: state.templateId }) : "";
 
+    const subSectionClasses = useMemo(() => ({ sectionHeader: classes.subSectionHeader, sectionPaper: classes.subSection }), [classes]);
+
     return (
         <>
             <Section
                 title={<h3 className={classes.title}>{i18n.t("Template")}</h3>}
-                classProps={{ section: classes.section }}
+                classProps={ classes }
             >
                 <div className={classes.row}>
                     {models.length > 1 && (
@@ -371,7 +368,8 @@ export const TemplateSelector = ({
                         elevation={0}
                         collapsible={true}
                         iconPos={"left"}
-                        classProps={{ header: classes.header, section: classes.subSection }}
+                        classProps={subSectionClasses}
+                        arrowStyle={"down_right"}
                         title={
                             <div>
                                 <h4 className={classes.title}>
@@ -431,7 +429,10 @@ export const TemplateSelector = ({
             </Section>
 
             {userHasReadAccess && !!selectedOrgUnits.length && state.templateType !== "custom" && (
-                <Section title={<h3 className={classes.title}>{i18n.t("Populate")}</h3>}>
+                <Section
+                    title={<h3 className={classes.title}>{i18n.t("Populate")}</h3>}
+                    classProps={ classes }
+                >
                     <div>
                         <FormControlLabel
                             className={classes.checkbox}
@@ -554,6 +555,7 @@ export const TemplateSelector = ({
 
             <Section
                 title={<h3 className={classes.title}>{i18n.t("Advanced template properties")}</h3>}
+                classProps={ classes }
                 isOpen={showAdvancedOptions}
                 setOpen={setShowAdvancedOptions}
                 collapsible={true}
@@ -621,11 +623,11 @@ const useStyles = makeStyles({
         marginRight: "1em",
     },
     title: { margin: 0, padding: 0, display: "flex", alignItems: "center" },
-    header: { borderBottom: "none" },
     formHeader: { marginTop: 0 },
     subSection: { padding: 0, margin: 0, background: "#fbfcfd" },
     subSectionTitle: { marginBottom: 0 },
-    section: { background: "#fbfcfd" },
+    subSectionHeader: { borderBottom: "none" },
+    sectionPaper: { background: "#fbfcfd" },
     select: { flexBasis: "100%", margin: "0.5em", marginLeft: 0, marginTop: "1em" },
     checkbox: { marginTop: "1em" },
     orgUnitSelector: { marginTop: "1em", marginBottom: "2em" },
