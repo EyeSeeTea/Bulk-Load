@@ -285,7 +285,9 @@ export const TemplateSelector = ({
     const showPopulate = !(state.templateType === "custom" && !settings.showPopulateInCustomForms);
     const selected = state.id && state.templateId ? getOptionValue({ id: state.id, templateId: state.templateId }) : "";
 
-    const subSectionClasses = { sectionHeader: classes.subSectionHeader, sectionPaper: classes.subSection };
+    const subSectionClasses = useMemo(() => {
+        return { sectionHeader: classes.subSectionHeader, sectionPaper: classes.subSection };
+    }, [classes]);
 
     return (
         <>
