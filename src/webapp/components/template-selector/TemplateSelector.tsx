@@ -1,6 +1,6 @@
 import { Id } from "@eyeseetea/d2-api";
 import { DatePicker, OrgUnitsSelector } from "@eyeseetea/d2-ui-components";
-import { Checkbox, FormControlLabel, makeStyles, Tooltip, Typography } from "@material-ui/core";
+import { Checkbox, FormControlLabel, Icon, makeStyles, Tooltip, Typography } from "@material-ui/core";
 import _ from "lodash";
 import moment from "moment";
 import React, { useEffect, useMemo, useState } from "react";
@@ -16,7 +16,6 @@ import Settings from "../../logic/settings";
 import { orgUnitListParams } from "../../utils/template";
 import { Select, SelectOption } from "../select/Select";
 import { Section } from "../collapsible-section/Section";
-import HelpIcon from "@material-ui/icons/Help";
 
 type DataSource = Record<string, DataFormTemplate[]>;
 
@@ -385,7 +384,7 @@ export const TemplateSelector = ({
                                                   )
                                         }
                                     >
-                                        <HelpIcon className={classes.tooltip} />
+                                        <Icon className={classes.tooltip}>help</Icon>
                                     </Tooltip>
                                 </h4>
                             </div>
