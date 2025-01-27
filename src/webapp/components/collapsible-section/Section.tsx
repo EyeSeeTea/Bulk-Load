@@ -1,8 +1,9 @@
 import { Icon, IconButton, makeStyles, Paper } from "@material-ui/core";
-import React, {useMemo} from "react";
+import React from "react";
+import { buildClassName } from "../../utils/reactHelpers";
 
-type iconPosition = "left" | "right";
-type arrowStyle = "up_down" | "right_left" | "down_right";
+type IconPosition = "left" | "right";
+type ArrowStyle = "up_down" | "right_left" | "down_right";
 
 interface SectionProps {
     isOpen?: boolean;
@@ -11,13 +12,13 @@ interface SectionProps {
     title: React.ReactNode;
     collapsible?: boolean;
     elevation?: number;
-    iconPos?: iconPosition;
+    iconPos?: IconPosition;
     classProps?: {
         sectionPaper?: string;
         sectionHeader?: string;
         sectionContent?: string;
     };
-    arrowStyle?: arrowStyle;
+    arrowStyle?: ArrowStyle;
 }
 
 export const Section = (props: SectionProps) => {
@@ -36,24 +37,22 @@ export const Section = (props: SectionProps) => {
     const leftIcon = iconPos === "left" ? classes.leftIcon : null;
     const toggle = () => setOpen(!isOpen);
 
-    const paperClasses = useMemo(() => ( _.compact([classes.paper, classProps.sectionPaper]).join(" ")),
-        [classes.paper, classProps.sectionPaper]);
-    const headerClasses = useMemo(() => ( _.compact([classes.header, leftIcon, classProps.sectionHeader, (isOpen ? null : classes.noBorder)]).join(" ")),
-        [classes.header, leftIcon, classProps.sectionHeader, isOpen, classes.noBorder]);
-    const contentClasses = useMemo(() => (_.compact([classProps.sectionContent, (isOpen ? null : classes.hidden)]).join(" ")),
-        [classProps.sectionContent, isOpen, classes.hidden]);
-
     return (
-        <Paper elevation={elevation} className={paperClasses}>
+        <Paper elevation={elevation} className={buildClassName([classes.paper, classProps.sectionPaper])}>
             <div
-                className={headerClasses}
+                className={buildClassName([
+                    classes.header,
+                    leftIcon,
+                    classProps.sectionHeader,
+                    isOpen ? null : classes.noBorder,
+                ])}
                 onClick={toggle}
             >
                 {collapsible && leftIcon && <CollapsibleToggle isOpen={isOpen} arrowStyle={arrowStyle} />}
                 {title}
                 {collapsible && !leftIcon && <CollapsibleToggle isOpen={isOpen} arrowStyle={arrowStyle} />}
             </div>
-            <div className={contentClasses}>
+            <div className={buildClassName([classProps.sectionContent, isOpen ? null : classes.hidden])}>
                 {children}
             </div>
         </Paper>
@@ -62,7 +61,7 @@ export const Section = (props: SectionProps) => {
 
 interface CollapsibleToggleProps {
     isOpen: boolean;
-    arrowStyle: arrowStyle;
+    arrowStyle: ArrowStyle;
 }
 
 const CollapsibleToggle = (props: CollapsibleToggleProps) => {

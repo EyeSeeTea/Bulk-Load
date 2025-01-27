@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2024-12-17T16:04:30.663Z\n"
+"POT-Creation-Date: 2025-01-27T03:20:13.064Z\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -842,20 +842,9 @@ msgstr "Выберите доступные подразделения орга�
 msgid "User does not have any capture organisations units"
 msgstr "У пользователя нет подразделений организаций захвата"
 
-msgid "Advanced template properties"
-msgstr "Расширенные свойства шаблона"
-
-msgid "Language"
-msgstr "Язык"
-
-msgid "Split data entry tabs by section"
-msgstr ""
-
-msgid "Theme"
-msgstr "Тема"
-
-msgid "<No value>"
-msgstr "<Нет значения>"
+#, fuzzy
+msgid "Populate"
+msgstr "Шаблон"
 
 msgid "Populate template with data"
 msgstr "Заполнение шаблона данными"
@@ -876,6 +865,21 @@ msgid "Only selected organisation units"
 msgstr ""
 
 msgid "Include relationships"
+msgstr ""
+
+msgid "Advanced template properties"
+msgstr "Расширенные свойства шаблона"
+
+msgid "Language"
+msgstr "Язык"
+
+msgid "Theme"
+msgstr "Тема"
+
+msgid "<No value>"
+msgstr "<Нет значения>"
+
+msgid "Split data entry tabs by section"
 msgstr ""
 
 msgid "Use metadata codes (organisation units, data elements and options)"

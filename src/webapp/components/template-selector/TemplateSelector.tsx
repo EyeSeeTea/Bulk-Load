@@ -286,14 +286,11 @@ export const TemplateSelector = ({
     const showPopulate = !(state.templateType === "custom" && !settings.showPopulateInCustomForms);
     const selected = state.id && state.templateId ? getOptionValue({ id: state.id, templateId: state.templateId }) : "";
 
-    const subSectionClasses = useMemo(() => ({ sectionHeader: classes.subSectionHeader, sectionPaper: classes.subSection }), [classes]);
+    const subSectionClasses = { sectionHeader: classes.subSectionHeader, sectionPaper: classes.subSection };
 
     return (
         <>
-            <Section
-                title={<h3 className={classes.title}>{i18n.t("Template")}</h3>}
-                classProps={ classes }
-            >
+            <Section title={<h3 className={classes.title}>{i18n.t("Template")}</h3>} classProps={classes}>
                 <div className={classes.row}>
                     {models.length > 1 && (
                         <div className={classes.select}>
@@ -315,9 +312,7 @@ export const TemplateSelector = ({
                     </div>
                 </div>
 
-                {state.type === "dataSets" && (
-                    <h4 className={classes.subSectionTitle}>Periods</h4>
-                )}
+                {state.type === "dataSets" && <h4 className={classes.subSectionTitle}>Periods</h4>}
 
                 {state.type === "dataSets" && state.templateType === "custom" && showPopulate && (
                     <DatePicker
@@ -429,10 +424,7 @@ export const TemplateSelector = ({
             </Section>
 
             {userHasReadAccess && !!selectedOrgUnits.length && state.templateType !== "custom" && (
-                <Section
-                    title={<h3 className={classes.title}>{i18n.t("Populate")}</h3>}
-                    classProps={ classes }
-                >
+                <Section title={<h3 className={classes.title}>{i18n.t("Populate")}</h3>} classProps={classes}>
                     <div>
                         <FormControlLabel
                             className={classes.checkbox}
@@ -555,7 +547,7 @@ export const TemplateSelector = ({
 
             <Section
                 title={<h3 className={classes.title}>{i18n.t("Advanced template properties")}</h3>}
-                classProps={ classes }
+                classProps={classes}
                 isOpen={showAdvancedOptions}
                 setOpen={setShowAdvancedOptions}
                 collapsible={true}

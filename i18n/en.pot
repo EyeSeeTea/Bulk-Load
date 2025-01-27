@@ -5,8 +5,8 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2024-12-17T16:04:30.663Z\n"
-"PO-Revision-Date: 2024-12-17T16:04:30.663Z\n"
+"POT-Creation-Date: 2025-01-27T03:20:13.064Z\n"
+"PO-Revision-Date: 2025-01-27T03:20:13.064Z\n"
 
 msgid "Events - Create/update"
 msgstr ""
@@ -752,19 +752,7 @@ msgstr ""
 msgid "User does not have any capture organisations units"
 msgstr ""
 
-msgid "Advanced template properties"
-msgstr ""
-
-msgid "Language"
-msgstr ""
-
-msgid "Split data entry tabs by section"
-msgstr ""
-
-msgid "Theme"
-msgstr ""
-
-msgid "<No value>"
+msgid "Populate"
 msgstr ""
 
 msgid "Populate template with data"
@@ -786,6 +774,21 @@ msgid "Only selected organisation units"
 msgstr ""
 
 msgid "Include relationships"
+msgstr ""
+
+msgid "Advanced template properties"
+msgstr ""
+
+msgid "Language"
+msgstr ""
+
+msgid "Theme"
+msgstr ""
+
+msgid "<No value>"
+msgstr ""
+
+msgid "Split data entry tabs by section"
 msgstr ""
 
 msgid "Use metadata codes (organisation units, data elements and options)"
