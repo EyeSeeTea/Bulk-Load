@@ -335,7 +335,8 @@ export class ExcelBuilder {
 
             const newTEIs = _.difference(allTEIs, existingTEIs);
 
-            for (const id of newTEIs) {
+            return await promiseMap(newTEIs, async (id, index) => {
+                const rowStart = dataSource.dataValues.rowStart + newTEIs.length - index - 1; // reverse tei ids
                 const cells = await this.excelRepository.getCellsInRange(template.id, {
                     ...dataSource.dataValues,
                     rowStart,
@@ -347,9 +348,7 @@ export class ExcelBuilder {
                 if (teiIdCell && id) {
                     await this.excelRepository.writeCell(template.id, teiIdCell, id);
                 }
-
-                rowStart += 1;
-            }
+            });
         }
     }
 
