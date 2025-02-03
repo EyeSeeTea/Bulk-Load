@@ -12,6 +12,7 @@ import { getUid } from "./dhis2-uid";
 import { getTrackedEntities, TrackedEntityGetRequest } from "./Dhis2TrackedEntityInstances";
 import { TrackerRelationship, RelationshipItem, TrackedEntitiesApiRequest } from "../domain/entities/TrackedEntity";
 import { buildOrgUnitsParameter } from "../domain/entities/OrgUnit";
+import { EventsAPIResponse } from "../domain/entities/DhisDataPackage";
 
 type RelationshipTypesById = Record<Id, Pick<D2RelationshipType, "id" | "toConstraint" | "fromConstraint">>;
 
@@ -295,11 +296,10 @@ async function getConstraintForTypeProgram(
         pageSize: number;
     }) {
         const { program, programStage, orgUnit, page, pageSize } = options;
-
-        return await api
-            .get<{ instances: { event: Id }[]; pageCount: number }>("/tracker/events", {
+        const { instances, events, pageCount } = await api
+            .get<EventsAPIResponse>("/tracker/events", {
                 program: program,
-                programStage: programStage,
+                ...(programStage && { programStage }),
                 orgUnit: orgUnit,
                 occurredAfter: startDate ? moment(startDate).format("YYYY-MM-DD") : undefined,
                 occurredBefore: endDate ? moment(endDate).format("YYYY-MM-DD") : undefined,
@@ -309,6 +309,11 @@ async function getConstraintForTypeProgram(
                 totalPages: true,
             })
             .getData();
+        const instanceEventIds = (instances || events || []).reduce((acc, { event }) => {
+            if (event) acc.push({ event });
+            return acc;
+        }, [] as { event: Id }[]);
+        return { instances: instanceEventIds, pageCount };
     }
 
     const events = await promiseMap(organisationUnits, async orgUnit => {

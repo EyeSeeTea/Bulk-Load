@@ -35,6 +35,16 @@ export interface Event {
     dataValues: EventDataValue[];
 }
 
+export type EventsResponse = {
+    instances: Event[];
+    pageCount: number;
+};
+
+export type EventsAPIResponse = Omit<EventsResponse, "instances"> & {
+    instances?: Event[];
+    events?: Event[];
+};
+
 type Coordinates = [number, number];
 
 export type Geometry =

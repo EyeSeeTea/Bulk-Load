@@ -25,7 +25,12 @@ import {
     RelationshipOrgUnitFilter,
 } from "./Dhis2RelationshipTypes";
 import { ImportPostResponse, postImport } from "./Dhis2Import";
-import { TrackedEntitiesApiRequest, TrackedEntitiesResponse, TrackedEntity } from "../domain/entities/TrackedEntity";
+import {
+    TrackedEntitiesApiRequest,
+    TrackedEntitiesResponse,
+    TrackedEntity,
+    TrackedEntitiesAPIResponse,
+} from "../domain/entities/TrackedEntity";
 import { Params } from "@eyeseetea/d2-api/api/common";
 import { buildOrgUnitsParameter } from "../domain/entities/OrgUnit";
 
@@ -483,11 +488,11 @@ export async function getTrackedEntities(
     api: D2Api,
     filterQuery: TrackedEntityGetRequest
 ): Promise<TrackedEntitiesResponse> {
-    const { instances, pageCount } = await api
-        .get<TrackedEntitiesResponse>("/tracker/trackedEntities", filterQuery)
+    const { instances, trackedEntities, pageCount } = await api
+        .get<TrackedEntitiesAPIResponse>("/tracker/trackedEntities", filterQuery)
         .getData();
 
-    return { instances: instances, pageCount: pageCount };
+    return { instances: instances || trackedEntities || [], pageCount: pageCount };
 }
 
 function buildTei(
