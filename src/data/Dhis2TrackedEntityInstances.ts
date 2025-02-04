@@ -18,6 +18,7 @@ import { promiseMap } from "../utils/promises";
 import { getUid } from "./dhis2-uid";
 import { postEvents } from "./Dhis2Events";
 import {
+    buildOrgUnitMode,
     fromApiRelationships,
     getApiRelationships,
     getRelationshipMetadata,
@@ -25,9 +26,13 @@ import {
     RelationshipOrgUnitFilter,
 } from "./Dhis2RelationshipTypes";
 import { ImportPostResponse, postImport } from "./Dhis2Import";
-import { TrackedEntitiesApiRequest, TrackedEntitiesResponse, TrackedEntity } from "../domain/entities/TrackedEntity";
+import {
+    TrackedEntitiesApiRequest,
+    TrackedEntitiesResponse,
+    TrackedEntity,
+    TrackedEntitiesAPIResponse,
+} from "../domain/entities/TrackedEntity";
 import { Params } from "@eyeseetea/d2-api/api/common";
-import { buildOrgUnitsParameter } from "../domain/entities/OrgUnit";
 
 export interface GetOptions {
     api: D2Api;
@@ -458,10 +463,7 @@ async function getTeisFromApi(options: {
         "geometry",
     ];
 
-    const ouModeQuery =
-        ouMode === "SELECTED" || ouMode === "CHILDREN" || ouMode === "DESCENDANTS"
-            ? { ouMode: ouMode, orgUnit: orgUnits ? buildOrgUnitsParameter(orgUnits) : "" }
-            : { ouMode: ouMode };
+    const ouModeQuery = buildOrgUnitMode(ouMode, orgUnits);
 
     const filters: TrackedEntityGetRequest = {
         ...ouModeQuery,
@@ -483,11 +485,11 @@ export async function getTrackedEntities(
     api: D2Api,
     filterQuery: TrackedEntityGetRequest
 ): Promise<TrackedEntitiesResponse> {
-    const { instances, pageCount } = await api
-        .get<TrackedEntitiesResponse>("/tracker/trackedEntities", filterQuery)
+    const { instances, trackedEntities, pageCount } = await api
+        .get<TrackedEntitiesAPIResponse>("/tracker/trackedEntities", filterQuery)
         .getData();
 
-    return { instances: instances, pageCount: pageCount };
+    return { instances: instances || trackedEntities || [], pageCount: pageCount };
 }
 
 function buildTei(
