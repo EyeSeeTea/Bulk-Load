@@ -17,6 +17,16 @@ type RelationshipTypesById = Record<Id, Pick<D2RelationshipType, "id" | "toConst
 
 export type RelationshipOrgUnitFilter = TrackedEntityOURequestApi["ouMode"];
 
+export function buildOrgUnitMode(ouMode: RelationshipOrgUnitFilter, orgUnits: Ref[]) {
+    const isOuReq = ouMode === "SELECTED" || ouMode === "CHILDREN" || ouMode === "DESCENDANTS";
+    //issue: v41 - orgUnitMode/ouMode; v38-40 ouMode; ouMode to be deprecated
+    //can't use both orgUnitMode and ouMode in v41
+    return {
+        ouMode,
+        ...(isOuReq && orgUnits && { orgUnit: buildOrgUnitsParameter(orgUnits) }),
+    };
+}
+
 export function getApiRelationships(
     existingTei: TrackedEntityInstance | undefined,
     relationships: Relationship[],
@@ -238,10 +248,7 @@ async function getConstraintForTypeTei(
     const { ouMode = "CAPTURE", organisationUnits = [] } = filters || {};
     const trackedEntityTypesById = _.keyBy(trackedEntityTypes, obj => obj.id);
 
-    const ouModeQuery =
-        ouMode === "SELECTED" || ouMode === "CHILDREN" || ouMode === "DESCENDANTS"
-            ? { orgUnitMode: ouMode, orgUnit: organisationUnits ? buildOrgUnitsParameter(organisationUnits) : "" }
-            : { orgUnitMode: ouMode };
+    const ouModeQuery = buildOrgUnitMode(ouMode, organisationUnits);
 
     const query = {
         ...ouModeQuery,
