@@ -336,11 +336,11 @@ export class ExcelBuilder {
             const newTEIs = _.difference(allTEIs, existingTEIs);
 
             return await promiseMap(newTEIs, async (id, index) => {
-                const rowStart = dataSource.dataValues.rowStart + newTEIs.length - index - 1; // reverse tei ids
+                const teiRowStart = dataSource.dataValues.rowStart + newTEIs.length - index - 1; // reverse tei ids
                 const cells = await this.excelRepository.getCellsInRange(template.id, {
                     ...dataSource.dataValues,
-                    rowStart,
-                    rowEnd: rowStart,
+                    rowStart: teiRowStart,
+                    rowEnd: teiRowStart,
                 });
 
                 const teiIdCell = await this.excelRepository.findRelativeCell(template.id, dataSource.teiId, cells[0]);
