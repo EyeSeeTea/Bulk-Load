@@ -22,10 +22,13 @@ export function buildOrgUnitMode(ouMode: RelationshipOrgUnitFilter, orgUnits?: R
     const isOuReq = ouMode === "SELECTED" || ouMode === "CHILDREN" || ouMode === "DESCENDANTS";
     //issue: v41 - orgUnitMode/ouMode; v38-40 ouMode; ouMode to be deprecated
     //can't use both orgUnitMode and ouMode in v41
-    return {
-        ouMode,
-        ...(isOuReq && { orgUnit: orgUnits?.length ? buildOrgUnitsParameter(orgUnits) : "" }),
-    };
+    if (!isOuReq) {
+        return { ouMode };
+    } else if (orgUnits && orgUnits.length > 0) {
+        return { ouMode, orgUnit: buildOrgUnitsParameter(orgUnits) };
+    } else {
+        throw new Error(`Invalid orgUnit (${orgUnits} for ouMode ${ouMode}`);
+    }
 }
 
 export function getApiRelationships(
