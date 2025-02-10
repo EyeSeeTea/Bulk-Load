@@ -27,7 +27,7 @@ export function buildOrgUnitMode(ouMode: RelationshipOrgUnitFilter, orgUnits?: R
     } else if (orgUnits && orgUnits.length > 0) {
         return { ouMode, orgUnit: buildOrgUnitsParameter(orgUnits) };
     } else {
-        throw new Error(`Invalid orgUnit (${orgUnits} for ouMode ${ouMode}`);
+        throw new Error(`No orgUnits selected for ouMode ${ouMode}`);
     }
 }
 
