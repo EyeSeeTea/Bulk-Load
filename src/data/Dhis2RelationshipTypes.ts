@@ -18,13 +18,13 @@ type RelationshipTypesById = Record<Id, Pick<D2RelationshipType, "id" | "toConst
 
 export type RelationshipOrgUnitFilter = TrackedEntityOURequestApi["ouMode"];
 
-export function buildOrgUnitMode(ouMode: RelationshipOrgUnitFilter, orgUnits: Ref[]) {
+export function buildOrgUnitMode(ouMode: RelationshipOrgUnitFilter, orgUnits?: Ref[]) {
     const isOuReq = ouMode === "SELECTED" || ouMode === "CHILDREN" || ouMode === "DESCENDANTS";
     //issue: v41 - orgUnitMode/ouMode; v38-40 ouMode; ouMode to be deprecated
     //can't use both orgUnitMode and ouMode in v41
     return {
         ouMode,
-        ...(isOuReq && orgUnits && { orgUnit: buildOrgUnitsParameter(orgUnits) }),
+        ...(isOuReq && { orgUnit: orgUnits?.length ? buildOrgUnitsParameter(orgUnits) : "" }),
     };
 }
 
