@@ -45,7 +45,7 @@ export type EventsAPIResponse = Omit<EventsResponse, "instances"> & {
     events?: Event[];
 };
 
-type Coordinates = [number, number];
+export type Coordinates = [number, number];
 
 export type Geometry =
     | {
