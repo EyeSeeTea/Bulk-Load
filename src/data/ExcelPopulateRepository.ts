@@ -531,11 +531,30 @@ function _getFormulaWithValidation(workbook: XLSX.Workbook, sheet: SheetWithVali
 
     const formulaByValue = _(validationRange.cells())
         .map(cells => cells[0])
-        .map(cell => [getValue(cell), cell.formula()])
+        .map(cell => [getCellValueWithDefinedNameFallback(workbook, cell), cell.formula()])
         .fromPairs()
         .value();
 
     return formulaByValue[String(value)] || defaultValue;
+}
+
+function getCellValueWithDefinedNameFallback(workbook: XLSX.Workbook, cell: XLSX.Cell): string | undefined {
+    // xlsx files saved with xlsx-populate generate empty values for 'Validation' sheets
+    // Workaround: use the formula to get the value from defined names
+    return String(getValue(cell) || getDefinedName(workbook, cell));
+}
+
+function getDefinedName(workbook: XLSX.Workbook, cell: XLSX.Cell): string | undefined {
+    const formula = cell.formula();
+    const element = formula ? workbook.definedName(formula) : undefined;
+
+    if (!element) {
+        return;
+    } else if (typeof element === "string") {
+        return element;
+    } else if (isCell(element)) {
+        return String(element.value());
+    }
 }
 
 function getValue(cell: Cell): ExcelValue | undefined {

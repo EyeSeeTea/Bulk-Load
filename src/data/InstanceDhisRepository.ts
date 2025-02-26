@@ -3,7 +3,14 @@ import "lodash.product";
 import moment from "moment";
 import { DataElement, DataForm, DataFormPeriod, DataFormType } from "../domain/entities/DataForm";
 import { DataPackage, TrackerProgramPackage } from "../domain/entities/DataPackage";
-import { AggregatedDataValue, AggregatedPackage, Event, EventsPackage } from "../domain/entities/DhisDataPackage";
+import {
+    AggregatedDataValue,
+    AggregatedPackage,
+    Event,
+    EventsAPIResponse,
+    EventsPackage,
+    EventsResponse,
+} from "../domain/entities/DhisDataPackage";
 import { DhisInstance } from "../domain/entities/DhisInstance";
 import { Locale } from "../domain/entities/Locale";
 import { OrgUnit } from "../domain/entities/OrgUnit";
@@ -459,7 +466,8 @@ export class InstanceDhisRepository implements InstanceRepository {
             };
         });
 
-        return postEvents(this.api, eventsToSave);
+        // third value only required for program trackers
+        return postEvents(this.api, eventsToSave, undefined);
     }
 
     private async getEventProgramStage(programId: Id): Promise<Ref | undefined> {
@@ -616,19 +624,9 @@ export class InstanceDhisRepository implements InstanceRepository {
             throw new Error(`Could not find category options for the program ${id}`);
         }
 
-        const getEvents = async (
-            orgUnit: Id,
-            categoryOptionId: Id,
-            page: number
-        ): Promise<{
-            instances: Event[];
-            pageCount: number;
-        }> => {
-            const { instances, pageCount } = await this.api
-                .get<{
-                    instances: Event[];
-                    pageCount: number;
-                }>("/tracker/events", {
+        const getEvents = async (orgUnit: Id, categoryOptionId: Id, page: number): Promise<EventsResponse> => {
+            const { instances, events, pageCount } = await this.api
+                .get<EventsAPIResponse>("/tracker/events", {
                     program: id,
                     orgUnit,
                     paging: true,
@@ -645,7 +643,7 @@ export class InstanceDhisRepository implements InstanceRepository {
                 })
                 .getData();
 
-            return { instances, pageCount };
+            return { instances: instances || events || [], pageCount };
         };
 
         const programEvents: Event[] = [];

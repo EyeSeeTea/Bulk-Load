@@ -331,7 +331,7 @@ class DownloadCustomization {
             rowEnd: 5,
         });
 
-        const result = [];
+        const result: CellWithCombinationId[] = [];
 
         for (const cell of cellsCatOptComb) {
             const value = await this.excelRepository.readCell(this.templateId, cell);

@@ -18,6 +18,7 @@ import { promiseMap } from "../utils/promises";
 import { getUid } from "./dhis2-uid";
 import { postEvents } from "./Dhis2Events";
 import {
+    buildOrgUnitMode,
     fromApiRelationships,
     getApiRelationships,
     getRelationshipMetadata,
@@ -25,9 +26,13 @@ import {
     RelationshipOrgUnitFilter,
 } from "./Dhis2RelationshipTypes";
 import { ImportPostResponse, postImport } from "./Dhis2Import";
-import { TrackedEntitiesApiRequest, TrackedEntitiesResponse, TrackedEntity } from "../domain/entities/TrackedEntity";
+import {
+    TrackedEntitiesApiRequest,
+    TrackedEntitiesResponse,
+    TrackedEntity,
+    TrackedEntitiesAPIResponse,
+} from "../domain/entities/TrackedEntity";
 import { Params } from "@eyeseetea/d2-api/api/common";
-import { buildOrgUnitsParameter } from "../domain/entities/OrgUnit";
 
 export interface GetOptions {
     api: D2Api;
@@ -166,7 +171,7 @@ export async function updateTrackedEntityInstances(
     return runSequentialPromisesOnSuccess([
         () => uploadTeis({ ...options, teis: preTeis, title: i18n.t("Create/update") }),
         () => uploadTeis({ ...options, teis: postTeis, title: i18n.t("Relationships") }),
-        () => postEvents(api, apiEvents),
+        () => postEvents(api, apiEvents, { existingTeis, teis: teis, program, metadata }),
     ]);
 }
 
@@ -257,7 +262,7 @@ async function uploadTeis(options: {
     return teisResult;
 }
 
-interface Metadata {
+export interface Metadata {
     options: Array<{ id: Id; code: string }>;
     relationshipTypesById: Record<Id, Pick<D2RelationshipType, "id" | "toConstraint" | "fromConstraint">>;
 }
@@ -353,7 +358,7 @@ async function getApiEvents(
         .value();
 }
 
-function getApiTeiToUpload(
+export function getApiTeiToUpload(
     program: Program,
     metadata: Metadata,
     tei: TrackedEntityInstance,
@@ -365,7 +370,7 @@ function getApiTeiToUpload(
     const existingTei = existingTeis.find(tei_ => tei_.id === tei.id);
     const apiRelationships = getApiRelationships(existingTei, relationships, metadata.relationshipTypesById);
 
-    const enrollmentId = existingTei?.enrollment?.id || getUid([tei.id, orgUnit.id, program.id].join("-"));
+    const enrollmentId = existingTei?.enrollment?.id || generateUidForTei(tei.id, orgUnit.id, program.id);
 
     const attributes = tei.attributeValues.map(attributeValue => ({
         attribute: attributeValue.attribute.id,
@@ -458,10 +463,7 @@ async function getTeisFromApi(options: {
         "geometry",
     ];
 
-    const ouModeQuery =
-        ouMode === "SELECTED" || ouMode === "CHILDREN" || ouMode === "DESCENDANTS"
-            ? { ouMode: ouMode, orgUnit: orgUnits ? buildOrgUnitsParameter(orgUnits) : "" }
-            : { ouMode: ouMode };
+    const ouModeQuery = buildOrgUnitMode(ouMode, orgUnits);
 
     const filters: TrackedEntityGetRequest = {
         ...ouModeQuery,
@@ -483,11 +485,11 @@ export async function getTrackedEntities(
     api: D2Api,
     filterQuery: TrackedEntityGetRequest
 ): Promise<TrackedEntitiesResponse> {
-    const { instances, pageCount } = await api
-        .get<TrackedEntitiesResponse>("/tracker/trackedEntities", filterQuery)
+    const { instances, trackedEntities, pageCount } = await api
+        .get<TrackedEntitiesAPIResponse>("/tracker/trackedEntities", filterQuery)
         .getData();
 
-    return { instances: instances, pageCount: pageCount };
+    return { instances: instances || trackedEntities || [], pageCount: pageCount };
 }
 
 function buildTei(
@@ -589,9 +591,13 @@ function getValue(
     dataValue: { optionId?: string; value: EventDataValue["value"] },
     optionById: Record<Id, { id: Id; code: string } | undefined>
 ): string {
-    if (dataValue.optionId && dataValue.optionId !== "true" && dataValue.optionId !== "false") {
+    if (dataValue.optionId) {
         return optionById[dataValue.optionId]?.code || dataValue.optionId;
     } else {
         return dataValue.value.toString();
     }
+}
+
+export function generateUidForTei(teiId: Id, orgUnitId: Id, programId: Id): string {
+    return getUid([teiId, orgUnitId, programId].join("-"));
 }

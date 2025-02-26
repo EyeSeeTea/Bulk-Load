@@ -12,10 +12,24 @@ import { getUid } from "./dhis2-uid";
 import { getTrackedEntities, TrackedEntityGetRequest } from "./Dhis2TrackedEntityInstances";
 import { TrackerRelationship, RelationshipItem, TrackedEntitiesApiRequest } from "../domain/entities/TrackedEntity";
 import { buildOrgUnitsParameter } from "../domain/entities/OrgUnit";
+import { EventsAPIResponse } from "../domain/entities/DhisDataPackage";
 
 type RelationshipTypesById = Record<Id, Pick<D2RelationshipType, "id" | "toConstraint" | "fromConstraint">>;
 
 export type RelationshipOrgUnitFilter = TrackedEntityOURequestApi["ouMode"];
+
+export function buildOrgUnitMode(ouMode: RelationshipOrgUnitFilter, orgUnits?: Ref[]) {
+    const isOuReq = ouMode === "SELECTED" || ouMode === "CHILDREN" || ouMode === "DESCENDANTS";
+    //issue: v41 - orgUnitMode/ouMode; v38-40 ouMode; ouMode to be deprecated
+    //can't use both orgUnitMode and ouMode in v41
+    if (!isOuReq) {
+        return { ouMode };
+    } else if (orgUnits && orgUnits.length > 0) {
+        return { ouMode, orgUnit: buildOrgUnitsParameter(orgUnits) };
+    } else {
+        throw new Error(`No orgUnits selected for ouMode ${ouMode}`);
+    }
+}
 
 export function getApiRelationships(
     existingTei: TrackedEntityInstance | undefined,
@@ -238,10 +252,7 @@ async function getConstraintForTypeTei(
     const { ouMode = "CAPTURE", organisationUnits = [] } = filters || {};
     const trackedEntityTypesById = _.keyBy(trackedEntityTypes, obj => obj.id);
 
-    const ouModeQuery =
-        ouMode === "SELECTED" || ouMode === "CHILDREN" || ouMode === "DESCENDANTS"
-            ? { orgUnitMode: ouMode, orgUnit: organisationUnits ? buildOrgUnitsParameter(organisationUnits) : "" }
-            : { orgUnitMode: ouMode };
+    const ouModeQuery = buildOrgUnitMode(ouMode, organisationUnits);
 
     const query = {
         ...ouModeQuery,
@@ -295,11 +306,10 @@ async function getConstraintForTypeProgram(
         pageSize: number;
     }) {
         const { program, programStage, orgUnit, page, pageSize } = options;
-
-        return await api
-            .get<{ instances: { event: Id }[]; pageCount: number }>("/tracker/events", {
+        const { instances, events, pageCount } = await api
+            .get<EventsAPIResponse>("/tracker/events", {
                 program: program,
-                programStage: programStage,
+                ...(programStage && { programStage }),
                 orgUnit: orgUnit,
                 occurredAfter: startDate ? moment(startDate).format("YYYY-MM-DD") : undefined,
                 occurredBefore: endDate ? moment(endDate).format("YYYY-MM-DD") : undefined,
@@ -309,6 +319,11 @@ async function getConstraintForTypeProgram(
                 totalPages: true,
             })
             .getData();
+        const instanceEventIds = (instances || events || []).reduce((acc, { event }) => {
+            if (event) acc.push({ event });
+            return acc;
+        }, [] as { event: Id }[]);
+        return { instances: instanceEventIds, pageCount };
     }
 
     const events = await promiseMap(organisationUnits, async orgUnit => {

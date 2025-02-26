@@ -73,3 +73,16 @@ $ yarn localize
 ### App context
 
 The file `src/webapp/contexts/app-context.ts` holds some general context so typical infrastructure objects (`api`, `d2`, ...) are readily available. Add your own global objects if necessary.
+
+### Import XLSX files (from filled templates)
+
+You can use the script `import-multiple-files.ts` to import multiple xlsx files:
+
+```bash
+#!/bin/bash
+
+npx ts-node src/scripts/import-multiple-files.ts \
+    --dhis2-url="http://admin:district@localhost:8080" \
+    --results-path="/path/to/folder/for/json_results" \
+    file1.xlsx file2.xlsx
+```

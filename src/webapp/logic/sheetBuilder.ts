@@ -340,7 +340,7 @@ export class SheetBuilder {
                         sheet.cell(itemRow, columnId).link(dataElement.url).formula(`=_${dataElement.id}`);
                     }
 
-                    if (description !== undefined) {
+                    if (description) {
                         sheet.cell(itemRow, columnId).comment(description, {
                             height: "100pt",
                             width: "160pt",

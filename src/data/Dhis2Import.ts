@@ -36,12 +36,20 @@ export type ImportReportResponse = {
             }
         ];
     };
-    stats: ImportStats;
+    stats?: ImportStats;
     bundleReport?: {
         status: Status;
-        stats: ImportStats;
+        stats?: ImportStats;
         typeReportMap: TypeReportMap;
     };
+};
+
+const defaultStats = {
+    created: 0,
+    deleted: 0,
+    ignored: 0,
+    updated: 0,
+    total: 0,
 };
 
 export function processImportResponse(options: {
@@ -70,11 +78,18 @@ export function processImportResponse(options: {
             rawResponse: importResult,
         };
     }
+    const resStats = bundleReport.stats || importResult.stats;
+
+    if (!resStats) {
+        console.error(`No 'stats' found in import response.`, importResult);
+    }
+
+    const trackerStats = resStats || defaultStats;
 
     const totalStats: SynchronizationStats = {
         type: "TOTAL",
-        imported: bundleReport.stats.created,
-        ...bundleReport.stats,
+        imported: trackerStats.created,
+        ...trackerStats,
     };
 
     const eventStatsList = _(bundleReport.typeReportMap)
