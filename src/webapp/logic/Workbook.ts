@@ -152,7 +152,7 @@ export class Sheet {
                 return cell;
             },
             comment: (text: string, options: { height: string; width: string }) => {
-                xcell1.comment({ text, ...options });
+                xcell1.comment({ text, ...options, textAlign: "left", horizontalAlignment: "Left" });
                 return cell;
             },
             style: (options: StyleOptions) => {

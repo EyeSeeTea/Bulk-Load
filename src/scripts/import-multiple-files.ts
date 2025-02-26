@@ -1,5 +1,5 @@
 import path from "path";
-import { command, run, string, option } from "cmd-ts";
+import { command, run, string, option, rest } from "cmd-ts";
 import { resolve, basename } from "node:path";
 import { readFile, writeFile } from "node:fs/promises";
 
@@ -19,13 +19,7 @@ function main() {
                 type: string,
                 short: "u",
                 long: "dhis2-url",
-                description: "DHIS2 base URL. Example: http://USERNAME:PASSWORD@localhost:8080",
-            }),
-            templatePath: option({
-                type: string,
-                short: "fp",
-                long: "template-path",
-                description: "template path with excel files to import data",
+                description: "DHIS2 base URL. Example: http[s]://USERNAME:PASSWORD@localhost:8080",
             }),
             resultsPath: option({
                 type: string,
@@ -33,38 +27,47 @@ function main() {
                 long: "results-path",
                 description: "folder where import results will be saved",
             }),
+            inputFiles: rest({
+                description: "Excel files to import data from",
+            }),
         },
         handler: async args => {
             const api: D2Api = getD2APiFromInstance({ type: "local", url: args.url });
 
-            const excelFile = await readFile(args.templatePath);
-            const compositionRoot = getCompositionRoot({
-                appConfig: appConfig as unknown as JsonConfig,
-                dhisInstance: { type: "local", url: args.url },
-                importSource: "node",
-            });
-            const settings = await Settings.build(api, compositionRoot);
-            console.debug(`Importing file ${args.templatePath}`);
-            const results = await compositionRoot.templates.import({
-                // @ts-ignore
-                file: Buffer.from(excelFile),
-                settings,
-                duplicateStrategy: "ERROR",
-                organisationUnitStrategy: "ERROR",
-                selectedOrgUnits: [],
-                useBuilderOrgUnits: false,
-            });
-            const resultPath = resolve(args.resultsPath, `${basename(args.templatePath)}.json`);
-            results.match({
-                success: async syncResults => {
-                    const resultDetails = JSON.stringify(syncResults, null, 2);
-                    await writeFile(resultPath, resultDetails);
-                    console.debug(`Results saved to ${resultPath}`);
-                },
-                error: async errorResults => {
-                    await writeFile(resultPath, errorResults.type);
-                },
-            });
+            async function run(templatePath: string) {
+                const excelFile = await readFile(templatePath);
+                const compositionRoot = getCompositionRoot({
+                    appConfig: appConfig as unknown as JsonConfig,
+                    dhisInstance: { type: "local", url: args.url },
+                    importSource: "node",
+                });
+                const settings = await Settings.build(api, compositionRoot);
+                console.debug(`Importing file ${templatePath}`);
+                const results = await compositionRoot.templates.import({
+                    // @ts-ignore
+                    file: Buffer.from(excelFile),
+                    settings,
+                    duplicateStrategy: "ERROR",
+                    organisationUnitStrategy: "ERROR",
+                    selectedOrgUnits: [],
+                    useBuilderOrgUnits: false,
+                });
+                const resultPath = resolve(args.resultsPath, `${basename(templatePath)}.json`);
+                results.match({
+                    success: async syncResults => {
+                        const resultDetails = JSON.stringify(syncResults, null, 2);
+                        await writeFile(resultPath, resultDetails);
+                        console.debug(`Results saved to ${resultPath}`);
+                    },
+                    error: async errorResults => {
+                        await writeFile(resultPath, errorResults.type);
+                    },
+                });
+            }
+
+            for (const templatePath of args.inputFiles) {
+                await run(templatePath);
+            }
         },
     });
 

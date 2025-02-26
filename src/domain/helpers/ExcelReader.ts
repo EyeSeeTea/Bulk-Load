@@ -421,7 +421,16 @@ export class ExcelReader {
             const enrollmentDate = parseDate(await this.getCellValue(template, dataSource.enrollmentDate, rowIdx));
             const incidentDate = parseDate(await this.getCellValue(template, dataSource.incidentDate, rowIdx));
 
-            if (!teiId || !orgUnitId || !enrollmentDate) return undefined;
+            if (!teiId) {
+                console.error(`Missing field: teiId (row: ${rowIdx})`);
+                return;
+            } else if (!orgUnitId) {
+                console.error(`Missing field: orgUnit (row: ${rowIdx})`);
+                return;
+            } else if (!enrollmentDate) {
+                console.error(`Missing field: enrollmentDate (row: ${rowIdx})`);
+                return;
+            }
 
             const trackedEntityInstance: TrackedEntityInstance = {
                 program: { id: String(programId) },

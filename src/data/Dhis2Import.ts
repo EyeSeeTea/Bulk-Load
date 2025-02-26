@@ -80,7 +80,7 @@ export function processImportResponse(options: {
     }
     const resStats = bundleReport.stats || importResult.stats;
 
-    if( !resStats ) {
+    if (!resStats) {
         console.error(`No 'stats' found in import response.`, importResult);
     }
 

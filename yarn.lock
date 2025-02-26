@@ -4714,10 +4714,10 @@
     rxjs-compat "6.6.7"
     throttle-debounce "4.0.1"
 
-"@eyeseetea/xlsx-populate@4.2.1-beta.1":
-  version "4.2.1-beta.1"
-  resolved "https://registry.yarnpkg.com/@eyeseetea/xlsx-populate/-/xlsx-populate-4.2.1-beta.1.tgz#fcfbd685ca99dd9d6fce44de37fdae180cf5e9a1"
-  integrity sha512-MRKb/xL13znWEEVkkaYIXdehYOJB7C3ieVd8qHQOFgnXV28AsOM0GcZ5kvo5TTnQu3e5Wsb+ogYLcbVUHWPWHA==
+"@eyeseetea/xlsx-populate@4.3.1":
+  version "4.3.1"
+  resolved "https://registry.yarnpkg.com/@eyeseetea/xlsx-populate/-/xlsx-populate-4.3.1.tgz#abe91d9313d4d8f99c7af5213753b763cad7a504"
+  integrity sha512-JivVociksARWbvCVCRNmW+VKrIetxNzDvt8oGU19ni0g/bfRa0SuPqETqjrbjNo0k7mdoBXpyKVV1esGXPx6mA==
   dependencies:
     cfb "^1.1.3"
     jszip "^3.2.2"
@@ -5953,9 +5953,6 @@
   version "16.9.34"
   resolved "https://registry.yarnpkg.com/@types/react/-/react-16.9.34.tgz#f7d5e331c468f53affed17a8a4d488cd44ea9349"
   integrity sha512-8AJlYMOfPe1KGLKyHpflCg5z46n0b5DbRfqDksxBLBTUpB75ypDBAO9eCUcjNwE6LCUslwTz00yyG/X9gaVtow==
-  dependencies:
-    "@types/prop-types" "*"
-    csstype "^2.2.0"
 
 "@types/react@17.0.38":
   version "17.0.38"
@@ -9019,7 +9016,7 @@ cssstyle@^2.3.0:
   dependencies:
     cssom "~0.3.6"
 
-csstype@^2.2.0, csstype@^2.5.2, csstype@^2.6.7:
+csstype@^2.5.2, csstype@^2.6.7:
   version "2.6.10"
   resolved "https://registry.yarnpkg.com/csstype/-/csstype-2.6.10.tgz#e63af50e66d7c266edb6b32909cfd0aabe03928b"
   integrity sha512-D34BqZU4cIlMCY93rZHbrq9pjTAQJ3U8S8rfBqjwHxkGPThWFjzZDQpgMJY0QViLxth6ZKYiwFBo14RdN44U/w==
