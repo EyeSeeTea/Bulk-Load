@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2024-12-17T16:04:30.663Z\n"
+"POT-Creation-Date: 2025-01-27T03:20:13.064Z\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -785,20 +785,9 @@ msgstr "Seleccione las unidades organizativas para añadir a la plantilla"
 msgid "User does not have any capture organisations units"
 msgstr "El usuario no tiene unidades organizativas asociadas"
 
-msgid "Advanced template properties"
-msgstr "Propiedades avanzadas de la plantilla"
-
-msgid "Language"
-msgstr "Idioma"
-
-msgid "Split data entry tabs by section"
-msgstr ""
-
-msgid "Theme"
-msgstr "Tema"
-
-msgid "<No value>"
-msgstr "<Sin valor>"
+#, fuzzy
+msgid "Populate"
+msgstr "Plantilla"
 
 msgid "Populate template with data"
 msgstr "Rellenar la plantilla con datos"
@@ -819,6 +808,21 @@ msgid "Only selected organisation units"
 msgstr ""
 
 msgid "Include relationships"
+msgstr ""
+
+msgid "Advanced template properties"
+msgstr "Propiedades avanzadas de la plantilla"
+
+msgid "Language"
+msgstr "Idioma"
+
+msgid "Theme"
+msgstr "Tema"
+
+msgid "<No value>"
+msgstr "<Sin valor>"
+
+msgid "Split data entry tabs by section"
 msgstr ""
 
 msgid "Use metadata codes (organisation units, data elements and options)"
