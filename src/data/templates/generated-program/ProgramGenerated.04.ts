@@ -23,6 +23,7 @@ export class ProgramGenerated04 implements GeneratedTemplate {
                 latitude: { sheet: "Data Entry", type: "column", ref: "C" },
                 longitude: { sheet: "Data Entry", type: "column", ref: "D" },
             },
+            geometry: { sheet: "Data Entry", type: "column", ref: "C" },
         },
     ];
 

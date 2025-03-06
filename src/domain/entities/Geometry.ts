@@ -1,5 +1,5 @@
 import { Maybe } from "../../types/utils";
-import { TrackedEntityType } from "./DataForm";
+import { DataFormFeatureType, TrackedEntityType } from "./DataForm";
 
 export type Coordinates = { latitude: number; longitude: number };
 
@@ -30,10 +30,15 @@ export function getGeometryFromString(trackedEntityType: Maybe<TrackedEntityType
         console.error(`Expected tracked entity type on dataForm`);
         return { type: "none" };
     }
+
+    return buildGeometry(trackedEntityType.featureType, value);
+}
+
+export function buildGeometry(featureType: DataFormFeatureType, value: string): Geometry {
     const cleanValue = value.trim().replace(/\s*/g, "");
     if (!cleanValue) return { type: "none" };
 
-    switch (trackedEntityType.featureType) {
+    switch (featureType) {
         case "none":
             return { type: "none" };
         case "point":

@@ -1,6 +1,7 @@
 import { DataFormType } from "./DataForm";
 import { Id } from "./ReferenceObject";
 import { TrackedEntityInstance } from "./TrackedEntityInstance";
+import { Geometry } from "./DhisDataPackage";
 
 export type DataPackage = GenericProgramPackage | TrackerProgramPackage;
 export type DataPackageValue = string | number | boolean;
@@ -32,6 +33,7 @@ export interface DataPackageData {
         latitude: string;
         longitude: string;
     };
+    geometry?: Geometry;
     dataValues: DataPackageDataValue[];
 }
 
