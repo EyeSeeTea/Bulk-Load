@@ -352,7 +352,7 @@ export class InstanceDhisRepository implements InstanceRepository {
 
     private buildEventsPayload(dataPackage: DataPackage): Event[] {
         return dataPackage.dataEntries.map(
-            ({ id, orgUnit, period, attribute, dataValues, dataForm, coordinate, geometry }) => ({
+            ({ id, orgUnit, period, attribute, dataValues, dataForm, coordinate, geometry }): Event => ({
                 event: id,
                 program: dataForm,
                 status: "COMPLETED",
@@ -688,8 +688,8 @@ export class InstanceDhisRepository implements InstanceRepository {
                         coordinate:
                             geometry && geometry.type === "Point"
                                 ? {
-                                      longitude: geometry.coordinates[0]?.toString() ?? "",
-                                      latitude: geometry.coordinates[1]?.toString() ?? "",
+                                      longitude: geometry.coordinates[0].toString() ?? "",
+                                      latitude: geometry.coordinates[1].toString() ?? "",
                                   }
                                 : coordinate,
                         geometry: geometry,

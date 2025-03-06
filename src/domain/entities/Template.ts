@@ -314,7 +314,7 @@ export function setDataEntrySheet(dataSource: RowDataSource, sheets: SheetE[]): 
                       longitude: set(dataSource.coordinates.longitude),
                   }
                 : undefined,
-            geometry: dataSource.geometry ? dataSource.geometry : undefined,
+            geometry: dataSource.geometry,
         };
     });
 }
