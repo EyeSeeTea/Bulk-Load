@@ -826,6 +826,10 @@ export class SheetBuilder {
 
         if (element.type === "programs") {
             const { element: program } = this.builder;
+
+            //NOTE: This prop is currently only being used IF the program is an event program
+            //      This assumes event programs always have exactly one programStage,
+            //      which is why we retrieve featureType from the first one.
             const featureType = _(program.programStages)
                 .map(ps => ps.featureType)
                 .first();
