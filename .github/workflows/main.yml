@@ -9,4 +9,4 @@ on:
 
 jobs:
   master-workflow:
-    uses: EyeSeeTea/github-workflows/.github/workflows/master.yml@feature/reusable-workflows
+    uses: EyeSeeTea/github-workflows/.github/workflows/master.yml@master
