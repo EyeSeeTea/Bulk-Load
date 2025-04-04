@@ -12,7 +12,7 @@ import {
 } from "@material-ui/core";
 import React, { ChangeEvent, useCallback, useMemo, useState } from "react";
 import { DuplicateToleranceUnit, Model, OrgUnitSelectionSetting } from "../../../domain/entities/AppSettings";
-import i18n from "../../../locales";
+import i18n from "../../../utils/i18n";
 import Settings, { PermissionSetting } from "../../logic/settings";
 import { Select, SelectOption } from "../select/Select";
 import { DataSetDataElementsFilterDialog } from "./DataSetDataElementsFilterDialog";

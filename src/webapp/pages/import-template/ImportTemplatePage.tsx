@@ -11,7 +11,7 @@ import { DataForm, DataFormType } from "../../../domain/entities/DataForm";
 import { DataPackage } from "../../../domain/entities/DataPackage";
 import { SynchronizationResult } from "../../../domain/entities/SynchronizationResult";
 import { ImportTemplateUseCaseParams } from "../../../domain/usecases/ImportTemplateUseCase";
-import i18n from "../../../locales";
+import i18n from "../../../utils/i18n";
 import ModalDialog, { ModalDialogProps } from "../../components/modal-dialog/ModalDialog";
 import SyncSummary from "../../components/sync-summary/SyncSummary";
 import { useAppContext } from "../../contexts/app-context";

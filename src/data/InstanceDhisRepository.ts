@@ -24,7 +24,7 @@ import {
     ImportDataPackageOptions,
     InstanceRepository,
 } from "../domain/repositories/InstanceRepository";
-import i18n from "../locales";
+import i18n from "../utils/i18n";
 import {
     D2Api,
     D2ApiDefault,

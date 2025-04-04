@@ -1,6 +1,6 @@
 import { useSnackbar } from "@eyeseetea/d2-ui-components";
 import { useCallback } from "react";
-import i18n from "../../../locales";
+import i18n from "../../../utils/i18n";
 import SettingsFields, { SettingsFieldsProps } from "../../components/settings/SettingsFields";
 import { useAppContext } from "../../contexts/app-context";
 import { RouteComponentProps } from "../Router";
