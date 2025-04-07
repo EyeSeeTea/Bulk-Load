@@ -14,7 +14,7 @@ import {
 } from "@material-ui/core";
 import { ConfirmationDialog, useSnackbar } from "@eyeseetea/d2-ui-components";
 import { useDropzone } from "react-dropzone";
-import i18n from "../../../locales";
+import i18n from "../../../utils/i18n";
 import { Select, SelectOption } from "../select/Select";
 import { CustomTemplate } from "../../../domain/entities/Template";
 import React from "react";

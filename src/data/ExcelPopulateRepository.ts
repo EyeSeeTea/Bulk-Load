@@ -12,7 +12,7 @@ import { Sheet } from "../domain/entities/Sheet";
 import { CellRef, ColumnRef, Range, RangeRef, RowRef, SheetRef, ValueRef } from "../domain/entities/Template";
 import { ThemeStyle } from "../domain/entities/Theme";
 import { ExcelRepository, ExcelValue, LoadOptions, ReadCellOptions } from "../domain/repositories/ExcelRepository";
-import i18n from "../locales";
+import i18n from "../utils/i18n";
 import { cache } from "../utils/cache";
 import { fromBase64 } from "../utils/files";
 import { removeCharacters } from "../utils/string";

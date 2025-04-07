@@ -3,7 +3,7 @@ import { ConfirmationDialog } from "@eyeseetea/d2-ui-components";
 import { ChangeEvent, useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { Theme, ThemeableSections } from "../../../domain/entities/Theme";
-import i18n from "../../../locales";
+import i18n from "../../../utils/i18n";
 import { toBase64 } from "../../../utils/files";
 import { generatorOriginalPalette } from "../../utils/colors";
 import { ColorPicker } from "../color-picker/ColorPicker";

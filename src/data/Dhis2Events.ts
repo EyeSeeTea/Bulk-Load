@@ -2,7 +2,7 @@ import _ from "lodash";
 import { D2Api } from "../types/d2-api";
 import { Event } from "../domain/entities/DhisDataPackage";
 import { SynchronizationResult } from "../domain/entities/SynchronizationResult";
-import i18n from "../locales";
+import i18n from "../utils/i18n";
 import { promiseMap } from "../utils/promises";
 import { ImportPostResponse, postImport } from "./Dhis2Import";
 import { Program, TrackedEntityInstance } from "../domain/entities/TrackedEntityInstance";

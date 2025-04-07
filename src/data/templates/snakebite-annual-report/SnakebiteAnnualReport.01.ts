@@ -14,7 +14,7 @@ import { ThemeStyle } from "../../../domain/entities/Theme";
 import { ExcelRepository } from "../../../domain/repositories/ExcelRepository";
 import { InstanceRepository } from "../../../domain/repositories/InstanceRepository";
 import { ModulesRepositories } from "../../../domain/repositories/ModulesRepositories";
-import i18n from "../../../locales";
+import i18n from "../../../utils/i18n";
 import { cache } from "../../../utils/cache";
 import { GetSchemaType, Schema } from "../../../utils/codec";
 import { promiseMap } from "../../../utils/promises";
@@ -631,7 +631,7 @@ export class SnakebiteAnnualReport implements CustomTemplateWithUrl {
                         throw new Error(
                             i18n.t(
                                 "It is not possible to create product. Monovalent and Polyvalent should be exclusive for product {{product}}.",
-                                { product: productName }
+                                { product: String(productName) }
                             )
                         );
                     }

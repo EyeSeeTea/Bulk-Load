@@ -5,7 +5,7 @@ import { UseMigrationsResult } from "./hooks";
 import { useAppContext } from "../../contexts/app-context";
 import { MigrationVersions } from "../../../domain/entities/MigrationVersions";
 import { Log } from "../../../domain/entities/Debug";
-import i18n from "../../../locales";
+import i18n from "../../../utils/i18n";
 
 export interface MigrationsProps {
     migrations: UseMigrationsResult;

@@ -21,7 +21,7 @@ import {
     SynchronizationResult,
     SynchronizationStats,
 } from "../../../domain/entities/SynchronizationResult";
-import i18n from "../../../locales";
+import i18n from "../../../utils/i18n";
 
 const useStyles = makeStyles(theme => ({
     accordionHeading1: {

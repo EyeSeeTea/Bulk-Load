@@ -11,7 +11,7 @@ import { Relationship } from "../domain/entities/Relationship";
 import { SynchronizationResult } from "../domain/entities/SynchronizationResult";
 import { AttributeValue, Enrollment, Program, TrackedEntityInstance } from "../domain/entities/TrackedEntityInstance";
 import { parseDate } from "../domain/helpers/ExcelReader";
-import i18n from "../locales";
+import i18n from "../utils/i18n";
 import { D2Api, D2RelationshipType, Id, Ref } from "../types/d2-api";
 import { KeysOfUnion } from "../types/utils";
 import { promiseMap } from "../utils/promises";
