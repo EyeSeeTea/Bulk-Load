@@ -257,17 +257,22 @@ export class SheetBuilder {
                 this.createColumn(sheet, itemRow, columnId, `_${attribute.id}`);
 
                 const colName = Excel.getExcelAlpha(columnId);
-                const lookupFormula = `IFERROR(INDEX('${teiSheetName}'!$A$5:$ZZ$${maxTeiRows},MATCH(INDIRECT("B" & ROW()),'${teiSheetName}'!$A$5:$A$${maxTeiRows},0),MATCH(${colName}$${itemRow},'${teiSheetName}'!$A$5:$ZZ$5,0)),"")`;
 
-                sheet.cell(itemRow + 1, columnId, maxTeiRows, columnId).formula(lookupFormula);
+                for (let row = itemRow + 1; row <= maxTeiRows; row++) {
+                    const bRef = `B${row}`;
+                    const headerRef = `${colName}${itemRow}`;
 
-                sheet.addDataValidation({
-                    type: "textLength",
-                    error: "This cell cannot be changed",
-                    sqref: `${colName}${itemRow + 1}:${colName}${maxRow}`,
-                    operator: "equal",
-                    formulas: [`${lookupFormula.length}`],
-                });
+                    const lookupFormula = `IFERROR(INDEX('${teiSheetName}'!$A$5:$ZZ$${maxTeiRows},MATCH(${bRef},'${teiSheetName}'!$A$5:$A$${maxTeiRows},0),MATCH(${headerRef},'${teiSheetName}'!$A$5:$ZZ$5,0)),"")`;
+                    sheet.cell(row, columnId).singleFormula(lookupFormula);
+
+                    sheet.addDataValidation({
+                        type: "textLength",
+                        error: "This cell cannot be changed",
+                        sqref: `${colName}${row}`,
+                        operator: "equal",
+                        formulas: [`${lookupFormula.length}`],
+                    });
+                }
 
                 columnId++;
             });
