@@ -262,15 +262,20 @@ export class SheetBuilder {
                     const bRef = `B${row}`;
                     const headerRef = `${colName}${itemRow}`;
 
-                    const lookupFormula = `IFERROR(INDEX('${teiSheetName}'!$A$5:$ZZ$${maxTeiRows},MATCH(${bRef},'${teiSheetName}'!$A$5:$A$${maxTeiRows},0),MATCH(${headerRef},'${teiSheetName}'!$A$5:$ZZ$5,0)),"")`;
+                    const lookupFormula = this.buildLookupFormula({
+                        sheetName: teiSheetName,
+                        bRef,
+                        headerRef,
+                    });
+
                     sheet.cell(row, columnId).singleFormula(lookupFormula);
 
-                    sheet.addDataValidation({
-                        type: "textLength",
-                        error: "This cell cannot be changed",
-                        sqref: `${colName}${row}`,
-                        operator: "equal",
-                        formulas: [`${lookupFormula.length}`],
+                    this.lockCellWithValidation({
+                        sheet,
+                        colName,
+                        startRow: itemRow + 1,
+                        endRow: maxRow,
+                        formula: lookupFormula,
                     });
                 }
 
@@ -366,6 +371,39 @@ export class SheetBuilder {
 
                 groupId++;
             });
+        });
+    }
+
+    private buildLookupFormula(options: { sheetName: string; bRef: string; headerRef: string }): string {
+        const { sheetName, bRef, headerRef } = options;
+        return `IFERROR(
+            INDEX(
+                '${sheetName}'!$A$5:$ZZ$${maxTeiRows},
+                MATCH(${bRef},'${sheetName}'!$A$5:$A$${maxTeiRows},0),
+                MATCH(${headerRef},'${sheetName}'!$A$5:$ZZ$5,0)
+            ), 
+            "")
+        `
+            .replace(/\s+/g, " ")
+            .trim();
+    }
+
+    private lockCellWithValidation(options: {
+        sheet: Sheet;
+        startRow: number;
+        endRow: number;
+        colName: string;
+        formula: string;
+        errorMessage?: string;
+    }) {
+        const { colName, endRow, errorMessage, formula, sheet, startRow } = options;
+        sheet.addDataValidation({
+            type: "textLength",
+            error: errorMessage ?? "This cell cannot be changed",
+            sqref: `${colName}${startRow}:${colName}${endRow}`,
+            operator: "equal",
+            // for excel we need min and max length
+            formulas: [formula.length.toString(), formula.length.toString()],
         });
     }
 
