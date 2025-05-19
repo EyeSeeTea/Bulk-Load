@@ -151,6 +151,10 @@ export class Sheet {
                 xrange.formula(formulaValue);
                 return cell;
             },
+            singleFormula: (formulaValue: string) => {
+                xrange.formula({ formula: formulaValue, shared: false });
+                return cell;
+            },
             comment: (text: string, options: { height: string; width: string }) => {
                 xcell1.comment({ text, ...options, textAlign: "left", horizontalAlignment: "Left" });
                 return cell;
