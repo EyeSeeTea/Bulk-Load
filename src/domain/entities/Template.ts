@@ -1,17 +1,9 @@
-import { Maybe, NullableMaybe } from "../../types/utils";
+import { Maybe } from "../../types/utils";
 import _ from "lodash";
 import { ExcelRepository } from "../repositories/ExcelRepository";
 import { InstanceRepository } from "../repositories/InstanceRepository";
-import { DataForm, DataFormType } from "./DataForm";
-import {
-    DataPackage,
-    DataSetPackageData,
-    DataSetPackageDataValue,
-    hasProgramPackageData,
-    isDataSet,
-    ProgramPackageData,
-    TrackerProgramPackage,
-} from "./DataPackage";
+import { DataForm, DataFormType, dataFormTypeMap } from "./DataForm";
+import { DataPackage, DataSetPackageData, DataSetPackageDataValue, ProgramPackageData } from "./DataPackage";
 import { i18nShortCode, Id } from "./ReferenceObject";
 import { ImageSections, ThemeableSections } from "./Theme";
 import { User, UserTimestamp } from "./User";
@@ -53,8 +45,8 @@ export interface CustomTemplate extends Omit<CustomTemplateWithUrl, "url"> {
     type: "custom";
     isDefault: boolean;
     file: { name: string; contents: Base64String };
-    created: NullableMaybe<UserTimestamp>;
-    lastUpdated: NullableMaybe<UserTimestamp>;
+    created: Maybe<UserTimestamp>;
+    lastUpdated: Maybe<UserTimestamp>;
     mode?: "basic" | "advanced";
 }
 
@@ -245,8 +237,8 @@ export interface CellDataSource extends BaseDataSource {
 }
 
 interface DataFormRef {
-    type: NullableMaybe<DataFormType>;
-    id: NullableMaybe<string>;
+    type: Maybe<DataFormType>;
+    id: Maybe<string>;
 }
 
 export function getDataFormRef(template: BaseTemplate): DataFormRef {
@@ -371,7 +363,7 @@ export type TemplateDataPackage = TemplateGenericDataPackage | TemplateTrackerPr
 export type TemplateDataPackageDataValue = TemplateDataPackageData["dataValues"][number];
 
 type BaseTemplateDataPackage = {
-    type: "dataSets" | "programs" | "trackerPrograms";
+    type: DataFormType;
     dataEntries: TemplateDataPackageData[];
 };
 
@@ -437,7 +429,7 @@ export function templateToDataPackage(template: TemplateDataPackage): DataPackag
         })),
     });
 
-    if (type === "dataSets") {
+    if (type === dataFormTypeMap.dataSets) {
         return {
             type,
             dataEntries: dataEntries.map(entry => ({
@@ -452,18 +444,17 @@ export function templateToDataPackage(template: TemplateDataPackage): DataPackag
                     value: dv.value,
                     comment: undefined,
                 })),
-            })) as DataSetPackageData[],
+            })),
         };
     }
 
     const mappedEntries = dataEntries.map(mapProgramEntry);
 
-    if (type === "trackerPrograms") {
-        const trackerPkg = template as TemplateTrackerProgramPackage;
+    if (type === dataFormTypeMap.trackerPrograms) {
         return {
             type,
             dataEntries: mappedEntries,
-            trackedEntityInstances: trackerPkg.trackedEntityInstances || [],
+            trackedEntityInstances: template.trackedEntityInstances || [],
         };
     }
 
@@ -483,9 +474,9 @@ export function templateFromDataPackage(dataPackage: DataPackage): TemplateDataP
             : undefined;
     };
 
-    if (isDataSet(dataPackage)) {
+    if (dataPackage.type === dataFormTypeMap.dataSets) {
         return {
-            type: "dataSets",
+            ...dataPackage,
             dataEntries: dataPackage.dataEntries.map((entry: DataSetPackageData) => ({
                 group: undefined,
                 dataForm: entry.dataForm,
@@ -506,7 +497,7 @@ export function templateFromDataPackage(dataPackage: DataPackage): TemplateDataP
         };
     }
 
-    if (hasProgramPackageData(dataPackage)) {
+    if (dataPackage.type === dataFormTypeMap.programs || dataPackage.type === dataFormTypeMap.trackerPrograms) {
         const mappedEntries: TemplateDataPackageData[] = dataPackage.dataEntries.map((entry: ProgramPackageData) => ({
             group: undefined,
             dataForm: entry.dataForm,
@@ -525,14 +516,12 @@ export function templateFromDataPackage(dataPackage: DataPackage): TemplateDataP
             })),
         }));
 
-        if (dataPackage.type === "trackerPrograms") {
-            const trackerPkg = dataPackage as TrackerProgramPackage;
-            const trackerTemplate: TemplateTrackerProgramPackage = {
-                type: "trackerPrograms",
+        if (dataPackage.type === dataFormTypeMap.trackerPrograms) {
+            return {
+                ...dataPackage,
                 dataEntries: mappedEntries,
-                trackedEntityInstances: trackerPkg.trackedEntityInstances,
+                trackedEntityInstances: dataPackage.trackedEntityInstances,
             };
-            return trackerTemplate;
         }
 
         return {

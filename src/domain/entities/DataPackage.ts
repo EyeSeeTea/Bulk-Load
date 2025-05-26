@@ -64,11 +64,3 @@ export type DataSetPackageDataValue = BasePackageDataValue & {
     category: Maybe<Id>;
     comment: Maybe<string>;
 };
-
-export function hasProgramPackageData(pkg: DataPackage): pkg is EventProgramPackage | TrackerProgramPackage {
-    return pkg.type === "programs" || pkg.type === "trackerPrograms";
-}
-
-export function isDataSet(entry: BaseDataPackage): entry is DataSetPackage {
-    return entry.type === "dataSets";
-}
