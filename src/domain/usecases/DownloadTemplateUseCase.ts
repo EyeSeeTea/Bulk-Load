@@ -11,7 +11,7 @@ import Settings from "../../webapp/logic/settings";
 import { getGeneratedTemplateId, SheetBuilder } from "../../webapp/logic/sheetBuilder";
 import { DataFormType } from "../entities/DataForm";
 import { Id, Ref } from "../entities/ReferenceObject";
-import { TemplateType } from "../entities/Template";
+import { templateFromDataPackage, TemplateType } from "../entities/Template";
 import { ExcelBuilder } from "../helpers/ExcelBuilder";
 import { ExcelRepository } from "../repositories/ExcelRepository";
 import { InstanceRepository } from "../repositories/InstanceRepository";
@@ -158,7 +158,7 @@ export class DownloadTemplateUseCase implements UseCase {
             type,
             id,
             populate,
-            dataPackage,
+            dataPackage: dataPackage && templateFromDataPackage(dataPackage),
             orgUnits,
             language: showLanguage ? language : undefined,
         });

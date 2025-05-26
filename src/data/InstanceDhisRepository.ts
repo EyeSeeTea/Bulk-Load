@@ -2,7 +2,12 @@ import _ from "lodash";
 import "lodash.product";
 import moment from "moment";
 import { DataElement, DataForm, DataFormPeriod, DataFormType } from "../domain/entities/DataForm";
-import { DataPackage, TrackerProgramPackage } from "../domain/entities/DataPackage";
+import {
+    DataPackage,
+    DataSetPackageDataValue,
+    ProgramPackageData,
+    TrackerProgramPackage,
+} from "../domain/entities/DataPackage";
 import {
     AggregatedDataValue,
     AggregatedPackage,
@@ -234,7 +239,7 @@ export class InstanceDhisRepository implements InstanceRepository {
             case "dataSets":
                 return this.getDataSetPackage(params);
             case "programs":
-                return this.getProgramPackage(params);
+                return this.getEventProgramPackage(params);
             case "trackerPrograms":
                 return this.getTrackerProgramPackage(params);
             default:
@@ -251,7 +256,7 @@ export class InstanceDhisRepository implements InstanceRepository {
     private async getTrackerProgramPackage(params: GetDataPackageParams): Promise<DataPackage> {
         const { api } = this;
 
-        const dataPackage = await this.getProgramPackage(params);
+        const dataEntries = await this.getProgramPackageData(params);
         const orgUnits = params.orgUnits.map(id => ({ id }));
         const program = { id: params.id };
         const trackedEntityInstances = await getTrackedEntityInstances({
@@ -268,7 +273,7 @@ export class InstanceDhisRepository implements InstanceRepository {
         return {
             type: "trackerPrograms",
             trackedEntityInstances,
-            dataEntries: dataPackage.dataEntries,
+            dataEntries: dataEntries,
         };
     }
 
@@ -336,8 +341,9 @@ export class InstanceDhisRepository implements InstanceRepository {
     /* Private */
 
     private buildAggregatedPayload(dataPackage: DataPackage): AggregatedDataValue[] {
+        if (dataPackage.type !== "dataSets") return [];
         return _.flatMap(dataPackage.dataEntries, ({ orgUnit, period, attribute, dataValues }) =>
-            dataValues.map(({ dataElement, category, value, comment }) => ({
+            dataValues.map(({ dataElement, category, value, comment }: DataSetPackageDataValue) => ({
                 orgUnit,
                 period,
                 attributeOptionCombo: attribute,
@@ -350,26 +356,31 @@ export class InstanceDhisRepository implements InstanceRepository {
     }
 
     private buildEventsPayload(dataPackage: DataPackage): Event[] {
-        return dataPackage.dataEntries.map(({ id, orgUnit, period, attribute, dataValues, dataForm, coordinate }) => ({
-            event: id,
-            program: dataForm,
-            status: "COMPLETED",
-            orgUnit,
-            occurredAt: period,
-            attributeOptionCombo: attribute,
-            dataValues: dataValues,
-            coordinate: coordinate,
-            geometry: coordinate && {
-                type: "Point",
-                coordinates: [Number(coordinate.longitude), Number(coordinate.latitude)],
-            },
-        }));
+        if (dataPackage.type === "dataSets") return [];
+        return dataPackage.dataEntries.map(
+            ({ id, orgUnit, period, attribute, dataValues, dataForm, coordinate }: ProgramPackageData) => ({
+                event: id,
+                program: dataForm,
+                status: "COMPLETED",
+                orgUnit,
+                occurredAt: period,
+                attributeOptionCombo: attribute,
+                dataValues: dataValues,
+                coordinate: coordinate,
+                geometry: coordinate && {
+                    type: "Point",
+                    coordinates: [Number(coordinate.longitude), Number(coordinate.latitude)],
+                },
+            })
+        );
     }
 
     private async importAggregatedData(
         importStrategy: "CREATE" | "UPDATE" | "CREATE_AND_UPDATE" | "DELETE",
         dataPackage: DataPackage
     ): Promise<SynchronizationResult> {
+        if (dataPackage.type !== "dataSets") throw new Error("Invalid data package type");
+
         const dataValues = await this.validateAggregateImportPackage(this.buildAggregatedPayload(dataPackage));
 
         const dataSetIds = _(dataPackage.dataEntries)
@@ -606,13 +617,18 @@ export class InstanceDhisRepository implements InstanceRepository {
         };
     }
 
-    private async getProgramPackage({
-        id,
-        orgUnits,
-        startDate,
-        endDate,
-        translateCodes = true,
-    }: GetDataPackageParams): Promise<DataPackage> {
+    private async getEventProgramPackage(props: GetDataPackageParams): Promise<DataPackage> {
+        const programPackageData = await this.getProgramPackageData(props);
+
+        return {
+            type: "programs",
+            dataEntries: programPackageData,
+        };
+    }
+
+    private async getProgramPackageData(props: GetDataPackageParams): Promise<ProgramPackageData[]> {
+        const { id, orgUnits, startDate, endDate, translateCodes = true } = props;
+
         const res = await this.api.get<MetadataProgramPackage>(`/programs/${id}/metadata`).getData();
         const program = res.programs?.[0];
         if (!program) throw new Error(`Program not found: ${id}`);
@@ -660,44 +676,41 @@ export class InstanceDhisRepository implements InstanceRepository {
             }
         }
 
-        return {
-            type: "programs",
-            dataEntries: _(programEvents)
-                .map(
-                    ({
-                        event,
-                        orgUnit,
-                        occurredAt,
-                        attributeOptionCombo,
-                        coordinate,
-                        geometry,
-                        dataValues,
-                        trackedEntity,
-                        programStage,
-                    }) => ({
-                        id: event,
-                        dataForm: id,
-                        orgUnit,
-                        period: moment(occurredAt).format("YYYY-MM-DD"),
-                        attribute: attributeOptionCombo,
-                        coordinate: geometry
-                            ? {
-                                  longitude: geometry.coordinates[0]?.toString() ?? "",
-                                  latitude: geometry.coordinates[1]?.toString() ?? "",
-                              }
-                            : coordinate,
-                        geometry: geometry,
-                        trackedEntity: trackedEntity,
-                        programStage,
-                        dataValues:
-                            dataValues?.map(({ dataElement, value }) => ({
-                                dataElement,
-                                value: this.formatDataValue(dataElement, value, metadata, translateCodes),
-                            })) ?? [],
-                    })
-                )
-                .value(),
-        };
+        return _(programEvents)
+            .map(
+                ({
+                    event,
+                    orgUnit,
+                    occurredAt,
+                    attributeOptionCombo,
+                    coordinate,
+                    geometry,
+                    dataValues,
+                    trackedEntity,
+                    programStage,
+                }) => ({
+                    id: event,
+                    dataForm: id,
+                    orgUnit,
+                    period: moment(occurredAt).format("YYYY-MM-DD"),
+                    attribute: attributeOptionCombo,
+                    coordinate: geometry
+                        ? {
+                              longitude: geometry.coordinates[0]?.toString() ?? "",
+                              latitude: geometry.coordinates[1]?.toString() ?? "",
+                          }
+                        : coordinate,
+                    geometry: geometry,
+                    trackedEntityInstance: trackedEntity,
+                    programStage,
+                    dataValues:
+                        dataValues?.map(({ dataElement, value }) => ({
+                            dataElement,
+                            value: this.formatDataValue(dataElement, value, metadata, translateCodes),
+                        })) ?? [],
+                })
+            )
+            .value();
     }
 
     private formatDataValue(
