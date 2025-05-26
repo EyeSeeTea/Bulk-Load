@@ -76,14 +76,14 @@ export class ExcelReader {
         const dataEntries = _(data)
             .groupBy(d =>
                 [
-                    d.group,
                     d.dataForm,
                     d.id,
-                    d.orgUnit,
                     d.period,
+                    d.orgUnit,
                     d.attribute,
                     d.trackedEntityInstance,
                     d.programStage,
+                    d.group,
                 ].join("@")
             )
             .map((items, key) => {
