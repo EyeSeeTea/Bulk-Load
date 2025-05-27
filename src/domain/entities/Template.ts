@@ -400,98 +400,83 @@ export type TemplateDataPackageData = {
 export function templateToDataPackage(template: TemplateDataPackage): DataPackage {
     const { type, dataEntries } = template;
 
-    if (type === dataFormTypeMap.dataSets) {
-        return {
-            type,
-            dataEntries: dataEntries.map(entry => ({
-                type: "aggregated",
-                orgUnit: entry.orgUnit,
-                dataForm: entry.dataForm,
-                period: entry.period,
-                attribute: entry.attribute,
-                dataValues: entry.dataValues.map(dv => ({
-                    dataElement: dv.dataElement,
-                    category: dv.category,
-                    value: dv.value,
+    switch (type) {
+        case dataFormTypeMap.dataSets:
+            return {
+                type,
+                dataEntries: dataEntries.map(entry => ({
+                    type: "aggregated",
+                    orgUnit: entry.orgUnit,
+                    dataForm: entry.dataForm,
+                    period: entry.period,
+                    attribute: entry.attribute,
+                    dataValues: entry.dataValues.map(dv => ({
+                        dataElement: dv.dataElement,
+                        category: dv.category,
+                        value: dv.value,
+                    })),
                 })),
-            })),
-        };
+            };
+
+        case dataFormTypeMap.programs: {
+            const mappedEntries = dataEntries.map(mapToProgramData);
+            return {
+                type,
+                dataEntries: mappedEntries,
+            };
+        }
+
+        case dataFormTypeMap.trackerPrograms: {
+            const mappedEntries = dataEntries.map(mapToProgramData);
+            return {
+                type,
+                dataEntries: mappedEntries,
+                trackedEntityInstances: template.trackedEntityInstances || [],
+            };
+        }
     }
-
-    const mappedEntries = dataEntries.map(mapProgramEntry);
-
-    if (type === dataFormTypeMap.trackerPrograms) {
-        return {
-            type,
-            dataEntries: mappedEntries,
-            trackedEntityInstances: template.trackedEntityInstances || [],
-        };
-    }
-
-    return {
-        type,
-        dataEntries: mappedEntries,
-    };
 }
 
 export function templateFromDataPackage(dataPackage: DataPackage): TemplateDataPackage {
-    if (dataPackage.type === dataFormTypeMap.dataSets) {
-        return {
-            ...dataPackage,
-            dataEntries: dataPackage.dataEntries.map((entry: DataSetPackageData) => ({
-                group: undefined,
-                dataForm: entry.dataForm,
-                id: undefined,
-                orgUnit: entry.orgUnit,
-                period: entry.period,
-                attribute: entry.attribute,
-                coordinate: undefined,
-                trackedEntityInstance: undefined,
-                programStage: undefined,
-                dataValues: entry.dataValues.map((dv: DataSetPackageDataValue) => ({
-                    dataElement: dv.dataElement,
-                    value: dv.value,
-                    category: dv.category,
-                    optionId: undefined,
+    switch (dataPackage.type) {
+        case dataFormTypeMap.dataSets:
+            return {
+                ...dataPackage,
+                dataEntries: dataPackage.dataEntries.map((entry: DataSetPackageData) => ({
+                    group: undefined,
+                    dataForm: entry.dataForm,
+                    id: undefined,
+                    orgUnit: entry.orgUnit,
+                    period: entry.period,
+                    attribute: entry.attribute,
+                    coordinate: undefined,
+                    trackedEntityInstance: undefined,
+                    programStage: undefined,
+                    dataValues: entry.dataValues.map((dv: DataSetPackageDataValue) => ({
+                        dataElement: dv.dataElement,
+                        value: dv.value,
+                        category: dv.category,
+                        optionId: undefined,
+                    })),
                 })),
-            })),
-        };
-    }
+            };
 
-    if (dataPackage.type === dataFormTypeMap.programs || dataPackage.type === dataFormTypeMap.trackerPrograms) {
-        const mappedEntries: TemplateDataPackageData[] = dataPackage.dataEntries.map((entry: ProgramPackageData) => ({
-            group: undefined,
-            dataForm: entry.dataForm,
-            id: entry.id,
-            orgUnit: entry.orgUnit,
-            period: entry.period,
-            attribute: entry.attribute,
-            coordinate: entry.coordinate ?? convertCoordinate(entry.geometry ?? undefined),
-            trackedEntityInstance: entry.trackedEntityInstance,
-            programStage: entry.programStage,
-            dataValues: entry.dataValues.map(dv => ({
-                dataElement: dv.dataElement,
-                value: dv.value,
-                category: undefined,
-                optionId: undefined,
-            })),
-        }));
-
-        if (dataPackage.type === dataFormTypeMap.trackerPrograms) {
+        case dataFormTypeMap.programs: {
+            const mappedEntries = dataPackage.dataEntries.map(mapFromProgramData);
+            return {
+                type: "programs",
+                dataEntries: mappedEntries,
+            };
+        }
+        case dataFormTypeMap.trackerPrograms: {
+            const mappedEntries = dataPackage.dataEntries.map(mapFromProgramData);
             return {
                 ...dataPackage,
                 dataEntries: mappedEntries,
                 trackedEntityInstances: dataPackage.trackedEntityInstances,
             };
         }
-
-        return {
-            type: "programs",
-            dataEntries: mappedEntries,
-        };
     }
-
-    throw new Error("Unknown data package type");
 }
 
 function convertToGeometry(entry: TemplateDataPackageData): Maybe<Geometry> {
@@ -507,7 +492,7 @@ function convertToGeometry(entry: TemplateDataPackageData): Maybe<Geometry> {
     };
 }
 
-function mapProgramEntry(entry: TemplateDataPackageData): ProgramPackageData {
+function mapToProgramData(entry: TemplateDataPackageData): ProgramPackageData {
     return {
         orgUnit: entry.orgUnit,
         dataForm: entry.dataForm,
@@ -521,6 +506,26 @@ function mapProgramEntry(entry: TemplateDataPackageData): ProgramPackageData {
         dataValues: entry.dataValues.map(dv => ({
             dataElement: dv.dataElement,
             value: dv.value,
+        })),
+    };
+}
+
+function mapFromProgramData(entry: ProgramPackageData): TemplateDataPackageData {
+    return {
+        group: undefined,
+        dataForm: entry.dataForm,
+        id: entry.id,
+        orgUnit: entry.orgUnit,
+        period: entry.period,
+        attribute: entry.attribute,
+        coordinate: entry.coordinate ?? convertCoordinate(entry.geometry ?? undefined),
+        trackedEntityInstance: entry.trackedEntityInstance,
+        programStage: entry.programStage,
+        dataValues: entry.dataValues.map(dv => ({
+            dataElement: dv.dataElement,
+            value: dv.value,
+            category: undefined,
+            optionId: undefined,
         })),
     };
 }
