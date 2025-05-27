@@ -1,7 +1,7 @@
 import _ from "lodash";
 import "lodash.product";
 import moment from "moment";
-import { DataElement, DataForm, DataFormPeriod, DataFormType } from "../domain/entities/DataForm";
+import { DataElement, DataForm, DataFormFeatureType, DataFormPeriod, DataFormType } from "../domain/entities/DataForm";
 import { DataPackage, TrackerProgramPackage } from "../domain/entities/DataPackage";
 import {
     AggregatedDataValue,
@@ -29,6 +29,7 @@ import {
     D2Api,
     D2ApiDefault,
     D2DataElementSchema,
+    D2ProgramStage,
     D2TrackedEntityType,
     DataStore,
     DataValueSetsGetResponse,
@@ -138,6 +139,11 @@ export class InstanceDhisRepository implements InstanceRepository {
                     valueType: trackedEntityAttribute.valueType,
                 })),
                 trackedEntityType: getTrackedEntityTypeFromApi(trackedEntityType),
+                //NOTE: This prop is currently only being used IF the program is an event program
+                //      This assumes event programs always have exactly one programStage,
+                //      which is why we retrieve featureType from the first one.
+                //      Specifically used in `ExcelReader > readByRow -> formatGeometry`
+                featureType: getFeatureType(programStages.map(({ featureType }) => featureType)[0]),
             })
         );
     }
@@ -218,8 +224,7 @@ export class InstanceDhisRepository implements InstanceRepository {
                 return [result];
             }
             case "programs": {
-                const result = await this.importEventsData(dataPackage);
-                return result;
+                return await this.importEventsData(dataPackage);
             }
             case "trackerPrograms": {
                 return this.importTrackerProgramData(dataPackage);
@@ -350,20 +355,24 @@ export class InstanceDhisRepository implements InstanceRepository {
     }
 
     private buildEventsPayload(dataPackage: DataPackage): Event[] {
-        return dataPackage.dataEntries.map(({ id, orgUnit, period, attribute, dataValues, dataForm, coordinate }) => ({
-            event: id,
-            program: dataForm,
-            status: "COMPLETED",
-            orgUnit,
-            occurredAt: period,
-            attributeOptionCombo: attribute,
-            dataValues: dataValues,
-            coordinate: coordinate,
-            geometry: coordinate && {
-                type: "Point",
-                coordinates: [Number(coordinate.longitude), Number(coordinate.latitude)],
-            },
-        }));
+        return dataPackage.dataEntries.map(
+            ({ id, orgUnit, period, attribute, dataValues, dataForm, coordinate, geometry }): Event => ({
+                event: id,
+                program: dataForm,
+                status: "COMPLETED",
+                orgUnit,
+                occurredAt: period,
+                attributeOptionCombo: attribute,
+                dataValues: dataValues,
+                coordinate: coordinate,
+                geometry:
+                    geometry ||
+                    (coordinate && {
+                        type: "Point",
+                        coordinates: [Number(coordinate.longitude), Number(coordinate.latitude)],
+                    }),
+            })
+        );
     }
 
     private async importAggregatedData(
@@ -680,12 +689,13 @@ export class InstanceDhisRepository implements InstanceRepository {
                         orgUnit,
                         period: moment(occurredAt).format("YYYY-MM-DD"),
                         attribute: attributeOptionCombo,
-                        coordinate: geometry
-                            ? {
-                                  longitude: geometry.coordinates[0]?.toString() ?? "",
-                                  latitude: geometry.coordinates[1]?.toString() ?? "",
-                              }
-                            : coordinate,
+                        coordinate:
+                            geometry && geometry.type === "Point"
+                                ? {
+                                      longitude: geometry.coordinates[0].toString() ?? "",
+                                      latitude: geometry.coordinates[1].toString() ?? "",
+                                  }
+                                : coordinate,
                         geometry: geometry,
                         trackedEntity: trackedEntity,
                         programStage,
@@ -780,6 +790,7 @@ const programFields = {
         name: true,
         programStageDataElements: { dataElement: dataElementFields },
         repeatable: true,
+        featureType: true,
     },
     programTrackedEntityAttributes: { trackedEntityAttribute: { id: true, name: true, valueType: true } },
     access: true,
@@ -806,4 +817,8 @@ function getTrackedEntityTypeFromApi(
     const d2FeatureType = trackedEntityType.featureType;
     const featureType = d2FeatureType === "POINT" ? "point" : d2FeatureType === "POLYGON" ? "polygon" : "none";
     return { id: trackedEntityType.id, featureType };
+}
+
+function getFeatureType(featureType?: D2ProgramStage["featureType"]): DataFormFeatureType {
+    return featureType === "POINT" ? "point" : featureType === "POLYGON" ? "polygon" : "none";
 }

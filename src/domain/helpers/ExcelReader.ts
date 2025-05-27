@@ -5,9 +5,9 @@ import moment from "moment";
 import { isDefined } from "../../utils";
 import { promiseMap } from "../../utils/promises";
 import { removeCharacters } from "../../utils/string";
-import { DataForm } from "../entities/DataForm";
+import { DataForm, DataFormFeatureType } from "../entities/DataForm";
 import { DataPackage, DataPackageData } from "../entities/DataPackage";
-import { getGeometryFromString } from "../entities/Geometry";
+import { buildGeometry, getGeometryFromString } from "../entities/Geometry";
 import { Relationship } from "../entities/Relationship";
 import {
     CellDataSource,
@@ -29,6 +29,7 @@ import {
 import { TrackedEntityInstance } from "../entities/TrackedEntityInstance";
 import { ExcelRepository, ExcelValue, ReadCellOptions } from "../repositories/ExcelRepository";
 import { InstanceRepository } from "../repositories/InstanceRepository";
+import { Coordinates, Geometry } from "../entities/DhisDataPackage";
 
 const dateFormat = "YYYY-MM-DD";
 
@@ -56,7 +57,7 @@ export class ExcelReader {
                     (await this.readByCell(template, dataSource)).map(item => data.push(item));
                     break;
                 case "row":
-                    (await this.readByRow(template, dataSource)).map(item => data.push(item));
+                    (await this.readByRow(template, dataSource, dataForm)).map(item => data.push(item));
                     break;
                 case "rowTei":
                     (await this.readTeiRows(template, dataSource, dataForm)).map(item => teis.push(item));
@@ -99,6 +100,7 @@ export class ExcelReader {
                     programStage: programStage ? String(programStage) : undefined,
                     dataValues: _.flatMap(items, ({ dataValues }) => dataValues),
                     coordinate: items[0]?.coordinate,
+                    geometry: items[0]?.geometry,
                 };
             })
             .compact()
@@ -112,7 +114,11 @@ export class ExcelReader {
         return { type: dataFormType, dataEntries };
     }
 
-    private async readByRow(template: Template, dataSource: RowDataSource): Promise<DataPackageData[]> {
+    private async readByRow(
+        template: Template,
+        dataSource: RowDataSource,
+        dataForm: DataForm
+    ): Promise<DataPackageData[]> {
         const cells = await this.excelRepository.getCellsInRange(template.id, dataSource.range);
 
         const values = await promiseMap(cells, async cell => {
@@ -145,6 +151,9 @@ export class ExcelReader {
             const longitude = await this.readCellValue(template, dataSource.coordinates?.longitude, cell);
             const hasCoordinate = isDefined(latitude) && isDefined(longitude);
 
+            const hasGeometry = dataForm.type === "programs";
+            const geometry = hasGeometry ? await this.readCellValue(template, dataSource.geometry, cell) : undefined;
+
             return {
                 group: this.excelRepository.buildRowNumber(cell.ref),
                 dataForm: this.formatValue(dataFormId),
@@ -155,6 +164,7 @@ export class ExcelReader {
                 coordinate: hasCoordinate
                     ? { latitude: this.formatValue(latitude), longitude: this.formatValue(longitude) }
                     : undefined,
+                geometry: isDefined(geometry) ? this.formatGeometry(geometry, dataForm.featureType) : undefined,
                 dataValues: [
                     {
                         dataElement: this.formatValue(dataElement),
@@ -167,6 +177,21 @@ export class ExcelReader {
         });
 
         return _.compact(values);
+    }
+
+    private formatGeometry(geometry?: ExcelValue, featureType?: DataFormFeatureType): Geometry | undefined {
+        if (featureType === "polygon") {
+            const data = buildGeometry(featureType, this.formatValue(geometry));
+            const coordinates: Coordinates[] = (data.type === "polygon" ? data.coordinatesList : []).map(
+                ({ latitude, longitude }) => [longitude, latitude]
+            );
+
+            return {
+                type: "Polygon",
+                coordinates: [coordinates], // Wrap in an extra array to match Geometry type
+            };
+        }
+        return undefined;
     }
 
     private async readByCell(template: Template, dataSource: CellDataSource): Promise<DataPackageData[]> {
