@@ -11,7 +11,7 @@ import {
 import _ from "lodash";
 import React from "react";
 
-import i18n from "../../../locales";
+import i18n from "../../../utils/i18n";
 
 export interface ModalDialogProps extends Partial<Omit<DialogProps, "title">> {
     isOpen?: boolean;

@@ -9,7 +9,7 @@ import {
 } from "../../../domain/entities/DataElementDisaggregated";
 import { DataForm } from "../../../domain/entities/DataForm";
 import { NamedRef } from "../../../domain/entities/ReferenceObject";
-import i18n from "../../../locales";
+import i18n from "../../../utils/i18n";
 import { useAppContext } from "../../contexts/app-context";
 import Settings from "../../logic/settings";
 import { getSelectOptionsFromNamedRefs } from "../../utils/refs";

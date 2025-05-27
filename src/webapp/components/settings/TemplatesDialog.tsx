@@ -1,5 +1,5 @@
 import { ConfirmationDialog } from "@eyeseetea/d2-ui-components";
-import i18n from "../../../locales";
+import i18n from "../../../utils/i18n";
 import { SettingsFieldsProps } from "./SettingsFields";
 import TemplateListTable from "./TemplateListTable";
 import { RouteComponentProps } from "../../pages/Router";

@@ -8,7 +8,7 @@ import { RelationshipOrgUnitFilter } from "../../../data/Dhis2RelationshipTypes"
 import { CustomTemplate, DataFormTemplate, TemplateType } from "../../../domain/entities/Template";
 import { Theme } from "../../../domain/entities/Theme";
 import { DownloadTemplateProps } from "../../../domain/usecases/DownloadTemplateUseCase";
-import i18n from "../../../locales";
+import i18n from "../../../utils/i18n";
 import { PartialBy } from "../../../types/utils";
 import { cleanOrgUnitPaths } from "../../../utils/dhis";
 import { useAppContext } from "../../contexts/app-context";

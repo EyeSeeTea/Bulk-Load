@@ -1,6 +1,6 @@
 import { ConfirmationDialog, ShareUpdate, Sharing, useLoading, useSnackbar } from "@eyeseetea/d2-ui-components";
 import { useCallback } from "react";
-import i18n from "../../../locales";
+import i18n from "../../../utils/i18n";
 import { useAppContext } from "../../contexts/app-context";
 import { Id } from "../../../domain/entities/ReferenceObject";
 import { Theme } from "../../../domain/entities/Theme";

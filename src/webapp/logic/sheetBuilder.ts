@@ -5,7 +5,7 @@ import { DataFormType } from "../../domain/entities/DataForm";
 import { NamedRef, Ref } from "../../domain/entities/ReferenceObject";
 import { getDataSources, Template } from "../../domain/entities/Template";
 import { Theme } from "../../domain/entities/Theme";
-import i18n from "../../locales";
+import i18n from "../../utils/i18n";
 import { defaultColorScale } from "../utils/colors";
 import { buildAllPossiblePeriods } from "../utils/periods";
 import Settings from "./settings";
