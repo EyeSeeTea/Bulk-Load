@@ -101,7 +101,7 @@ export interface CustomTemplateWithUrl extends BaseTemplate {
         excelRepository: ExcelRepository,
         instanceRepository: InstanceRepository,
         options: ImportCustomizationOptions
-    ) => Promise<TemplateDataPackage | undefined>;
+    ) => Promise<Maybe<TemplateDataPackage>>;
 }
 
 export interface GenericSheetRef {
@@ -400,35 +400,6 @@ export type TemplateDataPackageData = {
 export function templateToDataPackage(template: TemplateDataPackage): DataPackage {
     const { type, dataEntries } = template;
 
-    const convertGeometry = (entry: TemplateDataPackageData): Geometry | undefined => {
-        const coord = entry.coordinate;
-        if (!coord) return undefined;
-
-        const longitude = Number(coord.longitude);
-        const latitude = Number(coord.latitude);
-
-        return {
-            type: "Point",
-            coordinates: [longitude, latitude],
-        };
-    };
-
-    const mapProgramEntry = (entry: TemplateDataPackageData): ProgramPackageData => ({
-        orgUnit: entry.orgUnit,
-        dataForm: entry.dataForm,
-        period: entry.period,
-        attribute: entry.attribute,
-        id: entry.id,
-        trackedEntityInstance: entry.trackedEntityInstance,
-        programStage: entry.programStage,
-        coordinate: entry.coordinate,
-        geometry: convertGeometry(entry),
-        dataValues: entry.dataValues.map(dv => ({
-            dataElement: dv.dataElement,
-            value: dv.value,
-        })),
-    });
-
     if (type === dataFormTypeMap.dataSets) {
         return {
             type,
@@ -464,15 +435,6 @@ export function templateToDataPackage(template: TemplateDataPackage): DataPackag
 }
 
 export function templateFromDataPackage(dataPackage: DataPackage): TemplateDataPackage {
-    const convertCoordinate = (geometry?: Geometry): { latitude: string; longitude: string } | undefined => {
-        return geometry
-            ? {
-                  latitude: String(geometry.coordinates[1]),
-                  longitude: String(geometry.coordinates[0]),
-              }
-            : undefined;
-    };
-
     if (dataPackage.type === dataFormTypeMap.dataSets) {
         return {
             ...dataPackage,
@@ -530,4 +492,44 @@ export function templateFromDataPackage(dataPackage: DataPackage): TemplateDataP
     }
 
     throw new Error("Unknown data package type");
+}
+
+function convertToGeometry(entry: TemplateDataPackageData): Maybe<Geometry> {
+    const coord = entry.coordinate;
+    if (!coord) return undefined;
+
+    const longitude = Number(coord.longitude);
+    const latitude = Number(coord.latitude);
+
+    return {
+        type: "Point",
+        coordinates: [longitude, latitude],
+    };
+}
+
+function mapProgramEntry(entry: TemplateDataPackageData): ProgramPackageData {
+    return {
+        orgUnit: entry.orgUnit,
+        dataForm: entry.dataForm,
+        period: entry.period,
+        attribute: entry.attribute,
+        id: entry.id,
+        trackedEntityInstance: entry.trackedEntityInstance,
+        programStage: entry.programStage,
+        coordinate: entry.coordinate,
+        geometry: convertToGeometry(entry),
+        dataValues: entry.dataValues.map(dv => ({
+            dataElement: dv.dataElement,
+            value: dv.value,
+        })),
+    };
+}
+
+function convertCoordinate(geometry?: Geometry): Maybe<TemplateDataPackageData["coordinate"]> {
+    return geometry
+        ? {
+              latitude: String(geometry.coordinates[1]),
+              longitude: String(geometry.coordinates[0]),
+          }
+        : undefined;
 }

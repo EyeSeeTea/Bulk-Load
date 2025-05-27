@@ -30,6 +30,7 @@ import {
 import { TrackedEntityInstance } from "../entities/TrackedEntityInstance";
 import { ExcelRepository, ExcelValue, ReadCellOptions } from "../repositories/ExcelRepository";
 import { InstanceRepository } from "../repositories/InstanceRepository";
+import { Maybe } from "../../types/utils";
 
 const dateFormat = "YYYY-MM-DD";
 
@@ -507,7 +508,7 @@ export class ExcelReader {
     public async templateCustomization(
         template: Template,
         dataPackage: TemplateDataPackage
-    ): Promise<TemplateDataPackage | undefined> {
+    ): Promise<Maybe<TemplateDataPackage>> {
         if (template.type === "custom" && template.importCustomization) {
             return template.importCustomization(this.excelRepository, this.instanceRepository, {
                 dataPackage,

@@ -224,7 +224,7 @@ export class ImportTemplateUseCase implements UseCase {
         });
     }
 
-    private async readTemplate(template: Template, dataForm: DataForm): Promise<TemplateDataPackage | undefined> {
+    private async readTemplate(template: Template, dataForm: DataForm): Promise<Maybe<TemplateDataPackage>> {
         const reader = new ExcelReader(this.excelRepository, this.instanceRepository);
         const excelDataValues = await reader.readTemplate(template, dataForm);
         if (!excelDataValues) return undefined;
@@ -561,7 +561,7 @@ function getBooleanValue(item: TemplateDataPackageDataValue): Maybe<boolean> {
 const formatDhis2Value = (
     item: TemplateDataPackageDataValue,
     dataForm: DataForm
-): TemplateDataPackageDataValue | undefined => {
+): Maybe<TemplateDataPackageDataValue> => {
     const dataElement = dataForm.dataElements.find(({ id }) => item.dataElement === id);
     const booleanValue = getBooleanValue(item);
 
