@@ -442,7 +442,6 @@ export function templateToDataPackage(template: TemplateDataPackage): DataPackag
                     dataElement: dv.dataElement,
                     category: dv.category,
                     value: dv.value,
-                    comment: undefined,
                 })),
             })),
         };

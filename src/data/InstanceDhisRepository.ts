@@ -346,14 +346,13 @@ export class InstanceDhisRepository implements InstanceRepository {
     private buildAggregatedPayload(dataPackage: DataPackage): AggregatedDataValue[] {
         if (dataPackage.type !== dataFormTypeMap.dataSets) return [];
         return _.flatMap(dataPackage.dataEntries, ({ orgUnit, period, attribute, dataValues }) =>
-            dataValues.map(({ dataElement, category, value, comment }: DataSetPackageDataValue) => ({
+            dataValues.map(({ dataElement, category, value }: DataSetPackageDataValue) => ({
                 orgUnit,
                 period,
                 attributeOptionCombo: attribute,
                 dataElement,
                 categoryOptionCombo: category,
                 value: String(value),
-                comment,
             }))
         );
     }
