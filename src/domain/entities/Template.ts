@@ -479,19 +479,6 @@ export function templateFromDataPackage(dataPackage: DataPackage): TemplateDataP
     }
 }
 
-function convertToGeometry(entry: TemplateDataPackageData): Maybe<Geometry> {
-    const coord = entry.coordinate;
-    if (!coord) return undefined;
-
-    const longitude = Number(coord.longitude);
-    const latitude = Number(coord.latitude);
-
-    return {
-        type: "Point",
-        coordinates: [longitude, latitude],
-    };
-}
-
 function mapToProgramData(entry: TemplateDataPackageData): ProgramPackageData {
     return {
         orgUnit: entry.orgUnit,
@@ -502,7 +489,7 @@ function mapToProgramData(entry: TemplateDataPackageData): ProgramPackageData {
         trackedEntityInstance: entry.trackedEntityInstance,
         programStage: entry.programStage,
         coordinate: entry.coordinate,
-        geometry: convertToGeometry(entry),
+        geometry: coordinateToGeometry(entry),
         dataValues: entry.dataValues.map(dv => ({
             dataElement: dv.dataElement,
             value: dv.value,
@@ -518,7 +505,7 @@ function mapFromProgramData(entry: ProgramPackageData): TemplateDataPackageData 
         orgUnit: entry.orgUnit,
         period: entry.period,
         attribute: entry.attribute,
-        coordinate: entry.coordinate ?? convertCoordinate(entry.geometry ?? undefined),
+        coordinate: entry.coordinate ?? geometryToCoordinate(entry.geometry ?? undefined),
         trackedEntityInstance: entry.trackedEntityInstance,
         programStage: entry.programStage,
         dataValues: entry.dataValues.map(dv => ({
@@ -530,11 +517,36 @@ function mapFromProgramData(entry: ProgramPackageData): TemplateDataPackageData 
     };
 }
 
-function convertCoordinate(geometry?: Geometry): Maybe<TemplateDataPackageData["coordinate"]> {
-    return geometry
-        ? {
-              latitude: String(geometry.coordinates[1]),
-              longitude: String(geometry.coordinates[0]),
-          }
-        : undefined;
+function coordinateToGeometry(entry: TemplateDataPackageData): Maybe<Geometry> {
+    const { coordinate } = entry;
+    if (!coordinate) return undefined;
+
+    const longitude = parseInt(coordinate.longitude);
+    const latitude = parseInt(coordinate.latitude);
+
+    if (longitude === undefined || latitude === undefined) return undefined;
+
+    return {
+        type: "Point",
+        coordinates: [longitude, latitude],
+    };
+}
+
+function geometryToCoordinate(geometry?: Geometry): Maybe<TemplateDataPackageData["coordinate"]> {
+    //currenly, coordinate prop is only being used for point
+    switch (geometry?.type) {
+        case "Point": {
+            if (!geometry || !Array.isArray(geometry.coordinates) || geometry.type !== "Point") return undefined;
+
+            const [longitude, latitude] = geometry.coordinates;
+
+            return {
+                latitude: latitude.toString(),
+                longitude: longitude.toString(),
+            };
+        }
+        case "Polygon":
+        default:
+            return undefined;
+    }
 }
