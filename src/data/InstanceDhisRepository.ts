@@ -1,7 +1,7 @@
 import _ from "lodash";
 import "lodash.product";
 import moment from "moment";
-import { DataElement, DataForm, DataFormPeriod, DataFormType } from "../domain/entities/DataForm";
+import { DataElement, DataForm, DataFormPeriod, DataFormType, dataFormTypeMap } from "../domain/entities/DataForm";
 import {
     DataPackage,
     DataSetPackageDataValue,
@@ -56,9 +56,12 @@ export class InstanceDhisRepository implements InstanceRepository {
         return this.api.dataStore(namespace);
     }
 
-    public async getDataForms({ type = ["dataSets", "programs"], ids }: GetDataFormsParams = {}): Promise<DataForm[]> {
-        const dataSets = type.includes("dataSets") ? await this.getDataSets(ids) : [];
-        const programs = type.includes("programs") ? await this.getPrograms(ids) : [];
+    public async getDataForms({
+        type = [dataFormTypeMap.dataSets, dataFormTypeMap.programs],
+        ids,
+    }: GetDataFormsParams = {}): Promise<DataForm[]> {
+        const dataSets = type.includes(dataFormTypeMap.dataSets) ? await this.getDataSets(ids) : [];
+        const programs = type.includes(dataFormTypeMap.programs) ? await this.getPrograms(ids) : [];
 
         return [...dataSets, ...programs];
     }
@@ -75,7 +78,7 @@ export class InstanceDhisRepository implements InstanceRepository {
 
         return objects.map(
             ({ id, displayName, name, access, periodType, dataSetElements, sections, attributeValues }) => ({
-                type: "dataSets",
+                type: dataFormTypeMap.dataSets,
                 id,
                 attributeValues,
                 name: displayName ?? name,
@@ -119,7 +122,7 @@ export class InstanceDhisRepository implements InstanceRepository {
                 programTrackedEntityAttributes,
                 trackedEntityType,
             }) => ({
-                type: programType === "WITH_REGISTRATION" ? "trackerPrograms" : "programs",
+                type: programType === "WITH_REGISTRATION" ? dataFormTypeMap.trackerPrograms : dataFormTypeMap.programs,
                 id,
                 attributeValues,
                 name: displayName ?? name,
@@ -159,7 +162,7 @@ export class InstanceDhisRepository implements InstanceRepository {
             },
         } as const;
 
-        const { objects } = await (type === "dataSets"
+        const { objects } = await (type === dataFormTypeMap.dataSets
             ? this.api.models.dataSets.get(params).getData()
             : this.api.models.programs.get(params).getData());
 
@@ -215,18 +218,18 @@ export class InstanceDhisRepository implements InstanceRepository {
     ): Promise<SynchronizationResult[]> {
         const { createAndUpdate } = options;
         switch (dataPackage.type) {
-            case "dataSets": {
+            case dataFormTypeMap.dataSets: {
                 const result = await this.importAggregatedData(
                     createAndUpdate ? "CREATE_AND_UPDATE" : "CREATE",
                     dataPackage
                 );
                 return [result];
             }
-            case "programs": {
+            case dataFormTypeMap.programs: {
                 const result = await this.importEventsData(dataPackage);
                 return result;
             }
-            case "trackerPrograms": {
+            case dataFormTypeMap.trackerPrograms: {
                 return this.importTrackerProgramData(dataPackage);
             }
             default:
@@ -236,11 +239,11 @@ export class InstanceDhisRepository implements InstanceRepository {
 
     public async getDataPackage(params: GetDataPackageParams): Promise<DataPackage> {
         switch (params.type) {
-            case "dataSets":
+            case dataFormTypeMap.dataSets:
                 return this.getDataSetPackage(params);
-            case "programs":
+            case dataFormTypeMap.programs:
                 return this.getEventProgramPackage(params);
-            case "trackerPrograms":
+            case dataFormTypeMap.trackerPrograms:
                 return this.getTrackerProgramPackage(params);
             default:
                 throw new Error(`Unsupported type ${params.type} for data package`);
@@ -271,7 +274,7 @@ export class InstanceDhisRepository implements InstanceRepository {
         });
 
         return {
-            type: "trackerPrograms",
+            type: dataFormTypeMap.trackerPrograms,
             trackedEntityInstances,
             dataEntries: dataEntries,
         };
@@ -279,9 +282,9 @@ export class InstanceDhisRepository implements InstanceRepository {
 
     public convertDataPackage(dataPackage: DataPackage): EventsPackage | AggregatedPackage {
         switch (dataPackage.type) {
-            case "dataSets":
+            case dataFormTypeMap.dataSets:
                 return { dataValues: this.buildAggregatedPayload(dataPackage) };
-            case "programs":
+            case dataFormTypeMap.programs:
                 return { events: this.buildEventsPayload(dataPackage) };
             default:
                 throw new Error(`Unsupported type ${dataPackage.type} to convert data package`);
@@ -341,7 +344,7 @@ export class InstanceDhisRepository implements InstanceRepository {
     /* Private */
 
     private buildAggregatedPayload(dataPackage: DataPackage): AggregatedDataValue[] {
-        if (dataPackage.type !== "dataSets") return [];
+        if (dataPackage.type !== dataFormTypeMap.dataSets) return [];
         return _.flatMap(dataPackage.dataEntries, ({ orgUnit, period, attribute, dataValues }) =>
             dataValues.map(({ dataElement, category, value, comment }: DataSetPackageDataValue) => ({
                 orgUnit,
@@ -356,7 +359,7 @@ export class InstanceDhisRepository implements InstanceRepository {
     }
 
     private buildEventsPayload(dataPackage: DataPackage): Event[] {
-        if (dataPackage.type === "dataSets") return [];
+        if (dataPackage.type === dataFormTypeMap.dataSets) return [];
         return dataPackage.dataEntries.map(
             ({ id, orgUnit, period, attribute, dataValues, dataForm, coordinate }: ProgramPackageData) => ({
                 event: id,
@@ -379,7 +382,7 @@ export class InstanceDhisRepository implements InstanceRepository {
         importStrategy: "CREATE" | "UPDATE" | "CREATE_AND_UPDATE" | "DELETE",
         dataPackage: DataPackage
     ): Promise<SynchronizationResult> {
-        if (dataPackage.type !== "dataSets") throw new Error("Invalid data package type");
+        if (dataPackage.type !== dataFormTypeMap.dataSets) throw new Error("Invalid data package type");
 
         const dataValues = await this.validateAggregateImportPackage(this.buildAggregatedPayload(dataPackage));
 
@@ -587,7 +590,7 @@ export class InstanceDhisRepository implements InstanceRepository {
         });
 
         return {
-            type: "dataSets",
+            type: dataFormTypeMap.dataSets,
             dataEntries: _(response)
                 .flatten()
                 .flatMap(({ dataValues = [] }) => dataValues)
@@ -621,7 +624,7 @@ export class InstanceDhisRepository implements InstanceRepository {
         const programPackageData = await this.getProgramPackageData(props);
 
         return {
-            type: "programs",
+            type: dataFormTypeMap.programs,
             dataEntries: programPackageData,
         };
     }

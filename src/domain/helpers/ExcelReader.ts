@@ -5,7 +5,7 @@ import moment from "moment";
 import { isDefined } from "../../utils";
 import { promiseMap } from "../../utils/promises";
 import { removeCharacters } from "../../utils/string";
-import { DataForm } from "../entities/DataForm";
+import { DataForm, dataFormTypeMap } from "../entities/DataForm";
 import { getGeometryFromString } from "../entities/Geometry";
 import { Relationship } from "../entities/Relationship";
 import {
@@ -42,7 +42,11 @@ export class ExcelReader {
         const dataFormType = await this.readCellValue(template, template.dataFormType);
         const dataSourceValues = await this.getDataSourceValues(template, dataSources);
 
-        if (dataFormType !== "dataSets" && dataFormType !== "programs" && dataFormType !== "trackerPrograms") {
+        if (
+            dataFormType !== dataFormTypeMap.dataSets &&
+            dataFormType !== dataFormTypeMap.programs &&
+            dataFormType !== dataFormTypeMap.trackerPrograms
+        ) {
             return undefined;
         }
 
@@ -105,9 +109,9 @@ export class ExcelReader {
             .compact()
             .value();
 
-        if (dataFormType === "trackerPrograms") {
+        if (dataFormType === dataFormTypeMap.trackerPrograms) {
             const trackedEntityInstances = this.addTeiRelationships(teis, relationships);
-            return { type: "trackerPrograms", dataEntries, trackedEntityInstances };
+            return { type: dataFormType, dataEntries, trackedEntityInstances };
         }
 
         return { type: dataFormType, dataEntries };

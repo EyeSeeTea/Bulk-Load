@@ -5,7 +5,7 @@ import { cleanOrgUnitPath } from "../../utils/dhis";
 import { removeCharacters } from "../../utils/string";
 import Settings from "../../webapp/logic/settings";
 import { DuplicateExclusion, DuplicateToleranceUnit } from "../entities/AppSettings";
-import { DataForm } from "../entities/DataForm";
+import { DataForm, dataFormTypeMap } from "../entities/DataForm";
 import { DataPackageDataValue } from "../entities/DataPackage";
 import { Either } from "../entities/Either";
 import { OrgUnit } from "../entities/OrgUnit";
@@ -150,7 +150,7 @@ export class ImportTemplateUseCase implements UseCase {
         }
 
         const shouldDeleteExistingData =
-            dataForm.type === "dataSets" ? this.shouldDeleteAggregatedData(duplicateStrategy) : false;
+            dataForm.type === dataFormTypeMap.dataSets ? this.shouldDeleteAggregatedData(duplicateStrategy) : false;
 
         const deleteResult = shouldDeleteExistingData
             ? await this.instanceRepository.deleteAggregatedData(templateToDataPackage(instanceDataValues))
@@ -392,7 +392,7 @@ export class ImportTemplateUseCase implements UseCase {
 
     private parseExcelFile(dataPackage: TemplateDataPackage, useBuilderOrgUnits: boolean, selectedOrgUnits: string[]) {
         const dataEntries =
-            dataPackage.type === "dataSets"
+            dataPackage.type === dataFormTypeMap.dataSets
                 ? _.flatMap(dataPackage.dataEntries, entry =>
                       entry.dataValues.map(value => ({ ...entry, dataValues: [value] }))
                   )
@@ -469,7 +469,7 @@ function getTrackedEntityInstances(
     selectedOrgUnitPaths: string[]
 ) {
     const orgUnitOverridePath = useBuilderOrgUnits ? selectedOrgUnitPaths[0] : null;
-    const teis = excelDataValues.type === "trackerPrograms" ? excelDataValues.trackedEntityInstances : [];
+    const teis = excelDataValues.type === dataFormTypeMap.trackerPrograms ? excelDataValues.trackedEntityInstances : [];
 
     return orgUnitOverridePath
         ? teis.map(tei => ({ ...tei, orgUnit: { id: cleanOrgUnitPath(orgUnitOverridePath) } }))
@@ -486,7 +486,7 @@ export const compareDataPackages = (
     duplicateToleranceUnit: DuplicateToleranceUnit,
     defaultCategory?: string
 ): boolean => {
-    const properties = _.compact([dataForm.type === "dataSets" ? "period" : undefined, "orgUnit", "attribute"]);
+    const properties = [...(dataForm.type === dataFormTypeMap.dataSets ? ["period"] : []), "orgUnit", "attribute"];
 
     for (const property of properties) {
         const baseValue = _.get(base, property);
@@ -495,7 +495,7 @@ export const compareDataPackages = (
         if (baseValue && compareValue && !areEqual) return false;
     }
 
-    if (dataForm.type === "programs" || dataForm.type === "trackerPrograms") {
+    if (dataForm.type === dataFormTypeMap.programs || dataForm.type === dataFormTypeMap.trackerPrograms) {
         const isWithToleranceRange =
             moment
                 .duration(moment(base?.period).diff(moment(compare.period)))
@@ -526,7 +526,7 @@ export const compareDataPackages = (
         }
     }
 
-    if (dataForm.type === "dataSets") {
+    if (dataForm.type === dataFormTypeMap.dataSets) {
         return _.some(base.dataValues, ({ dataElement: baseDataElement, category: baseCategory = defaultCategory }) =>
             compare.dataValues.find(
                 ({ dataElement, category = defaultCategory }) =>
