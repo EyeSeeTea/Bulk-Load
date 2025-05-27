@@ -1,7 +1,7 @@
 {
     "name": "bulk-load",
     "description": "Bulk importing made easy",
-    "version": "3.26.0",
+    "version": "3.27.0",
     "license": "GPL-3.0",
     "author": "EyeSeeTea team",
     "homepage": ".",
