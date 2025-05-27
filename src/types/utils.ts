@@ -1,6 +1,8 @@
 export type NonNullableValues<Obj> = { [K in keyof Obj]: NonNullable<Obj[K]> };
 
-export type Maybe<T> = T | undefined | null;
+export type Maybe<T> = T | undefined;
+
+export type MaybeNullable<T> = Maybe<T> | null;
 
 export type Dictionary<T> = Record<string, T>;
 
