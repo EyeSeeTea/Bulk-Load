@@ -18,6 +18,8 @@ import {
     SheetRef,
     TeiRowDataSource,
     Template,
+    TemplateDataPackage,
+    templateFromDataPackage,
     TrackerEventRowDataSource,
     TrackerRelationship,
     ValueRef,
@@ -45,18 +47,19 @@ export class ExcelBuilder {
             payload.type === "trackerPrograms"
                 ? await this.instanceRepository.getBuilderMetadata(payload.trackedEntityInstances)
                 : emptyBuilderMetadata;
+        const templatePayload = templateFromDataPackage(payload);
 
         for (const dataSource of dataSourceValues) {
             if (!dataSource.skipPopulate) {
                 switch (dataSource.type) {
                     case "cell":
-                        await this.fillCells(template, dataSource, payload);
+                        await this.fillCells(template, dataSource, templatePayload);
                         break;
                     case "row":
-                        await this.fillRows(template, dataSource, payload);
+                        await this.fillRows(template, dataSource, templatePayload);
                         break;
                     case "rowTei":
-                        await this.fillTeiRows(template, dataSource, payload);
+                        await this.fillTeiRows(template, dataSource, templatePayload);
                         break;
                     case "rowTrackedEvent":
                         await this.fillTrackerEventRows(
@@ -99,7 +102,7 @@ export class ExcelBuilder {
         });
     }
 
-    private async fillCells(template: Template, dataSource: CellDataSource, payload: DataPackage) {
+    private async fillCells(template: Template, dataSource: CellDataSource, payload: TemplateDataPackage) {
         const orgUnit = await this.readCellValue(template, dataSource.orgUnit);
         const dataElement = await this.readCellValue(template, dataSource.dataElement);
         const period = await this.readCellValue(template, dataSource.period);
@@ -120,7 +123,7 @@ export class ExcelBuilder {
         return removeCharacters(await this.excelRepository.readCell(template.id, ref));
     }
 
-    private async fillTeiRows(template: Template, dataSource: TeiRowDataSource, payload: DataPackage) {
+    private async fillTeiRows(template: Template, dataSource: TeiRowDataSource, payload: TemplateDataPackage) {
         let { rowStart } = dataSource.attributes;
         if (payload.type !== "trackerPrograms") return;
 
@@ -353,7 +356,7 @@ export class ExcelBuilder {
         }
     }
 
-    private async fillRows(template: Template, dataSource: RowDataSource, payload: DataPackage) {
+    private async fillRows(template: Template, dataSource: RowDataSource, payload: TemplateDataPackage) {
         let { rowStart } = dataSource.range;
 
         for (const { id, orgUnit, period, attribute, dataValues, coordinate } of payload.dataEntries) {

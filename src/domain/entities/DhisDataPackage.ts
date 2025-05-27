@@ -15,7 +15,6 @@ export interface AggregatedDataValue {
     categoryOptionCombo?: string;
     attributeOptionCombo?: string;
     value: string;
-    comment?: string;
 }
 
 export interface Event {
@@ -45,7 +44,7 @@ export type EventsAPIResponse = Omit<EventsResponse, "instances"> & {
     events?: Event[];
 };
 
-type Coordinates = [number, number];
+type Coordinates = [longitude: number, latitude: number];
 
 export type Geometry =
     | {
