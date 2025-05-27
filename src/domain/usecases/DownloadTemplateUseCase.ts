@@ -158,7 +158,7 @@ export class DownloadTemplateUseCase implements UseCase {
             type,
             id,
             populate,
-            dataPackage: dataPackage && templateFromDataPackage(dataPackage),
+            dataPackage: dataPackage ? templateFromDataPackage(dataPackage) : undefined,
             orgUnits,
             language: showLanguage ? language : undefined,
         });
