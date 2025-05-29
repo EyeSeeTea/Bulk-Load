@@ -116,8 +116,12 @@ export class ExcelBuilder {
         }
     }
 
-    private async readCellValue(template: Template, ref?: CellRef | ValueRef): Promise<ExcelValue> {
-        return removeCharacters(await this.excelRepository.readCell(template.id, ref));
+    private async readCellValue(
+        template: Template,
+        ref?: CellRef | ValueRef,
+        options: { isFormula: boolean } = { isFormula: false }
+    ): Promise<ExcelValue> {
+        return removeCharacters(await this.excelRepository.readCell(template.id, ref, { formula: options.isFormula }));
     }
 
     private async fillTeiRows(template: Template, dataSource: TeiRowDataSource, payload: DataPackage) {
@@ -270,7 +274,9 @@ export class ExcelBuilder {
 
         const dataElementIdsSet = new Set(dataElementIds);
 
-        const dataSourceProgramStageId = await this.readCellValue(template, dataSource.programStage);
+        const dataSourceProgramStageId = await this.readCellValue(template, dataSource.programStage, {
+            isFormula: true,
+        });
         for (const dataEntry of payload.dataEntries) {
             const { id, period, dataValues, trackedEntityInstance, attribute: cocId, programStage } = dataEntry;
             const someDataElementPresentInSheet = _(dataValues).some(dv => dataElementIdsSet.has(dv.dataElement));
