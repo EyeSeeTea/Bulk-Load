@@ -82,7 +82,8 @@ export type DataElementType =
     | "AGE"
     | "URL"
     | "FILE_RESOURCE"
-    | "IMAGE";
+    | "IMAGE"
+    | "MULTI_TEXT";
 
 export interface OrganisationUnit {
     id: Id;

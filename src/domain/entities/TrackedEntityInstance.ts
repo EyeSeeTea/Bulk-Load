@@ -41,7 +41,7 @@ export interface Program {
 export interface Attribute {
     id: Id;
     valueType: DataElementType | undefined;
-    optionSet?: { id: Id; options: Array<{ id: string; code: string }> };
+    optionSet?: { id: Id; options: Array<{ id: string; code: string; name: string }> };
 }
 
 export function getRelationships(trackedEntityInstances: TrackedEntityInstance[]): Relationship[] {
