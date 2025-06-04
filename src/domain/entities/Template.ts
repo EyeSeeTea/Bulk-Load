@@ -210,6 +210,7 @@ export interface TeiRowDataSource {
     occurredAt?: ColumnRef;
     attributes: Range;
     attributeId: RowRef;
+    multiTextDelimiter?: string;
 }
 
 export interface ColumnDataSource extends BaseDataSource {

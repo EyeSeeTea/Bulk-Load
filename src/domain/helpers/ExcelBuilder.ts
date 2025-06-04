@@ -23,11 +23,12 @@ import {
     ValueRef,
 } from "../entities/Template";
 import { Theme, ThemeStyle } from "../entities/Theme";
-import { getRelationships } from "../entities/TrackedEntityInstance";
+import { AttributeValue, getRelationships } from "../entities/TrackedEntityInstance";
 import { ExcelRepository, ExcelValue } from "../repositories/ExcelRepository";
 import { BuilderMetadata, emptyBuilderMetadata, InstanceRepository } from "../repositories/InstanceRepository";
 import Settings from "../../webapp/logic/settings";
 import { ModulesRepositories } from "../repositories/ModulesRepositories";
+import { Maybe } from "../../types/utils";
 
 const dateFormatPattern = "yyyy-MM-dd";
 
@@ -116,8 +117,12 @@ export class ExcelBuilder {
         }
     }
 
-    private async readCellValue(template: Template, ref?: CellRef | ValueRef): Promise<ExcelValue> {
-        return removeCharacters(await this.excelRepository.readCell(template.id, ref));
+    private async readCellValue(
+        template: Template,
+        ref?: CellRef | ValueRef,
+        options: { isFormula: boolean } = { isFormula: false }
+    ): Promise<ExcelValue> {
+        return removeCharacters(await this.excelRepository.readCell(template.id, ref, { formula: options.isFormula }));
     }
 
     private async fillTeiRows(template: Template, dataSource: TeiRowDataSource, payload: DataPackage) {
@@ -193,9 +198,12 @@ export class ExcelBuilder {
 
                 const attributeValue = tei.attributeValues.find(av => av.attribute.id === attributeId);
 
-                const value = attributeValue
-                    ? (attributeValue.optionId ? `_${attributeValue.optionId}` : null) || attributeValue.value
-                    : undefined;
+                const isMultiText = attributeValue?.attribute.valueType === "MULTI_TEXT";
+
+                const value =
+                    isMultiText && dataSource.multiTextDelimiter
+                        ? this.getMultiTextValue(attributeValue, dataSource.multiTextDelimiter)
+                        : this.getValueFromAttribute(attributeValue);
 
                 if (value) {
                     this.excelRepository.writeCell(template.id, cell, value);
@@ -204,6 +212,19 @@ export class ExcelBuilder {
 
             rowStart += 1;
         }
+    }
+
+    private getValueFromAttribute(attributeValue: Maybe<AttributeValue>): Maybe<string> {
+        return attributeValue
+            ? (attributeValue.optionId ? `_${attributeValue.optionId}` : null) || attributeValue.value
+            : undefined;
+    }
+
+    private getMultiTextValue(attributeValue: Maybe<AttributeValue>, multiTextTeiDelimiter: string): string {
+        const multiTextValues = attributeValue?.value.split(MULTI_TEXT_OPTION_DELIMITER);
+        const options =
+            attributeValue?.attribute.optionSet?.options.filter(option => multiTextValues?.includes(option.code)) ?? [];
+        return options.map(option => option.name).join(multiTextTeiDelimiter);
     }
 
     private async fillCell(template: Template, cellRef: CellRef, sheetRef: SheetRef, value: string | number | boolean) {
@@ -270,7 +291,9 @@ export class ExcelBuilder {
 
         const dataElementIdsSet = new Set(dataElementIds);
 
-        const dataSourceProgramStageId = await this.readCellValue(template, dataSource.programStage);
+        const dataSourceProgramStageId = await this.readCellValue(template, dataSource.programStage, {
+            isFormula: true,
+        });
         for (const dataEntry of payload.dataEntries) {
             const { id, period, dataValues, trackedEntityInstance, attribute: cocId, programStage } = dataEntry;
             const someDataElementPresentInSheet = _(dataValues).some(dv => dataElementIdsSet.has(dv.dataElement));
@@ -456,3 +479,5 @@ export class ExcelBuilder {
         }
     }
 }
+
+export const MULTI_TEXT_OPTION_DELIMITER = ",";

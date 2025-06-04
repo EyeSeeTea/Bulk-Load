@@ -222,7 +222,7 @@ export class InstanceDhisRepository implements InstanceRepository {
                 return result;
             }
             case "trackerPrograms": {
-                return this.importTrackerProgramData(dataPackage);
+                return this.importTrackerProgramData(dataPackage, options);
             }
             default:
                 throw new Error(`Unsupported type for data package`);
@@ -483,9 +483,12 @@ export class InstanceDhisRepository implements InstanceRepository {
         return _.first(objects)?.programStages[0];
     }
 
-    private async importTrackerProgramData(dataPackage: TrackerProgramPackage): Promise<SynchronizationResult[]> {
+    private async importTrackerProgramData(
+        dataPackage: TrackerProgramPackage,
+        options: ImportDataPackageOptions
+    ): Promise<SynchronizationResult[]> {
         const { trackedEntityInstances, dataEntries } = dataPackage;
-        return updateTrackedEntityInstances(this.api, trackedEntityInstances, dataEntries);
+        return updateTrackedEntityInstances(this.api, trackedEntityInstances, dataEntries, options);
     }
 
     private async getDataSetMetadata(formOptions: { id: Id }) {
