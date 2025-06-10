@@ -129,7 +129,11 @@ export class ExcelBuilder {
         let { rowStart } = dataSource.attributes;
         if (payload.type !== "trackerPrograms") return;
 
-        for (const tei of payload.trackedEntityInstances ?? []) {
+        const teisToProcess = dataSource.sortBy
+            ? _(payload.trackedEntityInstances).sortBy(dataSource.sortBy).value()
+            : payload.trackedEntityInstances;
+
+        for (const tei of teisToProcess ?? []) {
             const { orgUnit, id, enrollment } = tei;
 
             const cells = await this.excelRepository.getCellsInRange(template.id, {
@@ -294,7 +298,12 @@ export class ExcelBuilder {
         const dataSourceProgramStageId = await this.readCellValue(template, dataSource.programStage, {
             isFormula: true,
         });
-        for (const dataEntry of payload.dataEntries) {
+
+        const dataEntriesToProcess = dataSource.sortBy
+            ? _(payload.dataEntries).sortBy(dataSource.sortBy).value()
+            : payload.dataEntries;
+
+        for (const dataEntry of dataEntriesToProcess) {
             const { id, period, dataValues, trackedEntityInstance, attribute: cocId, programStage } = dataEntry;
             const someDataElementPresentInSheet = _(dataValues).some(dv => dataElementIdsSet.has(dv.dataElement));
             if (!someDataElementPresentInSheet && !_.isEmpty(dataValues)) continue;
@@ -344,7 +353,7 @@ export class ExcelBuilder {
 
         if (settings.programStagePopulateEventsForEveryTei[String(dataSourceProgramStageId)]) {
             const allTEIs = payload.trackedEntityInstances.map(trackedEntityInstances => trackedEntityInstances.id);
-            const existingTEIs = _(payload.dataEntries)
+            const existingTEIs = _(dataEntriesToProcess)
                 .filter(
                     dataEntry =>
                         _(dataEntry.dataValues).some(dv => dataElementIdsSet.has(dv.dataElement)) &&
@@ -366,7 +375,7 @@ export class ExcelBuilder {
                     rowEnd: teiRowStart,
                 });
 
-                const eventId = payload.dataEntries[index]?.id;
+                const eventId = dataEntriesToProcess[index]?.id;
                 const teiIdCell = await this.excelRepository.findRelativeCell(template.id, dataSource.teiId, cells[0]);
 
                 if (eventId && teiIdCell && id) {

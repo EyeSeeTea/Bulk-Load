@@ -181,6 +181,7 @@ export interface TrackerEventRowDataSource {
     dataValues: Range;
     programStage: CellRef;
     dataElements: Range;
+    sortBy?: string;
 }
 
 export interface RowDataSource extends BaseDataSource {
@@ -211,6 +212,7 @@ export interface TeiRowDataSource {
     attributes: Range;
     attributeId: RowRef;
     multiTextDelimiter?: string;
+    sortBy?: string;
 }
 
 export interface ColumnDataSource extends BaseDataSource {
