@@ -690,7 +690,7 @@ export class InstanceDhisRepository implements InstanceRepository {
                               }
                             : coordinate,
                         geometry: geometry,
-                        trackedEntity: trackedEntity,
+                        trackedEntityInstance: trackedEntity,
                         programStage,
                         dataValues:
                             dataValues?.map(({ dataElement, value }) => ({

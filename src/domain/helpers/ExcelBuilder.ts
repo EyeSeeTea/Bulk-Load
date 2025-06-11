@@ -4,7 +4,7 @@ import { fromBase64 } from "../../utils/files";
 import { promiseMap } from "../../utils/promises";
 import { removeCharacters } from "../../utils/string";
 import { getGeometryAsString } from "../entities/Geometry";
-import { DataPackage, TrackerProgramPackage } from "../entities/DataPackage";
+import { DataPackage, DataPackageData, TrackerProgramPackage } from "../entities/DataPackage";
 import { Relationship } from "../entities/Relationship";
 import {
     CellDataSource,
@@ -23,7 +23,7 @@ import {
     ValueRef,
 } from "../entities/Template";
 import { Theme, ThemeStyle } from "../entities/Theme";
-import { AttributeValue, getRelationships } from "../entities/TrackedEntityInstance";
+import { AttributeValue, getRelationships, TrackedEntityInstance } from "../entities/TrackedEntityInstance";
 import { ExcelRepository, ExcelValue } from "../repositories/ExcelRepository";
 import { BuilderMetadata, emptyBuilderMetadata, InstanceRepository } from "../repositories/InstanceRepository";
 import Settings from "../../webapp/logic/settings";
@@ -129,9 +129,7 @@ export class ExcelBuilder {
         let { rowStart } = dataSource.attributes;
         if (payload.type !== "trackerPrograms") return;
 
-        const teisToProcess = dataSource.sortBy
-            ? _(payload.trackedEntityInstances).sortBy(dataSource.sortBy).value()
-            : payload.trackedEntityInstances;
+        const teisToProcess = this.buildTeisForCustomTemplates({ dataSource, payload, template });
 
         for (const tei of teisToProcess ?? []) {
             const { orgUnit, id, enrollment } = tei;
@@ -299,9 +297,7 @@ export class ExcelBuilder {
             isFormula: true,
         });
 
-        const dataEntriesToProcess = dataSource.sortBy
-            ? _(payload.dataEntries).sortBy(dataSource.sortBy).value()
-            : payload.dataEntries;
+        const dataEntriesToProcess = this.buildTeiEventsForCustomTemplates({ template, dataSource, payload });
 
         for (const dataEntry of dataEntriesToProcess) {
             const { id, period, dataValues, trackedEntityInstance, attribute: cocId, programStage } = dataEntry;
@@ -352,7 +348,9 @@ export class ExcelBuilder {
         }
 
         if (settings.programStagePopulateEventsForEveryTei[String(dataSourceProgramStageId)]) {
-            const allTEIs = payload.trackedEntityInstances.map(trackedEntityInstances => trackedEntityInstances.id);
+            const allTEIs = this.buildTeisForCustomTemplates({ dataSource, payload, template }).map(
+                trackedEntityInstances => trackedEntityInstances.id
+            );
             const existingTEIs = _(dataEntriesToProcess)
                 .filter(
                     dataEntry =>
@@ -383,6 +381,56 @@ export class ExcelBuilder {
                 }
             });
         }
+    }
+
+    private buildTeiEventsForCustomTemplates(options: {
+        template: Template;
+        dataSource: TrackerEventRowDataSource;
+        payload: TrackerProgramPackage;
+    }): DataPackageData[] {
+        const { template, dataSource, payload } = options;
+
+        if (template.type !== "custom") return payload.dataEntries;
+        if (!dataSource.onlyLastEvent) return payload.dataEntries;
+
+        const eventsByTei = _(payload.dataEntries)
+            .sortBy(dataSource.sortBy ?? "")
+            .groupBy(event => event.trackedEntityInstance)
+            .value();
+
+        return _(eventsByTei)
+            .values()
+            .map(event => {
+                const sorted = _(event).sortBy("id").value();
+                return _(sorted).last();
+            })
+            .compact()
+            .value();
+    }
+
+    private buildTeisForCustomTemplates(options: {
+        template: Template;
+        dataSource: TeiRowDataSource | TrackerEventRowDataSource;
+        payload: TrackerProgramPackage;
+    }): TrackedEntityInstance[] {
+        const { template, dataSource, payload } = options;
+
+        if (template.type !== "custom") return payload.trackedEntityInstances;
+        if (dataSource.type === "rowTei" && !dataSource.skipTeisWithoutEvents) return payload.trackedEntityInstances;
+
+        const eventsByTei = _(payload.dataEntries)
+            .groupBy(dataEntry => dataEntry.trackedEntityInstance)
+            .value();
+
+        const dataEntriesTeisNoEvents = _(payload.trackedEntityInstances)
+            .filter(tei => {
+                const events = eventsByTei[tei.id] || [];
+                return events.length > 0;
+            })
+            .sortBy(dataSource.sortBy ?? "")
+            .value();
+
+        return dataEntriesTeisNoEvents;
     }
 
     private async fillRows(template: Template, dataSource: RowDataSource, payload: DataPackage) {
