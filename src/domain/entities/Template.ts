@@ -181,6 +181,8 @@ export interface TrackerEventRowDataSource {
     dataValues: Range;
     programStage: CellRef;
     dataElements: Range;
+    sortBy?: string;
+    onlyLastEvent?: boolean;
 }
 
 export interface RowDataSource extends BaseDataSource {
@@ -210,6 +212,9 @@ export interface TeiRowDataSource {
     occurredAt?: ColumnRef;
     attributes: Range;
     attributeId: RowRef;
+    multiTextDelimiter?: string;
+    sortBy?: string;
+    skipTeisWithoutEvents?: boolean;
 }
 
 export interface ColumnDataSource extends BaseDataSource {

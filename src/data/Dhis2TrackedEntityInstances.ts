@@ -2,7 +2,6 @@ import { TeiGetRequest, TrackedEntityInstanceGeometryAttributes } from "@eyeseet
 import { generateUid } from "d2/uid";
 import _ from "lodash";
 import { Moment } from "moment";
-import { DataElementType } from "../domain/entities/DataForm";
 import { DataPackageData } from "../domain/entities/DataPackage";
 import { Event, EventDataValue } from "../domain/entities/DhisDataPackage";
 import { Geometry } from "../domain/entities/Geometry";
@@ -33,6 +32,8 @@ import {
     TrackedEntitiesAPIResponse,
 } from "../domain/entities/TrackedEntity";
 import { Params } from "@eyeseetea/d2-api/api/common";
+import { ImportDataPackageOptions } from "../domain/repositories/InstanceRepository";
+import { MULTI_TEXT_OPTION_DELIMITER } from "../domain/helpers/ExcelBuilder";
 
 export interface GetOptions {
     api: D2Api;
@@ -113,7 +114,7 @@ export async function getProgram(api: D2Api, id: Id): Promise<Program | undefine
                         id: true,
                         name: true,
                         valueType: true,
-                        optionSet: { id: true, options: { id: true, code: true } },
+                        optionSet: { id: true, options: { id: true, name: true, code: true } },
                     },
                 },
             },
@@ -137,7 +138,8 @@ export async function getProgram(api: D2Api, id: Id): Promise<Program | undefine
 export async function updateTrackedEntityInstances(
     api: D2Api,
     trackedEntityInstances: TrackedEntityInstance[],
-    dataEntries: DataPackageData[]
+    dataEntries: DataPackageData[],
+    importOptions: ImportDataPackageOptions
 ): Promise<SynchronizationResult[]> {
     if (_.isEmpty(trackedEntityInstances)) return [emptyImportSummary];
 
@@ -169,9 +171,9 @@ export async function updateTrackedEntityInstances(
     const options = { api, program, metadata, existingTeis };
 
     return runSequentialPromisesOnSuccess([
-        () => uploadTeis({ ...options, teis: preTeis, title: i18n.t("Create/update") }),
-        () => uploadTeis({ ...options, teis: postTeis, title: i18n.t("Relationships") }),
-        () => postEvents(api, apiEvents, { existingTeis, teis: teis, program, metadata }),
+        () => uploadTeis({ ...options, teis: preTeis, title: i18n.t("Create/update"), importOptions }),
+        () => uploadTeis({ ...options, teis: postTeis, title: i18n.t("Relationships"), importOptions }),
+        () => postEvents(api, apiEvents, { existingTeis, teis: teis, program, metadata, importOptions }),
     ]);
 }
 
@@ -237,12 +239,13 @@ async function uploadTeis(options: {
     teis: TrackedEntityInstance[];
     existingTeis: TrackedEntityInstance[];
     title: string;
+    importOptions: ImportDataPackageOptions;
 }): Promise<SynchronizationResult[]> {
-    const { api, program, metadata, teis, existingTeis, title } = options;
+    const { api, importOptions, program, metadata, teis, existingTeis, title } = options;
 
     if (_.isEmpty(teis)) return [];
 
-    const apiTeis = teis.map(tei => getApiTeiToUpload(program, metadata, tei, existingTeis));
+    const apiTeis = teis.map(tei => getApiTeiToUpload(program, metadata, tei, existingTeis, importOptions));
     const model = i18n.t("Tracked Entity Instance");
 
     const teisResult = await promiseMap(_.chunk(apiTeis, 200), teisToSave => {
@@ -263,7 +266,7 @@ async function uploadTeis(options: {
 }
 
 export interface Metadata {
-    options: Array<{ id: Id; code: string }>;
+    options: Array<{ id: Id; name: string; code: string }>;
     relationshipTypesById: Record<Id, Pick<D2RelationshipType, "id" | "toConstraint" | "fromConstraint">>;
 }
 
@@ -271,7 +274,7 @@ export interface Metadata {
 async function getMetadata(api: D2Api): Promise<Metadata> {
     const { options, relationshipTypes } = await api.metadata
         .get({
-            options: { fields: { id: true, code: true } },
+            options: { fields: { id: true, name: true, code: true } },
             relationshipTypes: { fields: { id: true, toConstraint: true, fromConstraint: true } },
         })
         .getData();
@@ -362,7 +365,8 @@ export function getApiTeiToUpload(
     program: Program,
     metadata: Metadata,
     tei: TrackedEntityInstance,
-    existingTeis: TrackedEntityInstance[]
+    existingTeis: TrackedEntityInstance[],
+    importOptions: ImportDataPackageOptions
 ): TrackedEntity {
     const { orgUnit, enrollment, relationships } = tei;
     const optionById = _.keyBy(metadata.options, option => option.id);
@@ -372,10 +376,21 @@ export function getApiTeiToUpload(
 
     const enrollmentId = existingTei?.enrollment?.id || generateUidForTei(tei.id, orgUnit.id, program.id);
 
-    const attributes = tei.attributeValues.map(attributeValue => ({
-        attribute: attributeValue.attribute.id,
-        value: getValue(attributeValue, optionById),
-    }));
+    const attributes = tei.attributeValues.map(attributeValue => {
+        return {
+            attribute: attributeValue.attribute.id,
+            value:
+                attributeValue.attribute.valueType === "MULTI_TEXT" &&
+                !attributeValue.optionId &&
+                importOptions.multiTextTeiDelimiter
+                    ? getMultiTextValue({
+                          metadata,
+                          attributeValue,
+                          multiTextTeiDelimiter: importOptions.multiTextTeiDelimiter,
+                      })
+                    : getValue(attributeValue, optionById),
+        };
+    });
 
     return {
         trackedEntity: tei.id,
@@ -398,6 +413,33 @@ export function getApiTeiToUpload(
         relationships: apiRelationships,
         ...getD2TeiGeometryAttributes(tei),
     };
+}
+
+function getMultiTextValue(options: {
+    metadata: Metadata;
+    attributeValue: AttributeValue;
+    multiTextTeiDelimiter: string;
+}): string {
+    const { multiTextTeiDelimiter, metadata, attributeValue } = options;
+    const optionNames = attributeValue.value.split(multiTextTeiDelimiter).map(name => name.trim());
+
+    if (!optionNames) return "";
+
+    const optionsByName = _.keyBy(metadata.options, option => option.name);
+    const values = _(optionNames)
+        .map(name => {
+            const optionCode = optionsByName[name]?.code;
+            if (!optionCode) {
+                console.warn(`Option with name "${name}" not found in metadata options.`);
+                return undefined;
+            }
+
+            return optionCode;
+        })
+        .compact()
+        .join(MULTI_TEXT_OPTION_DELIMITER);
+
+    return values;
 }
 
 async function getExistingTeis(api: D2Api): Promise<Ref[]> {
@@ -516,7 +558,7 @@ function buildTei(
         return {
             attribute: {
                 id: attrApi.attribute,
-                valueType: attrApi.valueType as DataElementType,
+                valueType: attrApi.valueType,
                 ...(optionSet ? { optionSet } : {}),
             },
             value: attrApi.value,
