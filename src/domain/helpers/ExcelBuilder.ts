@@ -4,7 +4,7 @@ import { fromBase64 } from "../../utils/files";
 import { promiseMap } from "../../utils/promises";
 import { removeCharacters } from "../../utils/string";
 import { getGeometryAsString } from "../entities/Geometry";
-import { DataPackage, TrackerProgramPackage } from "../entities/DataPackage";
+import { DataPackage, DataPackageData, TrackerProgramPackage } from "../entities/DataPackage";
 import { Relationship } from "../entities/Relationship";
 import {
     CellDataSource,
@@ -23,11 +23,12 @@ import {
     ValueRef,
 } from "../entities/Template";
 import { Theme, ThemeStyle } from "../entities/Theme";
-import { getRelationships } from "../entities/TrackedEntityInstance";
+import { AttributeValue, getRelationships, TrackedEntityInstance } from "../entities/TrackedEntityInstance";
 import { ExcelRepository, ExcelValue } from "../repositories/ExcelRepository";
 import { BuilderMetadata, emptyBuilderMetadata, InstanceRepository } from "../repositories/InstanceRepository";
 import Settings from "../../webapp/logic/settings";
 import { ModulesRepositories } from "../repositories/ModulesRepositories";
+import { Maybe } from "../../types/utils";
 
 const dateFormatPattern = "yyyy-MM-dd";
 
@@ -116,15 +117,21 @@ export class ExcelBuilder {
         }
     }
 
-    private async readCellValue(template: Template, ref?: CellRef | ValueRef): Promise<ExcelValue> {
-        return removeCharacters(await this.excelRepository.readCell(template.id, ref));
+    private async readCellValue(
+        template: Template,
+        ref?: CellRef | ValueRef,
+        options: { isFormula: boolean } = { isFormula: false }
+    ): Promise<ExcelValue> {
+        return removeCharacters(await this.excelRepository.readCell(template.id, ref, { formula: options.isFormula }));
     }
 
     private async fillTeiRows(template: Template, dataSource: TeiRowDataSource, payload: DataPackage) {
         let { rowStart } = dataSource.attributes;
         if (payload.type !== "trackerPrograms") return;
 
-        for (const tei of payload.trackedEntityInstances ?? []) {
+        const teisToProcess = this.buildTeisForCustomTemplates({ dataSource, payload, template });
+
+        for (const tei of teisToProcess) {
             const { orgUnit, id, enrollment } = tei;
 
             const cells = await this.excelRepository.getCellsInRange(template.id, {
@@ -193,9 +200,12 @@ export class ExcelBuilder {
 
                 const attributeValue = tei.attributeValues.find(av => av.attribute.id === attributeId);
 
-                const value = attributeValue
-                    ? (attributeValue.optionId ? `_${attributeValue.optionId}` : null) || attributeValue.value
-                    : undefined;
+                const isMultiText = attributeValue?.attribute.valueType === "MULTI_TEXT";
+
+                const value =
+                    isMultiText && dataSource.multiTextDelimiter
+                        ? this.getMultiTextValue(attributeValue, dataSource.multiTextDelimiter)
+                        : this.getValueFromAttribute(attributeValue);
 
                 if (value) {
                     this.excelRepository.writeCell(template.id, cell, value);
@@ -204,6 +214,19 @@ export class ExcelBuilder {
 
             rowStart += 1;
         }
+    }
+
+    private getValueFromAttribute(attributeValue: Maybe<AttributeValue>): Maybe<string> {
+        return attributeValue
+            ? (attributeValue.optionId ? `_${attributeValue.optionId}` : null) || attributeValue.value
+            : undefined;
+    }
+
+    private getMultiTextValue(attributeValue: Maybe<AttributeValue>, multiTextTeiDelimiter: string): string {
+        const multiTextValues = attributeValue?.value.split(MULTI_TEXT_OPTION_DELIMITER);
+        const options =
+            attributeValue?.attribute.optionSet?.options.filter(option => multiTextValues?.includes(option.code)) ?? [];
+        return options.map(option => option.name).join(multiTextTeiDelimiter);
     }
 
     private async fillCell(template: Template, cellRef: CellRef, sheetRef: SheetRef, value: string | number | boolean) {
@@ -270,8 +293,13 @@ export class ExcelBuilder {
 
         const dataElementIdsSet = new Set(dataElementIds);
 
-        const dataSourceProgramStageId = await this.readCellValue(template, dataSource.programStage);
-        for (const dataEntry of payload.dataEntries) {
+        const dataSourceProgramStageId = await this.readCellValue(template, dataSource.programStage, {
+            isFormula: true,
+        });
+
+        const dataEntriesToProcess = this.buildTeiEventsForCustomTemplates({ template, dataSource, payload });
+
+        for (const dataEntry of dataEntriesToProcess) {
             const { id, period, dataValues, trackedEntityInstance, attribute: cocId, programStage } = dataEntry;
             const someDataElementPresentInSheet = _(dataValues).some(dv => dataElementIdsSet.has(dv.dataElement));
             if (!someDataElementPresentInSheet && !_.isEmpty(dataValues)) continue;
@@ -320,8 +348,10 @@ export class ExcelBuilder {
         }
 
         if (settings.programStagePopulateEventsForEveryTei[String(dataSourceProgramStageId)]) {
-            const allTEIs = payload.trackedEntityInstances.map(trackedEntityInstances => trackedEntityInstances.id);
-            const existingTEIs = _(payload.dataEntries)
+            const allTEIs = this.buildTeisForCustomTemplates({ dataSource, payload, template }).map(
+                trackedEntityInstances => trackedEntityInstances.id
+            );
+            const existingTEIs = _(dataEntriesToProcess)
                 .filter(
                     dataEntry =>
                         _(dataEntry.dataValues).some(dv => dataElementIdsSet.has(dv.dataElement)) &&
@@ -343,7 +373,7 @@ export class ExcelBuilder {
                     rowEnd: teiRowStart,
                 });
 
-                const eventId = payload.dataEntries[index]?.id;
+                const eventId = dataEntriesToProcess[index]?.id;
                 const teiIdCell = await this.excelRepository.findRelativeCell(template.id, dataSource.teiId, cells[0]);
 
                 if (eventId && teiIdCell && id) {
@@ -351,6 +381,58 @@ export class ExcelBuilder {
                 }
             });
         }
+    }
+
+    private buildTeiEventsForCustomTemplates(options: {
+        template: Template;
+        dataSource: TrackerEventRowDataSource;
+        payload: TrackerProgramPackage;
+    }): DataPackageData[] {
+        const { template, dataSource, payload } = options;
+
+        if (template.type !== "custom") return payload.dataEntries;
+        if (!dataSource.onlyLastEvent) return payload.dataEntries;
+
+        const eventsByTei = _(payload.dataEntries)
+            .sortBy(dataSource.sortBy ?? "")
+            .groupBy(event => event.trackedEntityInstance)
+            .value();
+
+        return _(eventsByTei)
+            .values()
+            .map(event => {
+                const sorted = _(event)
+                    .sortBy(event => event.id)
+                    .value();
+                return _(sorted).last();
+            })
+            .compact()
+            .value();
+    }
+
+    private buildTeisForCustomTemplates(options: {
+        template: Template;
+        dataSource: TeiRowDataSource | TrackerEventRowDataSource;
+        payload: TrackerProgramPackage;
+    }): TrackedEntityInstance[] {
+        const { template, dataSource, payload } = options;
+
+        if (template.type !== "custom") return payload.trackedEntityInstances;
+        if (dataSource.type === "rowTei" && !dataSource.skipTeisWithoutEvents) return payload.trackedEntityInstances;
+
+        const eventsByTei = _(payload.dataEntries)
+            .groupBy(dataEntry => dataEntry.trackedEntityInstance)
+            .value();
+
+        const dataEntriesTeisWithEvents = _(payload.trackedEntityInstances)
+            .filter(tei => {
+                const events = eventsByTei[tei.id] || [];
+                return events.length > 0;
+            })
+            .sortBy(dataSource.sortBy ?? "")
+            .value();
+
+        return dataEntriesTeisWithEvents;
     }
 
     private async fillRows(template: Template, dataSource: RowDataSource, payload: DataPackage) {
@@ -456,3 +538,5 @@ export class ExcelBuilder {
         }
     }
 }
+
+export const MULTI_TEXT_OPTION_DELIMITER = ",";

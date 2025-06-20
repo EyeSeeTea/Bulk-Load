@@ -2,7 +2,7 @@ import _ from "lodash";
 import "lodash.product";
 import moment from "moment";
 import { DataElement, DataForm, DataFormPeriod, DataFormType } from "../domain/entities/DataForm";
-import { DataPackage, TrackerProgramPackage } from "../domain/entities/DataPackage";
+import { DataPackage, DataPackageData, TrackerProgramPackage } from "../domain/entities/DataPackage";
 import {
     AggregatedDataValue,
     AggregatedPackage,
@@ -222,7 +222,7 @@ export class InstanceDhisRepository implements InstanceRepository {
                 return result;
             }
             case "trackerPrograms": {
-                return this.importTrackerProgramData(dataPackage);
+                return this.importTrackerProgramData(dataPackage, options);
             }
             default:
                 throw new Error(`Unsupported type for data package`);
@@ -483,9 +483,12 @@ export class InstanceDhisRepository implements InstanceRepository {
         return _.first(objects)?.programStages[0];
     }
 
-    private async importTrackerProgramData(dataPackage: TrackerProgramPackage): Promise<SynchronizationResult[]> {
+    private async importTrackerProgramData(
+        dataPackage: TrackerProgramPackage,
+        options: ImportDataPackageOptions
+    ): Promise<SynchronizationResult[]> {
         const { trackedEntityInstances, dataEntries } = dataPackage;
-        return updateTrackedEntityInstances(this.api, trackedEntityInstances, dataEntries);
+        return updateTrackedEntityInstances(this.api, trackedEntityInstances, dataEntries, options);
     }
 
     private async getDataSetMetadata(formOptions: { id: Id }) {
@@ -674,7 +677,7 @@ export class InstanceDhisRepository implements InstanceRepository {
                         dataValues,
                         trackedEntity,
                         programStage,
-                    }) => ({
+                    }): DataPackageData => ({
                         id: event,
                         dataForm: id,
                         orgUnit,
@@ -686,8 +689,7 @@ export class InstanceDhisRepository implements InstanceRepository {
                                   latitude: geometry.coordinates[1]?.toString() ?? "",
                               }
                             : coordinate,
-                        geometry: geometry,
-                        trackedEntity: trackedEntity,
+                        trackedEntityInstance: trackedEntity,
                         programStage,
                         dataValues:
                             dataValues?.map(({ dataElement, value }) => ({

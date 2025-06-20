@@ -151,6 +151,7 @@ export class ImportTemplateUseCase implements UseCase {
 
         const importResult = await this.instanceRepository.importDataPackage(dataValues, {
             createAndUpdate: duplicateStrategy === "IMPORT_WITHOUT_DELETE" || duplicateStrategy === "ERROR",
+            multiTextTeiDelimiter: this.getMultiTextTeiDelimiter(template),
         });
 
         const importResultHasErrors = importResult.flatMap(result => result.errors);
@@ -168,6 +169,23 @@ export class ImportTemplateUseCase implements UseCase {
         } else {
             return Either.success(_.compact([deleteResult, ...importResult]));
         }
+    }
+
+    private getMultiTextTeiDelimiter(template: Template): Maybe<string> {
+        if (template.type !== "custom") return undefined;
+
+        return _(template.dataSources)
+            .map(dataSource => {
+                if (typeof dataSource === "function") {
+                    return undefined;
+                } else if (dataSource.type !== "rowTei") {
+                    return undefined;
+                } else {
+                    return dataSource.multiTextDelimiter;
+                }
+            })
+            .compact()
+            .first();
     }
 
     private shouldDeleteAggregatedData(strategy: DuplicateImportStrategy): boolean {

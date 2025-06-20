@@ -1,6 +1,7 @@
 import { Moment } from "moment";
 import { RelationshipOrgUnitFilter } from "../../data/Dhis2RelationshipTypes";
 import { DataStore } from "../../types/d2-api";
+import { Maybe } from "../../types/utils";
 import { DataForm, DataFormType } from "../entities/DataForm";
 import { DataPackage } from "../entities/DataPackage";
 import { AggregatedPackage, EventsPackage } from "../entities/DhisDataPackage";
@@ -43,7 +44,7 @@ export interface InstanceRepository {
     getBuilderMetadata(teis: TrackedEntityInstance[]): Promise<BuilderMetadata>;
 }
 
-export type ImportDataPackageOptions = { createAndUpdate: boolean };
+export type ImportDataPackageOptions = { createAndUpdate: boolean; multiTextTeiDelimiter: Maybe<string> };
 
 export interface BuilderMetadata {
     orgUnits: Record<Id, NamedRef>;
