@@ -131,7 +131,7 @@ export class ExcelBuilder {
 
         const teisToProcess = this.buildTeisForCustomTemplates({ dataSource, payload, template });
 
-        for (const tei of teisToProcess ?? []) {
+        for (const tei of teisToProcess) {
             const { orgUnit, id, enrollment } = tei;
 
             const cells = await this.excelRepository.getCellsInRange(template.id, {
@@ -401,7 +401,9 @@ export class ExcelBuilder {
         return _(eventsByTei)
             .values()
             .map(event => {
-                const sorted = _(event).sortBy("id").value();
+                const sorted = _(event)
+                    .sortBy(event => event.id)
+                    .value();
                 return _(sorted).last();
             })
             .compact()
@@ -422,7 +424,7 @@ export class ExcelBuilder {
             .groupBy(dataEntry => dataEntry.trackedEntityInstance)
             .value();
 
-        const dataEntriesTeisNoEvents = _(payload.trackedEntityInstances)
+        const dataEntriesTeisWithEvents = _(payload.trackedEntityInstances)
             .filter(tei => {
                 const events = eventsByTei[tei.id] || [];
                 return events.length > 0;
@@ -430,7 +432,7 @@ export class ExcelBuilder {
             .sortBy(dataSource.sortBy ?? "")
             .value();
 
-        return dataEntriesTeisNoEvents;
+        return dataEntriesTeisWithEvents;
     }
 
     private async fillRows(template: Template, dataSource: RowDataSource, payload: DataPackage) {

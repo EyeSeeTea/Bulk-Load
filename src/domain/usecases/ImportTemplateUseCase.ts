@@ -176,10 +176,13 @@ export class ImportTemplateUseCase implements UseCase {
 
         return _(template.dataSources)
             .map(dataSource => {
-                if (typeof dataSource === "function") return undefined;
-                if (dataSource.type !== "rowTei") return undefined;
-
-                return dataSource.multiTextDelimiter;
+                if (typeof dataSource === "function") {
+                    return undefined;
+                } else if (dataSource.type !== "rowTei") {
+                    return undefined;
+                } else {
+                    return dataSource.multiTextDelimiter;
+                }
             })
             .compact()
             .first();

@@ -2,7 +2,7 @@ import _ from "lodash";
 import "lodash.product";
 import moment from "moment";
 import { DataElement, DataForm, DataFormPeriod, DataFormType } from "../domain/entities/DataForm";
-import { DataPackage, TrackerProgramPackage } from "../domain/entities/DataPackage";
+import { DataPackage, DataPackageData, TrackerProgramPackage } from "../domain/entities/DataPackage";
 import {
     AggregatedDataValue,
     AggregatedPackage,
@@ -677,7 +677,7 @@ export class InstanceDhisRepository implements InstanceRepository {
                         dataValues,
                         trackedEntity,
                         programStage,
-                    }) => ({
+                    }): DataPackageData => ({
                         id: event,
                         dataForm: id,
                         orgUnit,
@@ -689,7 +689,6 @@ export class InstanceDhisRepository implements InstanceRepository {
                                   latitude: geometry.coordinates[1]?.toString() ?? "",
                               }
                             : coordinate,
-                        geometry: geometry,
                         trackedEntityInstance: trackedEntity,
                         programStage,
                         dataValues:
