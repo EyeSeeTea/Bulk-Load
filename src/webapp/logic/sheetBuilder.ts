@@ -1094,13 +1094,7 @@ export class SheetBuilder {
             translations.find(({ property }: any) => property === "DESCRIPTION") ?? {};
 
         if (item?.type === "categoryOptionCombos" && name === defaultName) {
-            const options = item?.categoryOptions?.map(({ id }: any) => {
-                const element = elementMetadata.get(id);
-                const { name } = this.translate(element);
-                return name;
-            });
-
-            return { name: options.join(", "), description };
+            return { name: this.buildCategoryOptionComboName(item), description };
         } else if (
             this.builder.useCodesForMetadata &&
             item?.code &&
@@ -1109,6 +1103,36 @@ export class SheetBuilder {
             return { name: item.code, description };
         } else {
             return { name: selectedName ? item.displayShortName : name, description };
+        }
+    }
+
+    private buildCategoryOptionComboName(item: any): string {
+        const { elementMetadata } = this.builder;
+        const itemCategoryOptions = item?.categoryOptions?.map(({ id }: any) => id);
+
+        if (!itemCategoryOptions) return "";
+        else if (itemCategoryOptions.length > 1) {
+            const categoryCombo = elementMetadata.get(item.categoryCombo?.id);
+            const orderedCategories = categoryCombo?.categories?.map(({ id }: any) => {
+                const category = elementMetadata.get(id);
+                return {
+                    ...category,
+                    options: category?.categoryOptions.map(({ id }: any) => id),
+                };
+            });
+
+            const categoryToOption = orderedCategories.map((category: any) => {
+                const optionId = category.options.find((id: any) => itemCategoryOptions.includes(id));
+                const element = elementMetadata.get(optionId);
+                const { name } = this.translate(element);
+                return name;
+            });
+
+            return categoryToOption.join(", ");
+        } else {
+            const option = elementMetadata.get(itemCategoryOptions[0]);
+            const { name } = this.translate(option);
+            return name;
         }
     }
 
