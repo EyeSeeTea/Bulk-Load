@@ -1080,7 +1080,7 @@ export class SheetBuilder {
     }
 
     private translate(item: any, selectedName?: boolean) {
-        const { elementMetadata, language } = this.builder;
+        const { language } = this.builder;
         const translations = item?.translations?.filter(({ locale }: any) => locale === language) ?? [];
 
         const { value: formName } = translations.find(({ property }: any) => property === "FORM_NAME") ?? {};
