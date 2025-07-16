@@ -1142,7 +1142,7 @@ export class SheetBuilder {
             return "";
         }
 
-        const orderedCategoryOptions = this.getCategoryOrderedCategoryOption(categoryCombo, categoryOptionIds);
+        const orderedCategoryOptions = this.getCategoryOrderedCategoryOptions(categoryCombo, categoryOptionIds);
 
         const isOrderedCategoryOptionsValid = orderedCategoryOptions.length === categoryOptionIds.size;
         if (!isOrderedCategoryOptionsValid) {
@@ -1159,7 +1159,7 @@ export class SheetBuilder {
         return options.join(", ");
     }
 
-    private getCategoryOrderedCategoryOption(categoryCombo: CategoryCombo, categoryOptionIds: Set<string>) {
+    private getCategoryOrderedCategoryOptions(categoryCombo: CategoryCombo, categoryOptionIds: Set<string>): Ref[] {
         const { elementMetadata } = this.builder;
         const orderedCategories = _(categoryCombo?.categories)
             .map(ccCategory => {
