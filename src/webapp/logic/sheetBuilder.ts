@@ -1108,7 +1108,7 @@ export class SheetBuilder {
         }
     }
 
-    private getTranslatedMetadataName(props: { id: Maybe<string>; type: Maybe<string> }) {
+    private getTranslatedMetadataName(props: { id: Maybe<string>; type: Maybe<string> }): string {
         const { id, type = "Metadata" } = props;
         const metadata = this.builder.elementMetadata.get(id);
         if (!metadata) {
