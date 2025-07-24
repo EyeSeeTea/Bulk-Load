@@ -680,6 +680,21 @@ export class SheetBuilder {
         validationSheet.cell(1, 1, 1, columnId, true).formula(`_${element.id}`).style(baseStyle);
     }
 
+    private getGroupingKey(item: TranslatableItem) {
+        switch (item.type) {
+            case "categoryOptionCombos":
+                return `${item.type}_${item.categoryCombo?.id || "unknown"}`;
+
+            case "dataElements":
+                if (item.categoryCombo?.id) {
+                    return `${item.type}_combo_${item.categoryCombo.id}`;
+                }
+                return item.type;
+            default:
+                return item.type || "unknown";
+        }
+    }
+
     private fillMetadataSheet(metadataSheet: Sheet, orgUnitShortName: boolean) {
         const { workbook } = metadataSheet;
         const { elementMetadata: metadata, organisationUnits } = this.builder;
@@ -721,7 +736,21 @@ export class SheetBuilder {
             .style(baseStyle);
 
         let rowId = 3;
-        metadata.forEach(item => {
+
+        const sortedMetadata = Array.from(metadata.values()).sort((a, b) => {
+            const groupA = this.getGroupingKey(a);
+            const groupB = this.getGroupingKey(b);
+
+            if (groupA !== groupB) {
+                return groupA.localeCompare(groupB);
+            }
+
+            const nameA = this.translate(a).name || "";
+            const nameB = this.translate(b).name || "";
+            return nameA.localeCompare(nameB);
+        });
+
+        sortedMetadata.forEach(item => {
             const { name } = this.translate(item);
             const optionSet = metadata.get(item.optionSet?.id);
             const { name: optionSetName } = this.translate(optionSet);
@@ -1500,15 +1529,16 @@ export type Translation = {
     value: string;
 };
 
-export type TranslatableItem =
+type TranslatableItem =
     | GenericTranslatableItem
     | CategoryOptionCombo
     | CategoryCombo
     | Category
     | Section
-    | OrganisationUnit;
+    | OrganisationUnit
+    | DataElement;
 
-export type BaseTranslatableItem = {
+type BaseTranslatableItem = {
     translations?: Translation[];
     displayName?: string;
     formName?: string;
@@ -1519,29 +1549,34 @@ export type BaseTranslatableItem = {
     displayShortName?: string;
 };
 
-export type OrganisationUnit = BaseTranslatableItem & {
+type OrganisationUnit = BaseTranslatableItem & {
     id: string;
     displayName: string;
     translations: Translation[];
     type: "organisationUnits";
 };
 
-export type GenericTranslatableItem = BaseTranslatableItem & {
-    type: "dataElements" | "options" | "categoryOptions";
+type GenericTranslatableItem = BaseTranslatableItem & {
+    type: "options" | "categoryOptions";
 };
 
-export type CategoryOptionCombo = BaseTranslatableItem & {
+type DataElement = BaseTranslatableItem & {
+    type: "dataElements";
+    categoryCombo: Ref;
+};
+
+type CategoryOptionCombo = BaseTranslatableItem & {
     type: "categoryOptionCombos";
-    categoryOptions: { id: string }[];
-    categoryCombo: { id: string };
+    categoryOptions: Ref[];
+    categoryCombo: Ref;
 };
 
-export type CategoryCombo = BaseTranslatableItem & {
+type CategoryCombo = BaseTranslatableItem & {
     type: "categoryCombos";
     categories: Ref[];
 };
 
-export type Category = BaseTranslatableItem & {
+type Category = BaseTranslatableItem & {
     type: "categories";
     categoryOptions: Ref[];
 };
