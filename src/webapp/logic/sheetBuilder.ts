@@ -12,6 +12,7 @@ import Settings from "./settings";
 import { getObjectVersion } from "./utils";
 import { Sheet, StyleOptions, Workbook } from "./Workbook";
 import { Maybe } from "../../types/utils";
+import { MetadataService } from "./MetadataService";
 
 export const dataSetId = "DATASET_GENERATED_v2";
 export const programId = "PROGRAM_GENERATED_v4";
@@ -680,21 +681,6 @@ export class SheetBuilder {
         validationSheet.cell(1, 1, 1, columnId, true).formula(`_${element.id}`).style(baseStyle);
     }
 
-    private getGroupingKey(item: TranslatableItem) {
-        switch (item.type) {
-            case "categoryOptionCombos":
-                return `${item.type}_${item.categoryCombo?.id || "unknown"}`;
-
-            case "dataElements":
-                if (item.categoryCombo?.id) {
-                    return `${item.type}_combo_${item.categoryCombo.id}`;
-                }
-                return item.type;
-            default:
-                return item.type || "unknown";
-        }
-    }
-
     private fillMetadataSheet(metadataSheet: Sheet, orgUnitShortName: boolean) {
         const { workbook } = metadataSheet;
         const { elementMetadata: metadata, organisationUnits } = this.builder;
@@ -737,18 +723,9 @@ export class SheetBuilder {
 
         let rowId = 3;
 
-        const sortedMetadata = Array.from(metadata.values()).sort((a, b) => {
-            const groupA = this.getGroupingKey(a);
-            const groupB = this.getGroupingKey(b);
+        const metadataService = new MetadataService(metadata, item => this.translate(item));
 
-            if (groupA !== groupB) {
-                return groupA.localeCompare(groupB);
-            }
-
-            const nameA = this.translate(a).name || "";
-            const nameB = this.translate(b).name || "";
-            return nameA.localeCompare(nameB);
-        });
+        const sortedMetadata = metadataService.sort();
 
         sortedMetadata.forEach(item => {
             const { name } = this.translate(item);
@@ -758,7 +735,7 @@ export class SheetBuilder {
                 .map(({ id }: any) => this.translate(metadata.get(id)).name)
                 .join(", ");
             const isCompulsory = this.isMetadataItemCompulsory(item);
-            const dateFormat = dateFormats[item.valueType];
+            const dateFormat = dateFormats[item.valueType ?? ""];
             const nameCellValue = _.compact([
                 name,
                 isCompulsory ? " *" : "",
@@ -1529,7 +1506,7 @@ export type Translation = {
     value: string;
 };
 
-type TranslatableItem =
+export type TranslatableItem =
     | GenericTranslatableItem
     | CategoryOptionCombo
     | CategoryCombo
@@ -1539,7 +1516,9 @@ type TranslatableItem =
     | DataElement;
 
 type BaseTranslatableItem = {
+    id?: string;
     translations?: Translation[];
+    valueType?: string;
     displayName?: string;
     formName?: string;
     name?: string;
@@ -1547,6 +1526,8 @@ type BaseTranslatableItem = {
     code?: string;
     type?: string;
     displayShortName?: string;
+    version?: string;
+    optionSet?: Ref;
 };
 
 type OrganisationUnit = BaseTranslatableItem & {
