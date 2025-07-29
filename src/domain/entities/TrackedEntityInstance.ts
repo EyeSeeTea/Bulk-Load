@@ -4,6 +4,7 @@ import { Geometry } from "./Geometry";
 import { Id, Ref } from "./ReferenceObject";
 import { Relationship } from "./Relationship";
 import { D2TrackerAttribute } from "./TrackedEntity";
+import { ContentType } from "./Template";
 
 export interface TrackedEntityInstance {
     program: Ref;
@@ -30,6 +31,7 @@ export interface AttributeValue {
     attribute: Attribute;
     value: string;
     optionId?: Id;
+    contentType?: ContentType;
 }
 
 export interface Program {

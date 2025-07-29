@@ -244,6 +244,8 @@ interface DataFormRef {
     id: Maybe<string>;
 }
 
+export type ContentType = "raw" | "formula" | "function";
+
 export function getDataFormRef(template: BaseTemplate): DataFormRef {
     const { dataFormType, dataFormId } = template;
 

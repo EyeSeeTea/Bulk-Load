@@ -254,12 +254,18 @@ export class ExcelReader {
         const dataValuesCells = await this.excelRepository.getCellsInRange(template.id, dataSource.dataValues);
 
         const dataValues = await promiseMap(dataValuesCells, async cell => {
-            return {
-                row: this.excelRepository.buildRowNumber(cell.ref),
-                value: await this.excelRepository.readCell(template.id, cell),
-                optionId: await this.excelRepository.readCell(template.id, cell, {
+            const [value, optionId, contentType] = await Promise.all([
+                this.excelRepository.readCell(template.id, cell),
+                this.excelRepository.readCell(template.id, cell, {
                     formula: true,
                 }),
+                this.excelRepository.getContentType(template.id, cell),
+            ]);
+            return {
+                row: this.excelRepository.buildRowNumber(cell.ref),
+                value: value,
+                optionId: optionId,
+                contentType: contentType,
             };
         });
 
@@ -288,7 +294,7 @@ export class ExcelReader {
                 // If column id does not exist on program, exclude values => Attributes
                 if (!dataForm.dataElements.find(({ id }) => id === dataElementId)) return null;
 
-                const { value, optionId } = item;
+                const { value, optionId, contentType } = item;
 
                 const data: DataPackageData = {
                     group: rowIdx,
@@ -304,6 +310,7 @@ export class ExcelReader {
                             dataElement: String(dataElementId),
                             value: this.formatValue(value),
                             optionId: optionId ? removeCharacters(optionId) : undefined,
+                            contentType: contentType,
                         },
                     ],
                 };
@@ -369,8 +376,13 @@ export class ExcelReader {
 
             if (!attributeId) return undefined;
 
-            const attributeValueVal = await this.excelRepository.readCell(template.id, cell);
-            const attributeValueFormula = await this.excelRepository.readCell(template.id, cell, { formula: true });
+            const [attributeValueVal, attributeValueFormula, contentType] = await Promise.all([
+                this.excelRepository.readCell(template.id, cell),
+                this.excelRepository.readCell(template.id, cell, {
+                    formula: true,
+                }),
+                this.excelRepository.getContentType(template.id, cell),
+            ]);
 
             return {
                 row: this.excelRepository.buildRowNumber(cell.ref),
@@ -380,6 +392,7 @@ export class ExcelReader {
                 },
                 value: attributeValueVal !== undefined ? String(attributeValueVal) : "",
                 optionId: attributeValueFormula ? removeCharacters(attributeValueFormula) : undefined,
+                contentType: contentType,
             };
         });
 
