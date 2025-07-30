@@ -190,9 +190,10 @@ export class ExcelPopulateRepository extends ExcelRepository {
         const mergedCells = this.listMergedCells(workbook, cellRef.sheet);
         const sheet = workbook.sheet(cellRef.sheet);
         const cell = sheet.cell(cellRef.ref);
-        const { startCell: destination = cell } = mergedCells.find(range => range.hasCell(cell)) ?? {};
+        const matchingMergedCell = mergedCells.find(mergedCell => mergedCell.hasCell(cell));
+        const destinationCell = matchingMergedCell?.startCell || cell;
         return {
-            cell: destination,
+            cell: destinationCell,
             sheet,
         };
     }
