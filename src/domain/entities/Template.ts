@@ -9,6 +9,7 @@ import { ImageSections, ThemeableSections } from "./Theme";
 import { User, UserTimestamp } from "./User";
 import { Sheet as SheetE } from "./Sheet";
 import { ModulesRepositories } from "../repositories/ModulesRepositories";
+import { TemplateFilter } from "./TemplateFilter";
 
 export interface DataFormTemplate extends DataForm {
     templateId: string;
@@ -100,6 +101,7 @@ export interface CustomTemplateWithUrl extends BaseTemplate {
         instanceRepository: InstanceRepository,
         options: ImportCustomizationOptions
     ) => Promise<DataPackage | undefined>;
+    filters?: TemplateFilter;
 }
 
 export interface GenericSheetRef {
