@@ -424,6 +424,7 @@ export function templateToDataPackage(template: TemplateDataPackage): DataPackag
                         category: dv.category,
                         value: dv.value,
                         optionId: dv.optionId,
+                        comment: dv.comment,
                         contentType: dv.contentType,
                     })),
                 })),
