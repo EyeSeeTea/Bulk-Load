@@ -535,7 +535,7 @@ export class SheetBuilder {
     }
 
     private fillValidationSheet(validationSheet: Sheet) {
-        const { organisationUnits, element, metadata, rawMetadata, elementMetadata, startDate, endDate } = this.builder;
+        const { organisationUnits, element, metadata, rawMetadata, startDate, endDate } = this.builder;
 
         // Freeze and format column titles
         validationSheet.row(2).freeze();
@@ -544,7 +544,10 @@ export class SheetBuilder {
         let rowId = 2;
         let columnId = 1;
         validationSheet.cell(rowId++, columnId).string(i18n.t("Organisation Units", { lng: this.builder.language }));
-        _.forEach(organisationUnits, orgUnit => {
+        const sortedOrganisationUnits = this.metadataService.sortMetadata(
+            organisationUnits.map(ou => ({ ...ou, type: "organisationUnits" }))
+        );
+        _.forEach(sortedOrganisationUnits, orgUnit => {
             validationSheet.cell(rowId++, columnId).formula(`_${orgUnit.id}`);
         });
         this.validations.set(
@@ -575,7 +578,8 @@ export class SheetBuilder {
             validationSheet
                 .cell(rowId++, columnId)
                 .string(i18n.t("Relationship Types", { lng: this.builder.language }));
-            _.forEach(metadata.relationshipTypes, relationshipType => {
+            const sortedRelationshipTypes = this.metadataService.sort(metadata.relationshipType);
+            _.forEach(sortedRelationshipTypes, relationshipType => {
                 validationSheet.cell(rowId++, columnId).formula(`_${relationshipType.id}`);
             });
             this.validations.set(

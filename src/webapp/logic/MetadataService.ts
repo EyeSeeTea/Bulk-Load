@@ -12,11 +12,17 @@ export class MetadataService {
     }
 
     sortMetadata(items: TranslatableItem[]): TranslatableItem[] {
+        if (!items) return [];
         const metadata = _(items)
             .map(item => this.metadata.get(item.id) ?? item)
             .compact()
             .value();
         return this._sort(metadata);
+    }
+
+    sort(items: TranslatableItem[]): TranslatableItem[] {
+        if (!items) return [];
+        return this._sort(items);
     }
 
     _sort(items: TranslatableItem[]): TranslatableItem[] {
