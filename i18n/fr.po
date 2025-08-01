@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load App\n"
-"POT-Creation-Date: 2024-12-17T16:04:30.663Z\n"
+"POT-Creation-Date: 2025-01-27T03:20:13.064Z\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -807,20 +807,9 @@ msgstr ""
 "L'utilisateur n'a pas accès à aucune unité d'organisation por la saisie de "
 "données"
 
-msgid "Advanced template properties"
-msgstr "Propriétés avancées du modèle"
-
-msgid "Language"
-msgstr "Langue"
-
-msgid "Split data entry tabs by section"
-msgstr ""
-
-msgid "Theme"
-msgstr "Thème"
-
-msgid "<No value>"
-msgstr "<Aucune valeur>"
+#, fuzzy
+msgid "Populate"
+msgstr "Modèle"
 
 msgid "Populate template with data"
 msgstr "Remplir le modèle avec des données"
@@ -841,6 +830,21 @@ msgid "Only selected organisation units"
 msgstr ""
 
 msgid "Include relationships"
+msgstr ""
+
+msgid "Advanced template properties"
+msgstr "Propriétés avancées du modèle"
+
+msgid "Language"
+msgstr "Langue"
+
+msgid "Theme"
+msgstr "Thème"
+
+msgid "<No value>"
+msgstr "<Aucune valeur>"
+
+msgid "Split data entry tabs by section"
 msgstr ""
 
 msgid "Use metadata codes (organisation units, data elements and options)"
