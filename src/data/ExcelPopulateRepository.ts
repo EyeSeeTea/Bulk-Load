@@ -25,7 +25,7 @@ import i18n from "../utils/i18n";
 import { cache } from "../utils/cache";
 import { fromBase64 } from "../utils/files";
 import { removeCharacters } from "../utils/string";
-import { Optional } from "../types/utils";
+import { Maybe } from "../types/utils";
 
 export class ExcelPopulateRepository extends ExcelRepository {
     private workbooks: Record<string, ExcelWorkbook> = {};
@@ -139,7 +139,7 @@ export class ExcelPopulateRepository extends ExcelRepository {
         return this.readCellValue(workbook, cellRef, options?.formula);
     }
 
-    public async getContentType(id: string, cellRef?: CellRef | ValueRef): Promise<Optional<ContentType>> {
+    public async getContentType(id: string, cellRef?: CellRef | ValueRef): Promise<Maybe<ContentType>> {
         if (!cellRef) return undefined;
         if (cellRef.type === "value") return "raw";
 

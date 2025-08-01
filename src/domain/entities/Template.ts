@@ -378,7 +378,7 @@ type TemplateGenericDataPackage = BaseTemplateDataPackage & {
     type: "dataSets" | "programs";
 };
 
-type TemplateTrackerProgramPackage = BaseTemplateDataPackage & {
+export type TemplateTrackerProgramPackage = BaseTemplateDataPackage & {
     type: "trackerPrograms";
     trackedEntityInstances: TrackedEntityInstance[];
 };
