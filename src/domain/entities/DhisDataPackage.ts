@@ -15,6 +15,7 @@ export interface AggregatedDataValue {
     categoryOptionCombo?: string;
     attributeOptionCombo?: string;
     value: string;
+    comment?: string;
 }
 
 export interface Event {

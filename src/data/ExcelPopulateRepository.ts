@@ -209,7 +209,7 @@ export class ExcelPopulateRepository extends ExcelRepository {
 
         const formulaValue = getFormulaValue();
         const textValue = getValue(destination);
-        const value = formula ? formulaValue : this.resolveNA(textValue ?? "", formulaValue ?? "");
+        const value = formula ? formulaValue : this.resolveNA(textValue, formulaValue);
 
         if (value instanceof FormulaError) return "";
 
@@ -230,9 +230,9 @@ export class ExcelPopulateRepository extends ExcelRepository {
     // can be used as a workaround:
     // formulas that result to blank cells store the raw formula in the value
     // use #N/A as default value instead of blank
-    private resolveNA(value: ExcelValue, formula: ExcelValue): ExcelValue {
+    private resolveNA(value: Maybe<ExcelValue>, formula: Maybe<ExcelValue>): Maybe<ExcelValue> {
         if (value === "#N/A") return "";
-        return value || formula;
+        return value ?? formula;
     }
 
     public async getCellsInRange(id: string, range: Range): Promise<CellRef[]> {

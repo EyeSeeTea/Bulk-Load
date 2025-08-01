@@ -402,6 +402,7 @@ export type TemplateDataPackageData = {
         value: string | number | boolean;
         optionId: Maybe<string>;
         contentType: Maybe<ContentType>;
+        comment?: string;
     }[];
 };
 
@@ -467,6 +468,7 @@ export function templateFromDataPackage(dataPackage: DataPackage): TemplateDataP
                         value: dv.value,
                         category: dv.category,
                         optionId: dv.optionId,
+                        comment: dv.comment,
                         contentType: dv.contentType,
                     })),
                 })),
@@ -527,6 +529,7 @@ function mapFromProgramData(entry: ProgramPackageData): TemplateDataPackageData 
             value: dv.value,
             category: undefined,
             optionId: undefined,
+            comment: undefined,
             contentType: dv.contentType,
         })),
     };

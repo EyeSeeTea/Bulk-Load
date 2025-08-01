@@ -166,6 +166,7 @@ export class ExcelReader {
                         category: category ? this.formatValue(category) : undefined,
                         value: this.formatValue(value),
                         optionId: optionId ? removeCharacters(optionId) : undefined,
+
                         contentType: contentType,
                     },
                 ],

@@ -65,4 +65,5 @@ export type BasePackageDataValue = {
 
 export type DataSetPackageDataValue = BasePackageDataValue & {
     category: Maybe<Id>;
+    comment?: string;
 };
