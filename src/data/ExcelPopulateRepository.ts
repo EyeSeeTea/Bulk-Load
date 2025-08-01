@@ -232,7 +232,7 @@ export class ExcelPopulateRepository extends ExcelRepository {
     // use #N/A as default value instead of blank
     private resolveNA(value: ExcelValue, formula: ExcelValue): ExcelValue {
         if (value === "#N/A") return "";
-        return value ?? formula;
+        return value || formula;
     }
 
     public async getCellsInRange(id: string, range: Range): Promise<CellRef[]> {
