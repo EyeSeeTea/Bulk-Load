@@ -5,12 +5,20 @@ import { cleanOrgUnitPath } from "../../utils/dhis";
 import { isString, removeCharacters } from "../../utils/string";
 import Settings from "../../webapp/logic/settings";
 import { DuplicateExclusion, DuplicateToleranceUnit } from "../entities/AppSettings";
-import { DataForm, DataOption } from "../entities/DataForm";
-import { DataPackage, DataPackageData, DataPackageDataValue, TrackerProgramPackage } from "../entities/DataPackage";
+import { DataForm, dataFormTypeMap, DataOption } from "../entities/DataForm";
+import { DataPackageDataValue } from "../entities/DataPackage";
 import { Either } from "../entities/Either";
 import { OrgUnit } from "../entities/OrgUnit";
 import { ErrorMessage, SynchronizationResult } from "../entities/SynchronizationResult";
-import { Template } from "../entities/Template";
+import {
+    Template,
+    TemplateDataPackage,
+    TemplateDataPackageData,
+    TemplateDataPackageDataValue,
+    templateFromDataPackage,
+    templateToDataPackage,
+    TemplateTrackerProgramPackage,
+} from "../entities/Template";
 import { ExcelReader } from "../helpers/ExcelReader";
 import { ExcelRepository } from "../repositories/ExcelRepository";
 import { InstanceRepository } from "../repositories/InstanceRepository";
@@ -19,18 +27,18 @@ import { FileRepository } from "../repositories/FileRepository";
 import { FileResource } from "../entities/FileResource";
 import { ImportSourceRepository } from "../repositories/ImportSourceRepository";
 import { AttributeValue, TrackedEntityInstance } from "../entities/TrackedEntityInstance";
-import { Maybe, Optional } from "../../types/utils";
+import { Maybe } from "../../types/utils";
 
 export type ImportTemplateError =
     | {
           type: "INVALID_DATA_FORM_ID" | "DATA_FORM_NOT_FOUND" | "INVALID_OVERRIDE_ORG_UNIT" | "MALFORMED_TEMPLATE";
       }
-    | { type: "INVALID_ORG_UNITS"; dataValues: DataPackage; invalidDataValues: DataPackage }
+    | { type: "INVALID_ORG_UNITS"; dataValues: TemplateDataPackage; invalidDataValues: TemplateDataPackage }
     | {
           type: "DUPLICATE_VALUES";
-          dataValues: DataPackage;
-          existingDataValues: DataPackage;
-          instanceDataValues: DataPackage;
+          dataValues: TemplateDataPackage;
+          existingDataValues: TemplateDataPackage;
+          instanceDataValues: TemplateDataPackage;
       };
 
 export type DuplicateImportStrategy = "ERROR" | "IMPORT" | "IGNORE" | "IMPORT_WITHOUT_DELETE";
@@ -143,13 +151,13 @@ export class ImportTemplateUseCase implements UseCase {
         }
 
         const shouldDeleteExistingData =
-            dataForm.type === "dataSets" ? this.shouldDeleteAggregatedData(duplicateStrategy) : false;
+            dataForm.type === dataFormTypeMap.dataSets ? this.shouldDeleteAggregatedData(duplicateStrategy) : false;
 
         const deleteResult = shouldDeleteExistingData
-            ? await this.instanceRepository.deleteAggregatedData(instanceDataValues)
+            ? await this.instanceRepository.deleteAggregatedData(templateToDataPackage(instanceDataValues))
             : undefined;
 
-        const importResult = await this.instanceRepository.importDataPackage(dataValues, {
+        const importResult = await this.instanceRepository.importDataPackage(templateToDataPackage(dataValues), {
             createAndUpdate: duplicateStrategy === "IMPORT_WITHOUT_DELETE" || duplicateStrategy === "ERROR",
             multiTextTeiDelimiter: this.getMultiTextTeiDelimiter(template),
         });
@@ -193,7 +201,7 @@ export class ImportTemplateUseCase implements UseCase {
     }
 
     private validateOrgUnitAccess(
-        dataPackage: DataPackage,
+        dataPackage: TemplateDataPackage,
         orgUnits: OrgUnit[],
         selectedOrgUnits: string[],
         settings: Settings
@@ -235,7 +243,7 @@ export class ImportTemplateUseCase implements UseCase {
         });
     }
 
-    private async readTemplate(template: Template, dataForm: DataForm): Promise<DataPackage | undefined> {
+    private async readTemplate(template: Template, dataForm: DataForm): Promise<Maybe<TemplateDataPackage>> {
         const reader = new ExcelReader(this.excelRepository, this.instanceRepository);
         const excelDataValues = await reader.readTemplate(template, dataForm);
         if (!excelDataValues) return undefined;
@@ -258,7 +266,7 @@ export class ImportTemplateUseCase implements UseCase {
         };
     }
 
-    private formatTrackedEntityInstances(dataPackage: TrackerProgramPackage, dataForm: DataForm) {
+    private formatTrackedEntityInstances(dataPackage: TemplateTrackerProgramPackage, dataForm: DataForm) {
         return {
             ...dataPackage,
             trackedEntityInstances: dataPackage.trackedEntityInstances.map(tei => {
@@ -274,7 +282,7 @@ export class ImportTemplateUseCase implements UseCase {
     }
 
     private async readDataValues(
-        excelDataPackage: DataPackage,
+        excelDataPackage: TemplateDataPackage,
         dataForm: DataForm,
         useBuilderOrgUnits: boolean,
         selectedOrgUnits: string[],
@@ -348,7 +356,7 @@ export class ImportTemplateUseCase implements UseCase {
         };
     }
 
-    private addImagesToDataEntries(files: FileResource[], dataEntries: DataPackageData[], dataForm: DataForm) {
+    private addImagesToDataEntries(files: FileResource[], dataEntries: TemplateDataPackageData[], dataForm: DataForm) {
         const imageDataElementsIds = this.getImageDataElementIds(dataForm);
         return dataEntries.map(dataEntry => {
             return {
@@ -388,7 +396,11 @@ export class ImportTemplateUseCase implements UseCase {
         });
     }
 
-    private validateImagesExistInZip(dataEntries: DataPackageData[], dataForm: DataForm, images: FileResource[]) {
+    private validateImagesExistInZip(
+        dataEntries: TemplateDataPackageData[],
+        dataForm: DataForm,
+        images: FileResource[]
+    ) {
         const imagesInExcel = this.getImageDataValuesOnly(dataEntries, dataForm);
         const imagesNames = images.map(image => image.name);
         const fileNotInZip = _.differenceBy(imagesInExcel, imagesNames);
@@ -400,7 +412,7 @@ export class ImportTemplateUseCase implements UseCase {
         return images;
     }
 
-    private getImageDataValuesOnly(dataEntries: DataPackageData[], dataForm: DataForm) {
+    private getImageDataValuesOnly(dataEntries: TemplateDataPackageData[], dataForm: DataForm) {
         const imageDataElementsIds = this.getImageDataElementIds(dataForm);
         const fileNameInDataValues = _(dataEntries)
             .flatMap(de => de.dataValues)
@@ -416,9 +428,9 @@ export class ImportTemplateUseCase implements UseCase {
         return dataForm.dataElements.filter(de => de.valueType === "IMAGE").map(de => de.id);
     }
 
-    private parseExcelFile(dataPackage: DataPackage, useBuilderOrgUnits: boolean, selectedOrgUnits: string[]) {
+    private parseExcelFile(dataPackage: TemplateDataPackage, useBuilderOrgUnits: boolean, selectedOrgUnits: string[]) {
         const dataEntries =
-            dataPackage.type === "dataSets"
+            dataPackage.type === dataFormTypeMap.dataSets
                 ? _.flatMap(dataPackage.dataEntries, entry =>
                       entry.dataValues.map(value => ({ ...entry, dataValues: [value] }))
                   )
@@ -430,28 +442,28 @@ export class ImportTemplateUseCase implements UseCase {
     }
 
     private async getExistingDataValues(
-        excelDataPackage: DataPackage,
+        excelDataPackage: TemplateDataPackage,
         dataForm: DataForm,
         useBuilderOrgUnits: boolean,
         selectedOrgUnits: string[]
-    ): Promise<DataPackageData[]> {
+    ): Promise<TemplateDataPackageData[]> {
         const originalDataValues =
             useBuilderOrgUnits && selectedOrgUnits[0]
                 ? this.overrideOrgUnit(excelDataPackage.dataEntries, selectedOrgUnits[0])
                 : excelDataPackage.dataEntries;
 
-        const { dataEntries } = await this.getInstanceDataValues(dataForm, originalDataValues);
-        return dataEntries;
+        const dataPackage = await this.getInstanceDataValues(dataForm, originalDataValues);
+        return templateFromDataPackage(dataPackage).dataEntries;
     }
 
-    private overrideOrgUnit(dataValues: DataPackageData[], replaceOrgUnit: string): DataPackageData[] {
+    private overrideOrgUnit(dataValues: TemplateDataPackageData[], replaceOrgUnit: string): TemplateDataPackageData[] {
         return dataValues.map(dataValue => ({
             ...dataValue,
             orgUnit: cleanOrgUnitPath(replaceOrgUnit),
         }));
     }
 
-    private async getInstanceDataValues(dataForm: DataForm, dataValues: DataPackageData[]) {
+    private async getInstanceDataValues(dataForm: DataForm, dataValues: TemplateDataPackageData[]) {
         const periods = _.uniq(dataValues.map(({ period }) => period.toString()));
         const orgUnits = _.uniq(dataValues.map(({ orgUnit }) => orgUnit));
 
@@ -490,12 +502,12 @@ export class ImportTemplateUseCase implements UseCase {
 }
 
 function getTrackedEntityInstances(
-    excelDataValues: DataPackage,
+    excelDataValues: TemplateDataPackage,
     useBuilderOrgUnits: boolean,
     selectedOrgUnitPaths: string[]
 ) {
     const orgUnitOverridePath = useBuilderOrgUnits ? selectedOrgUnitPaths[0] : null;
-    const teis = excelDataValues.type === "trackerPrograms" ? excelDataValues.trackedEntityInstances : [];
+    const teis = excelDataValues.type === dataFormTypeMap.trackerPrograms ? excelDataValues.trackedEntityInstances : [];
 
     return orgUnitOverridePath
         ? teis.map(tei => ({ ...tei, orgUnit: { id: cleanOrgUnitPath(orgUnitOverridePath) } }))
@@ -505,14 +517,14 @@ function getTrackedEntityInstances(
 // This method should not be exposed, remove as soon as not used in legacy code
 export const compareDataPackages = (
     dataForm: Pick<DataForm, "type" | "id">,
-    base: Partial<DataPackageData>,
-    compare: DataPackageData,
+    base: Partial<TemplateDataPackageData>,
+    compare: TemplateDataPackageData,
     duplicateExclusion: DuplicateExclusion,
     duplicateTolerance: number,
     duplicateToleranceUnit: DuplicateToleranceUnit,
     defaultCategory?: string
 ): boolean => {
-    const properties = _.compact([dataForm.type === "dataSets" ? "period" : undefined, "orgUnit", "attribute"]);
+    const properties = [...(dataForm.type === dataFormTypeMap.dataSets ? ["period"] : []), "orgUnit", "attribute"];
 
     for (const property of properties) {
         const baseValue = _.get(base, property);
@@ -521,10 +533,10 @@ export const compareDataPackages = (
         if (baseValue && compareValue && !areEqual) return false;
     }
 
-    if (dataForm.type === "programs" || dataForm.type === "trackerPrograms") {
+    if (dataForm.type === dataFormTypeMap.programs || dataForm.type === dataFormTypeMap.trackerPrograms) {
         const isWithToleranceRange =
             moment
-                .duration(moment(base.period).diff(moment(compare.period)))
+                .duration(moment(base?.period).diff(moment(compare.period)))
                 .abs()
                 .as(duplicateToleranceUnit) > duplicateTolerance;
         if (isWithToleranceRange) return false;
@@ -552,7 +564,7 @@ export const compareDataPackages = (
         }
     }
 
-    if (dataForm.type === "dataSets") {
+    if (dataForm.type === dataFormTypeMap.dataSets) {
         return _.some(base.dataValues, ({ dataElement: baseDataElement, category: baseCategory = defaultCategory }) =>
             compare.dataValues.find(
                 ({ dataElement, category = defaultCategory }) =>
@@ -567,7 +579,7 @@ export const compareDataPackages = (
 const trueValues = ["y", "yes", "true", "1"];
 const falseValues = ["n", "no", "false", "0"];
 
-function getBooleanValue(item: DataPackageDataValue): Maybe<boolean> {
+function getBooleanValue(item: TemplateDataPackageDataValue): Maybe<boolean> {
     const strValue = String(item.value).toLowerCase();
 
     switch (true) {
@@ -584,13 +596,13 @@ function getBooleanValue(item: DataPackageDataValue): Maybe<boolean> {
     }
 }
 
-function getOptionValue(originalValue: string, options?: DataOption[]): Optional<DataOption> {
+function getOptionValue(originalValue: string, options?: DataOption[]): Maybe<DataOption> {
     if (!options) return undefined;
 
     return options.find(({ id, name }) => originalValue === id || originalValue === name);
 }
 
-function formatDataValue(item: DataPackageDataValue, dataForm: DataForm): Optional<DataPackageDataValue> {
+function formatDataValue(item: TemplateDataPackageDataValue, dataForm: DataForm): Maybe<TemplateDataPackageDataValue> {
     const dataElement = dataForm.dataElements.find(({ id }) => item.dataElement === id);
     const booleanValue = getBooleanValue(item);
 

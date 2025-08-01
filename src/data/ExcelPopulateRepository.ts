@@ -25,7 +25,7 @@ import i18n from "../utils/i18n";
 import { cache } from "../utils/cache";
 import { fromBase64 } from "../utils/files";
 import { removeCharacters } from "../utils/string";
-import { Optional } from "../types/utils";
+import { Maybe } from "../types/utils";
 
 export class ExcelPopulateRepository extends ExcelRepository {
     private workbooks: Record<string, ExcelWorkbook> = {};
@@ -139,7 +139,7 @@ export class ExcelPopulateRepository extends ExcelRepository {
         return this.readCellValue(workbook, cellRef, options?.formula);
     }
 
-    public async getContentType(id: string, cellRef?: CellRef | ValueRef): Promise<Optional<ContentType>> {
+    public async getContentType(id: string, cellRef?: CellRef | ValueRef): Promise<Maybe<ContentType>> {
         if (!cellRef) return undefined;
         if (cellRef.type === "value") return "raw";
 
@@ -209,7 +209,7 @@ export class ExcelPopulateRepository extends ExcelRepository {
 
         const formulaValue = getFormulaValue();
         const textValue = getValue(destination);
-        const value = formula ? formulaValue : this.resolveNA(textValue ?? "", formulaValue ?? "");
+        const value = formula ? formulaValue : this.resolveNA(textValue, formulaValue);
 
         if (value instanceof FormulaError) return "";
 
@@ -230,7 +230,7 @@ export class ExcelPopulateRepository extends ExcelRepository {
     // can be used as a workaround:
     // formulas that result to blank cells store the raw formula in the value
     // use #N/A as default value instead of blank
-    private resolveNA(value: ExcelValue, formula: ExcelValue): ExcelValue {
+    private resolveNA(value: Maybe<ExcelValue>, formula: Maybe<ExcelValue>): Maybe<ExcelValue> {
         if (value === "#N/A") return "";
         return value ?? formula;
     }

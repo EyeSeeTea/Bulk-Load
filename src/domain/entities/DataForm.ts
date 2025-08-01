@@ -2,7 +2,12 @@ import i18n from "../../utils/i18n";
 import { ofType } from "../../types/utils";
 import { Id, NamedRef } from "./ReferenceObject";
 
-export const dataFormTypes = ["dataSets", "programs", "trackerPrograms"] as const;
+export const dataFormTypeMap = {
+    dataSets: "dataSets",
+    programs: "programs",
+    trackerPrograms: "trackerPrograms",
+} as const;
+export const dataFormTypes = Object.values(dataFormTypeMap) as typeof dataFormTypeMap[keyof typeof dataFormTypeMap][];
 export type DataFormType = typeof dataFormTypes[number];
 export type DataFormPeriod = "Daily" | "Monthly" | "Yearly" | "Weekly" | "Quarterly";
 

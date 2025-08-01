@@ -2,13 +2,15 @@ import { Maybe } from "../../types/utils";
 import _ from "lodash";
 import { ExcelRepository } from "../repositories/ExcelRepository";
 import { InstanceRepository } from "../repositories/InstanceRepository";
-import { DataForm, DataFormType } from "./DataForm";
-import { DataPackage } from "./DataPackage";
+import { DataForm, DataFormType, dataFormTypeMap } from "./DataForm";
+import { DataPackage, DataSetPackageData, DataSetPackageDataValue, ProgramPackageData } from "./DataPackage";
 import { i18nShortCode, Id } from "./ReferenceObject";
 import { ImageSections, ThemeableSections } from "./Theme";
 import { User, UserTimestamp } from "./User";
 import { Sheet as SheetE } from "./Sheet";
 import { ModulesRepositories } from "../repositories/ModulesRepositories";
+import { TrackedEntityInstance } from "./TrackedEntityInstance";
+import { Geometry } from "./DhisDataPackage";
 
 export interface DataFormTemplate extends DataForm {
     templateId: string;
@@ -70,14 +72,14 @@ export interface DownloadCustomizationOptions {
     type: DataFormType;
     id: string;
     populate: boolean;
-    dataPackage?: DataPackage;
+    dataPackage?: TemplateDataPackage;
     orgUnits: string[];
     language?: i18nShortCode;
     currentUser: User;
 }
 
 export interface ImportCustomizationOptions {
-    dataPackage: DataPackage;
+    dataPackage: TemplateDataPackage;
 }
 
 export interface CustomTemplateWithUrl extends BaseTemplate {
@@ -99,7 +101,7 @@ export interface CustomTemplateWithUrl extends BaseTemplate {
         excelRepository: ExcelRepository,
         instanceRepository: InstanceRepository,
         options: ImportCustomizationOptions
-    ) => Promise<DataPackage | undefined>;
+    ) => Promise<Maybe<TemplateDataPackage>>;
 }
 
 export interface GenericSheetRef {
@@ -362,4 +364,208 @@ export function getDataSources(template: Template, sheetName: string): DataSourc
             return [dataSource];
         }
     });
+}
+
+export type TemplateDataPackage = TemplateGenericDataPackage | TemplateTrackerProgramPackage;
+export type TemplateDataPackageDataValue = TemplateDataPackageData["dataValues"][number];
+
+type BaseTemplateDataPackage = {
+    type: DataFormType;
+    dataEntries: TemplateDataPackageData[];
+};
+
+type TemplateGenericDataPackage = BaseTemplateDataPackage & {
+    type: "dataSets" | "programs";
+};
+
+export type TemplateTrackerProgramPackage = BaseTemplateDataPackage & {
+    type: "trackerPrograms";
+    trackedEntityInstances: TrackedEntityInstance[];
+};
+
+export type TemplateDataPackageData = {
+    group: number | Maybe<string>;
+    dataForm: string;
+    id: Maybe<string>;
+    orgUnit: string;
+    period: string;
+    attribute: Maybe<string>;
+    coordinate: Maybe<{
+        latitude: string;
+        longitude: string;
+    }>;
+    trackedEntityInstance: Maybe<string>;
+    programStage: Maybe<string>;
+    dataValues: {
+        dataElement: string;
+        category: Maybe<string>;
+        value: string | number | boolean;
+        optionId: Maybe<string>;
+        contentType: Maybe<ContentType>;
+        comment?: string;
+    }[];
+};
+
+export function templateToDataPackage(template: TemplateDataPackage): DataPackage {
+    const { type, dataEntries } = template;
+
+    switch (type) {
+        case dataFormTypeMap.dataSets:
+            return {
+                type,
+                dataEntries: dataEntries.map(entry => ({
+                    type: "aggregated",
+                    orgUnit: entry.orgUnit,
+                    dataForm: entry.dataForm,
+                    period: entry.period,
+                    attribute: entry.attribute,
+                    dataValues: entry.dataValues.map(dv => ({
+                        dataElement: dv.dataElement,
+                        category: dv.category,
+                        value: dv.value,
+                        optionId: dv.optionId,
+                        comment: dv.comment,
+                        contentType: dv.contentType,
+                    })),
+                })),
+            };
+
+        case dataFormTypeMap.programs: {
+            const mappedEntries = dataEntries.map(mapToProgramData);
+            return {
+                type,
+                dataEntries: mappedEntries,
+            };
+        }
+
+        case dataFormTypeMap.trackerPrograms: {
+            const mappedEntries = dataEntries.map(mapToProgramData);
+            return {
+                type,
+                dataEntries: mappedEntries,
+                trackedEntityInstances: template.trackedEntityInstances || [],
+            };
+        }
+    }
+}
+
+export function templateFromDataPackage(dataPackage: DataPackage): TemplateDataPackage {
+    switch (dataPackage.type) {
+        case dataFormTypeMap.dataSets:
+            return {
+                ...dataPackage,
+                dataEntries: dataPackage.dataEntries.map((entry: DataSetPackageData) => ({
+                    group: undefined,
+                    dataForm: entry.dataForm,
+                    id: undefined,
+                    orgUnit: entry.orgUnit,
+                    period: entry.period,
+                    attribute: entry.attribute,
+                    coordinate: undefined,
+                    trackedEntityInstance: undefined,
+                    programStage: undefined,
+                    dataValues: entry.dataValues.map((dv: DataSetPackageDataValue) => ({
+                        dataElement: dv.dataElement,
+                        value: dv.value,
+                        category: dv.category,
+                        optionId: dv.optionId,
+                        comment: dv.comment,
+                        contentType: dv.contentType,
+                    })),
+                })),
+            };
+
+        case dataFormTypeMap.programs: {
+            const mappedEntries = dataPackage.dataEntries.map(mapFromProgramData);
+            return {
+                type: "programs",
+                dataEntries: mappedEntries,
+            };
+        }
+        case dataFormTypeMap.trackerPrograms: {
+            const mappedEntries = dataPackage.dataEntries.map(mapFromProgramData);
+            return {
+                ...dataPackage,
+                dataEntries: mappedEntries,
+                trackedEntityInstances: dataPackage.trackedEntityInstances,
+            };
+        }
+    }
+}
+
+function mapToProgramData(entry: TemplateDataPackageData): ProgramPackageData {
+    return {
+        orgUnit: entry.orgUnit,
+        dataForm: entry.dataForm,
+        period: entry.period,
+        attribute: entry.attribute,
+        id: entry.id,
+        trackedEntityInstance: entry.trackedEntityInstance,
+        programStage: entry.programStage,
+        coordinate: entry.coordinate,
+        geometry: coordinateToGeometry(entry),
+        dataValues: entry.dataValues.map(dv => ({
+            dataElement: dv.dataElement,
+            value: dv.value,
+            category: dv.category,
+            optionId: dv.optionId,
+            contentType: dv.contentType,
+        })),
+    };
+}
+
+function mapFromProgramData(entry: ProgramPackageData): TemplateDataPackageData {
+    return {
+        group: undefined,
+        dataForm: entry.dataForm,
+        id: entry.id,
+        orgUnit: entry.orgUnit,
+        period: entry.period,
+        attribute: entry.attribute,
+        coordinate: entry.coordinate ?? geometryToCoordinate(entry.geometry ?? undefined),
+        trackedEntityInstance: entry.trackedEntityInstance,
+        programStage: entry.programStage,
+        dataValues: entry.dataValues.map(dv => ({
+            dataElement: dv.dataElement,
+            value: dv.value,
+            category: undefined,
+            optionId: undefined,
+            comment: undefined,
+            contentType: dv.contentType,
+        })),
+    };
+}
+
+function coordinateToGeometry(entry: TemplateDataPackageData): Maybe<Geometry> {
+    const { coordinate } = entry;
+    if (!coordinate) return undefined;
+
+    const longitude = parseInt(coordinate.longitude);
+    const latitude = parseInt(coordinate.latitude);
+
+    if (longitude === undefined || latitude === undefined) return undefined;
+
+    return {
+        type: "Point",
+        coordinates: [longitude, latitude],
+    };
+}
+
+function geometryToCoordinate(geometry?: Geometry): Maybe<TemplateDataPackageData["coordinate"]> {
+    //currenly, coordinate prop is only being used for point
+    switch (geometry?.type) {
+        case "Point": {
+            if (!geometry || !Array.isArray(geometry.coordinates) || geometry.type !== "Point") return undefined;
+
+            const [longitude, latitude] = geometry.coordinates;
+
+            return {
+                latitude: latitude.toString(),
+                longitude: longitude.toString(),
+            };
+        }
+        case "Polygon":
+        default:
+            return undefined;
+    }
 }
