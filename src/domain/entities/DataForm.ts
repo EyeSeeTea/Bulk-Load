@@ -45,6 +45,7 @@ export interface DataForm {
 
 export interface TrackedEntityAttributeType extends NamedRef {
     valueType: DataElementType | undefined;
+    options: Array<DataOption>;
 }
 
 export interface TrackedEntityType {
@@ -59,8 +60,10 @@ export interface DataElement {
     name: string;
     valueType: DataElementType;
     categoryOptionCombos?: Array<{ id: Id; name: string }>;
-    options: Array<{ id: Id; code: string }>;
+    options: Array<DataOption>;
 }
+
+export type DataOption = { id: Id; code: string; name: string };
 
 export type DataElementType =
     | "TEXT"
@@ -87,7 +90,8 @@ export type DataElementType =
     | "AGE"
     | "URL"
     | "FILE_RESOURCE"
-    | "IMAGE";
+    | "IMAGE"
+    | "MULTI_TEXT";
 
 export interface OrganisationUnit {
     id: Id;

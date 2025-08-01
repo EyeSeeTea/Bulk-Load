@@ -144,6 +144,7 @@ export class InstanceDhisRepository implements InstanceRepository {
                     id: trackedEntityAttribute.id,
                     name: trackedEntityAttribute.name,
                     valueType: trackedEntityAttribute.valueType,
+                    options: trackedEntityAttribute.optionSet?.options,
                 })),
                 trackedEntityType: getTrackedEntityTypeFromApi(trackedEntityType),
             })
@@ -230,7 +231,7 @@ export class InstanceDhisRepository implements InstanceRepository {
                 return result;
             }
             case dataFormTypeMap.trackerPrograms: {
-                return this.importTrackerProgramData(dataPackage);
+                return this.importTrackerProgramData(dataPackage, options);
             }
             default:
                 throw new Error(`Unsupported type for data package`);
@@ -496,9 +497,12 @@ export class InstanceDhisRepository implements InstanceRepository {
         return _.first(objects)?.programStages[0];
     }
 
-    private async importTrackerProgramData(dataPackage: TrackerProgramPackage): Promise<SynchronizationResult[]> {
+    private async importTrackerProgramData(
+        dataPackage: TrackerProgramPackage,
+        options: ImportDataPackageOptions
+    ): Promise<SynchronizationResult[]> {
         const { trackedEntityInstances, dataEntries } = dataPackage;
-        return updateTrackedEntityInstances(this.api, trackedEntityInstances, dataEntries);
+        return updateTrackedEntityInstances(this.api, trackedEntityInstances, dataEntries, options);
     }
 
     private async getDataSetMetadata(formOptions: { id: Id }) {
@@ -771,7 +775,7 @@ const dataElementFields = {
     name: true,
     valueType: true,
     categoryCombo: { categoryOptionCombos: { id: true, name: true } },
-    optionSet: { id: true, options: { id: true, code: true } },
+    optionSet: { id: true, options: { id: true, code: true, name: true } },
 } as const;
 
 const dataSetFields = {
@@ -796,7 +800,14 @@ const programFields = {
         programStageDataElements: { dataElement: dataElementFields },
         repeatable: true,
     },
-    programTrackedEntityAttributes: { trackedEntityAttribute: { id: true, name: true, valueType: true } },
+    programTrackedEntityAttributes: {
+        trackedEntityAttribute: {
+            id: true,
+            name: true,
+            valueType: true,
+            optionSet: { id: true, options: { id: true, code: true, name: true } },
+        },
+    },
     access: true,
     programType: true,
     trackedEntityType: { id: true, featureType: true },

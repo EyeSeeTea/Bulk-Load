@@ -1,6 +1,7 @@
 import { DataFormType } from "./DataForm";
 import { Id } from "./ReferenceObject";
 import { TrackedEntityInstance } from "./TrackedEntityInstance";
+import { ContentType } from "./Template";
 import { Maybe } from "../../types/utils";
 import { Geometry } from "./DhisDataPackage";
 
@@ -58,7 +59,10 @@ export type ProgramPackageData = BasePackageData & {
 export type BasePackageDataValue = {
     dataElement: Id;
     value: DataPackageValue;
-};
+    optionId?: Id;
+    comment?: string;
+    contentType?: ContentType;
+}
 
 export type DataSetPackageDataValue = BasePackageDataValue & {
     category: Maybe<Id>;
