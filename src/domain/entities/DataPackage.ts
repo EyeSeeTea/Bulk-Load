@@ -62,7 +62,7 @@ export type BasePackageDataValue = {
     optionId?: Id;
     comment?: string;
     contentType?: ContentType;
-}
+};
 
 export type DataSetPackageDataValue = BasePackageDataValue & {
     category: Maybe<Id>;
