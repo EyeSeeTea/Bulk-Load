@@ -60,11 +60,15 @@ export class SheetBuilder {
     private validations: Validations;
     private instancesSheetValuesRow = 0;
     private rowOffset;
+    private metadataService: MetadataService;
 
     constructor(private builder: SheetBuilderParams) {
         this.validations = new Map();
         const { template } = this.builder;
         this.rowOffset = template.type === "custom" ? 3 : template.rowOffset;
+        this.metadataService = new MetadataService(builder.elementMetadata, (item: TranslatableItem) =>
+            this.translate(item)
+        );
     }
 
     public async generate(): Promise<Workbook> {
@@ -531,7 +535,7 @@ export class SheetBuilder {
     }
 
     private fillValidationSheet(validationSheet: Sheet) {
-        const { organisationUnits, element, metadata, rawMetadata, elementMetadata, startDate, endDate } = this.builder;
+        const { organisationUnits, element, metadata, rawMetadata, startDate, endDate } = this.builder;
 
         // Freeze and format column titles
         validationSheet.row(2).freeze();
@@ -540,7 +544,10 @@ export class SheetBuilder {
         let rowId = 2;
         let columnId = 1;
         validationSheet.cell(rowId++, columnId).string(i18n.t("Organisation Units", { lng: this.builder.language }));
-        _.forEach(organisationUnits, orgUnit => {
+        const sortedOrganisationUnits = this.metadataService.sortMetadata(
+            organisationUnits.map(ou => ({ ...ou, type: "organisationUnits" }))
+        );
+        _.forEach(sortedOrganisationUnits, orgUnit => {
             validationSheet.cell(rowId++, columnId).formula(`_${orgUnit.id}`);
         });
         this.validations.set(
@@ -571,7 +578,8 @@ export class SheetBuilder {
             validationSheet
                 .cell(rowId++, columnId)
                 .string(i18n.t("Relationship Types", { lng: this.builder.language }));
-            _.forEach(metadata.relationshipTypes, relationshipType => {
+            const sortedRelationshipTypes = this.metadataService.sort(metadata.relationshipType);
+            _.forEach(sortedRelationshipTypes, relationshipType => {
                 validationSheet.cell(rowId++, columnId).formula(`_${relationshipType.id}`);
             });
             this.validations.set(
@@ -626,7 +634,9 @@ export class SheetBuilder {
         columnId++;
         validationSheet.cell(rowId++, columnId).string(i18n.t("Options", { lng: this.builder.language }));
         const dataSetOptionComboId = element.categoryCombo.id;
-        elementMetadata.forEach(e => {
+
+        const sortedMetadata = this.metadataService.sortedMetadata;
+        sortedMetadata.forEach(e => {
             if (e.type === "categoryOptionCombos" && e.categoryCombo.id === dataSetOptionComboId) {
                 validationSheet.cell(rowId++, columnId).formula(`_${e.id}`);
             }
@@ -649,7 +659,8 @@ export class SheetBuilder {
             columnId++;
 
             validationSheet.cell(rowId++, columnId).formula(`_${optionSet.id}`);
-            _.forEach(optionSet.options, option => {
+            const sortedOptions = this.metadataService.sortMetadata(optionSet.options);
+            _.forEach(sortedOptions, option => {
                 validationSheet.cell(rowId++, columnId).formula(`_${option.id}`);
             });
             this.validations.set(
@@ -723,9 +734,7 @@ export class SheetBuilder {
 
         let rowId = 3;
 
-        const metadataService = new MetadataService(metadata, item => this.translate(item));
-
-        const sortedMetadata = metadataService.sort();
+        const sortedMetadata = this.metadataService.sortedMetadata;
 
         sortedMetadata.forEach(item => {
             const { name } = this.translate(item);
