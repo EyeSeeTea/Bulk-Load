@@ -3,14 +3,24 @@ import { TranslatableItem } from "./sheetBuilder";
 export class MetadataService {
     private metadata: Map<any, any>;
     private translate: (item: TranslatableItem) => { name: string };
+    public sortedMetadata: TranslatableItem[];
 
     constructor(metadata: Map<any, any>, translateFn: (item: TranslatableItem) => { name: string }) {
         this.metadata = metadata;
         this.translate = translateFn;
+        this.sortedMetadata = this._sort(Array.from(metadata.values()));
     }
 
-    sort(): TranslatableItem[] {
-        return Array.from(this.metadata.values()).sort((a, b) => {
+    sortMetadata(items: TranslatableItem[]): TranslatableItem[] {
+        const metadata = _(items)
+            .map(item => this.metadata.get(item.id) ?? item)
+            .compact()
+            .value();
+        return this._sort(metadata);
+    }
+
+    _sort(items: TranslatableItem[]): TranslatableItem[] {
+        return Array.from(items).sort((a, b) => {
             const groupA = this.getGroupingKey(a);
             const groupB = this.getGroupingKey(b);
 
