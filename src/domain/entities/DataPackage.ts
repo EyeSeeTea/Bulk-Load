@@ -60,7 +60,6 @@ export type BasePackageDataValue = {
     dataElement: Id;
     value: DataPackageValue;
     optionId?: Id;
-    comment?: string;
     contentType?: ContentType;
 };
 

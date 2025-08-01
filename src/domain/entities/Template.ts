@@ -401,6 +401,7 @@ export type TemplateDataPackageData = {
         category: Maybe<string>;
         value: string | number | boolean;
         optionId: Maybe<string>;
+        contentType: Maybe<ContentType>;
     }[];
 };
 
@@ -421,6 +422,8 @@ export function templateToDataPackage(template: TemplateDataPackage): DataPackag
                         dataElement: dv.dataElement,
                         category: dv.category,
                         value: dv.value,
+                        optionId: dv.optionId,
+                        contentType: dv.contentType,
                     })),
                 })),
             };
@@ -463,7 +466,8 @@ export function templateFromDataPackage(dataPackage: DataPackage): TemplateDataP
                         dataElement: dv.dataElement,
                         value: dv.value,
                         category: dv.category,
-                        optionId: undefined,
+                        optionId: dv.optionId,
+                        contentType: dv.contentType,
                     })),
                 })),
             };
@@ -500,6 +504,9 @@ function mapToProgramData(entry: TemplateDataPackageData): ProgramPackageData {
         dataValues: entry.dataValues.map(dv => ({
             dataElement: dv.dataElement,
             value: dv.value,
+            category: dv.category,
+            optionId: dv.optionId,
+            contentType: dv.contentType,
         })),
     };
 }
@@ -520,6 +527,7 @@ function mapFromProgramData(entry: ProgramPackageData): TemplateDataPackageData 
             value: dv.value,
             category: undefined,
             optionId: undefined,
+            contentType: dv.contentType,
         })),
     };
 }

@@ -137,13 +137,15 @@ export class ExcelReader {
             const dataFormId = await this.readCellValue(template, template.dataFormId, cell);
             if (!dataFormId) return undefined;
 
-            const category = await this.readCellValue(template, dataSource.categoryOption, cell);
+            const [category, attribute, eventId, latitude, longitude, contentType] = await Promise.all([
+                this.readCellValue(template, dataSource.categoryOption, cell),
+                this.readCellValue(template, dataSource.attribute, cell),
+                this.readCellValue(template, dataSource.eventId, cell),
+                this.readCellValue(template, dataSource.coordinates?.latitude, cell),
+                this.readCellValue(template, dataSource.coordinates?.longitude, cell),
+                this.excelRepository.getContentType(template.id, cell),
+            ]);
 
-            const attribute = await this.readCellValue(template, dataSource.attribute, cell);
-            const eventId = await this.readCellValue(template, dataSource.eventId, cell);
-
-            const latitude = await this.readCellValue(template, dataSource.coordinates?.latitude, cell);
-            const longitude = await this.readCellValue(template, dataSource.coordinates?.longitude, cell);
             const hasCoordinate = isDefined(latitude) && isDefined(longitude);
 
             return {
@@ -164,6 +166,7 @@ export class ExcelReader {
                         category: category ? this.formatValue(category) : undefined,
                         value: this.formatValue(value),
                         optionId: optionId ? removeCharacters(optionId) : undefined,
+                        contentType: contentType,
                     },
                 ],
             };
@@ -190,9 +193,12 @@ export class ExcelReader {
         const dataFormId = await this.readCellValue(template, template.dataFormId);
         if (!dataFormId) return [];
 
-        const category = await this.readCellValue(template, dataSource.categoryOption);
-        const attribute = await this.readCellValue(template, dataSource.attribute);
-        const eventId = await this.readCellValue(template, dataSource.eventId);
+        const [category, attribute, eventId, contentType] = await Promise.all([
+            this.readCellValue(template, dataSource.categoryOption),
+            this.readCellValue(template, dataSource.attribute),
+            this.readCellValue(template, dataSource.eventId),
+            this.excelRepository.getContentType(template.id, cell),
+        ]);
 
         return [
             {
@@ -211,6 +217,7 @@ export class ExcelReader {
                         category: category ? String(category) : undefined,
                         value: this.formatValue(value),
                         optionId: optionId ? removeCharacters(optionId) : undefined,
+                        contentType: contentType,
                     },
                 ],
             },

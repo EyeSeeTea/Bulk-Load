@@ -17,6 +17,7 @@ import {
     TemplateDataPackageDataValue,
     templateFromDataPackage,
     templateToDataPackage,
+    TemplateTrackerProgramPackage,
 } from "../entities/Template";
 import { ExcelReader } from "../helpers/ExcelReader";
 import { ExcelRepository } from "../repositories/ExcelRepository";
@@ -26,7 +27,7 @@ import { FileRepository } from "../repositories/FileRepository";
 import { FileResource } from "../entities/FileResource";
 import { ImportSourceRepository } from "../repositories/ImportSourceRepository";
 import { AttributeValue, TrackedEntityInstance } from "../entities/TrackedEntityInstance";
-import { Maybe, Optional } from "../../types/utils";
+import { Maybe } from "../../types/utils";
 
 export type ImportTemplateError =
     | {
@@ -265,7 +266,7 @@ export class ImportTemplateUseCase implements UseCase {
         };
     }
 
-    private formatTrackedEntityInstances(dataPackage: TrackerProgramPackage, dataForm: DataForm) {
+    private formatTrackedEntityInstances(dataPackage: TemplateTrackerProgramPackage, dataForm: DataForm) {
         return {
             ...dataPackage,
             trackedEntityInstances: dataPackage.trackedEntityInstances.map(tei => {
@@ -601,7 +602,7 @@ function getOptionValue(originalValue: string, options?: DataOption[]): Maybe<Da
     return options.find(({ id, name }) => originalValue === id || originalValue === name);
 }
 
-function formatDataValue(item: DataPackageDataValue, dataForm: DataForm): Maybe<TemplateDataPackageDataValue> {
+function formatDataValue(item: TemplateDataPackageDataValue, dataForm: DataForm): Maybe<TemplateDataPackageDataValue> {
     const dataElement = dataForm.dataElements.find(({ id }) => item.dataElement === id);
     const booleanValue = getBooleanValue(item);
 

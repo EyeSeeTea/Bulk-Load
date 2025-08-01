@@ -2,7 +2,6 @@ import { TeiGetRequest, TrackedEntityInstanceGeometryAttributes } from "@eyeseet
 import { generateUid } from "d2/uid";
 import _ from "lodash";
 import { Moment } from "moment";
-import { DataElementType } from "../domain/entities/DataForm";
 import { ProgramPackageData } from "../domain/entities/DataPackage";
 import { Event, EventDataValue } from "../domain/entities/DhisDataPackage";
 import { Geometry } from "../domain/entities/Geometry";
