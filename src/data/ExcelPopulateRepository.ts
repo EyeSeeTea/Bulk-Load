@@ -9,13 +9,23 @@ import _ from "lodash";
 import moment from "moment";
 import { CellDataValidation } from "../domain/entities/CellDataValidation";
 import { Sheet } from "../domain/entities/Sheet";
-import { CellRef, ColumnRef, Range, RangeRef, RowRef, SheetRef, ValueRef } from "../domain/entities/Template";
+import {
+    CellRef,
+    ColumnRef,
+    ContentType,
+    Range,
+    RangeRef,
+    RowRef,
+    SheetRef,
+    ValueRef,
+} from "../domain/entities/Template";
 import { ThemeStyle } from "../domain/entities/Theme";
 import { ExcelRepository, ExcelValue, LoadOptions, ReadCellOptions } from "../domain/repositories/ExcelRepository";
 import i18n from "../utils/i18n";
 import { cache } from "../utils/cache";
 import { fromBase64 } from "../utils/files";
 import { removeCharacters } from "../utils/string";
+import { Optional } from "../types/utils";
 
 export class ExcelPopulateRepository extends ExcelRepository {
     private workbooks: Record<string, ExcelWorkbook> = {};
@@ -129,6 +139,25 @@ export class ExcelPopulateRepository extends ExcelRepository {
         return this.readCellValue(workbook, cellRef, options?.formula);
     }
 
+    public async getContentType(id: string, cellRef?: CellRef | ValueRef): Promise<Optional<ContentType>> {
+        if (!cellRef) return undefined;
+        if (cellRef.type === "value") return "raw";
+
+        const workbook = await this.getWorkbook(id);
+        const { cell } = this.getDestination(workbook, cellRef);
+
+        const formula = cell.formula();
+
+        if (!formula) {
+            return "raw";
+        } else if (formula.includes("(") && formula.includes(")")) {
+            //using excel specific functions
+            return "function";
+        } else {
+            return "formula";
+        }
+    }
+
     public async getConstants(id: string): Promise<Record<string, string>> {
         const workbook = await this.getWorkbook(id);
         const keys = (workbook as any).definedName() as string[];
@@ -157,21 +186,30 @@ export class ExcelPopulateRepository extends ExcelRepository {
         });
     }
 
+    private getDestination(workbook: Workbook, cellRef: CellRef): { cell: XLSX.Cell; sheet: XLSX.Sheet } {
+        const mergedCells = this.listMergedCells(workbook, cellRef.sheet);
+        const sheet = workbook.sheet(cellRef.sheet);
+        const cell = sheet.cell(cellRef.ref);
+        const matchingMergedCell = mergedCells.find(mergedCell => mergedCell.hasCell(cell));
+        const destinationCell = matchingMergedCell?.startCell || cell;
+        return {
+            cell: destinationCell,
+            sheet,
+        };
+    }
+
     private async readCellValue(
         workbook: Workbook,
         cellRef: CellRef,
         formula = false
     ): Promise<ExcelValue | undefined> {
-        const mergedCells = this.listMergedCells(workbook, cellRef.sheet);
-        const sheet = workbook.sheet(cellRef.sheet);
-        const cell = sheet.cell(cellRef.ref);
-        const { startCell: destination = cell } = mergedCells.find(range => range.hasCell(cell)) ?? {};
+        const { cell: destination, sheet } = this.getDestination(workbook, cellRef);
 
         const getFormulaValue = () => getFormulaWithValidation(workbook, sheet as SheetWithValidations, destination);
 
         const formulaValue = getFormulaValue();
         const textValue = getValue(destination);
-        const value = formula ? formulaValue : textValue ?? formulaValue;
+        const value = formula ? formulaValue : this.resolveNA(textValue ?? "", formulaValue ?? "");
 
         if (value instanceof FormulaError) return "";
 
@@ -184,6 +222,17 @@ export class ExcelPopulateRepository extends ExcelRepository {
         }
 
         return value;
+    }
+
+    // #N/A is a common result of a formula that does not find a value
+    // return a blank string when formula results to #N/A
+    // -----
+    // can be used as a workaround:
+    // formulas that result to blank cells store the raw formula in the value
+    // use #N/A as default value instead of blank
+    private resolveNA(value: ExcelValue, formula: ExcelValue): ExcelValue {
+        if (value === "#N/A") return "";
+        return value ?? formula;
     }
 
     public async getCellsInRange(id: string, range: Range): Promise<CellRef[]> {

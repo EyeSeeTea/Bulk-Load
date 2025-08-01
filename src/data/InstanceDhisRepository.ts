@@ -136,6 +136,7 @@ export class InstanceDhisRepository implements InstanceRepository {
                     id: trackedEntityAttribute.id,
                     name: trackedEntityAttribute.name,
                     valueType: trackedEntityAttribute.valueType,
+                    options: trackedEntityAttribute.optionSet?.options,
                 })),
                 trackedEntityType: getTrackedEntityTypeFromApi(trackedEntityType),
             })
@@ -758,7 +759,7 @@ const dataElementFields = {
     name: true,
     valueType: true,
     categoryCombo: { categoryOptionCombos: { id: true, name: true } },
-    optionSet: { id: true, options: { id: true, code: true } },
+    optionSet: { id: true, options: { id: true, code: true, name: true } },
 } as const;
 
 const dataSetFields = {
@@ -783,7 +784,14 @@ const programFields = {
         programStageDataElements: { dataElement: dataElementFields },
         repeatable: true,
     },
-    programTrackedEntityAttributes: { trackedEntityAttribute: { id: true, name: true, valueType: true } },
+    programTrackedEntityAttributes: {
+        trackedEntityAttribute: {
+            id: true,
+            name: true,
+            valueType: true,
+            optionSet: { id: true, options: { id: true, code: true, name: true } },
+        },
+    },
     access: true,
     programType: true,
     trackedEntityType: { id: true, featureType: true },

@@ -1,6 +1,7 @@
 import { DataFormType } from "./DataForm";
 import { Id } from "./ReferenceObject";
 import { TrackedEntityInstance } from "./TrackedEntityInstance";
+import { ContentType } from "./Template";
 
 export type DataPackage = GenericProgramPackage | TrackerProgramPackage;
 export type DataPackageValue = string | number | boolean;
@@ -41,4 +42,5 @@ export interface DataPackageDataValue {
     value: DataPackageValue;
     optionId?: Id;
     comment?: string;
+    contentType?: ContentType;
 }

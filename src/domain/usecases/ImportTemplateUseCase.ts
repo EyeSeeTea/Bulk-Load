@@ -2,11 +2,11 @@ import _ from "lodash";
 import moment from "moment";
 import { UseCase } from "../../CompositionRoot";
 import { cleanOrgUnitPath } from "../../utils/dhis";
-import { removeCharacters } from "../../utils/string";
+import { isString, removeCharacters } from "../../utils/string";
 import Settings from "../../webapp/logic/settings";
 import { DuplicateExclusion, DuplicateToleranceUnit } from "../entities/AppSettings";
-import { DataForm } from "../entities/DataForm";
-import { DataPackage, DataPackageData, DataPackageDataValue } from "../entities/DataPackage";
+import { DataForm, DataOption } from "../entities/DataForm";
+import { DataPackage, DataPackageData, DataPackageDataValue, TrackerProgramPackage } from "../entities/DataPackage";
 import { Either } from "../entities/Either";
 import { OrgUnit } from "../entities/OrgUnit";
 import { ErrorMessage, SynchronizationResult } from "../entities/SynchronizationResult";
@@ -18,8 +18,8 @@ import { TemplateRepository } from "../repositories/TemplateRepository";
 import { FileRepository } from "../repositories/FileRepository";
 import { FileResource } from "../entities/FileResource";
 import { ImportSourceRepository } from "../repositories/ImportSourceRepository";
-import { TrackedEntityInstance } from "../entities/TrackedEntityInstance";
-import { Maybe } from "../../types/utils";
+import { AttributeValue, TrackedEntityInstance } from "../entities/TrackedEntityInstance";
+import { Maybe, Optional } from "../../types/utils";
 
 export type ImportTemplateError =
     | {
@@ -243,12 +243,31 @@ export class ImportTemplateUseCase implements UseCase {
         const customDataValues = await reader.templateCustomization(template, excelDataValues);
         const dataPackage = customDataValues ?? excelDataValues;
 
+        const trackedEntityPackage =
+            dataPackage.type === "trackerPrograms" ? this.formatTrackedEntityInstances(dataPackage, dataForm) : {};
+
         return {
             ...dataPackage,
+            ...trackedEntityPackage,
             dataEntries: dataPackage.dataEntries.map(({ dataValues, ...dataEntry }) => {
                 return {
                     ...dataEntry,
-                    dataValues: _.compact(dataValues.map(value => formatDhis2Value(value, dataForm))),
+                    dataValues: _.compact(dataValues.map(value => formatDataValue(value, dataForm))),
+                };
+            }),
+        };
+    }
+
+    private formatTrackedEntityInstances(dataPackage: TrackerProgramPackage, dataForm: DataForm) {
+        return {
+            ...dataPackage,
+            trackedEntityInstances: dataPackage.trackedEntityInstances.map(tei => {
+                return {
+                    ...tei,
+                    attributeValues: tei.attributeValues.map(attribute => {
+                        const formattedValue = formatAttributeValue(attribute, dataForm);
+                        return formattedValue ? { ...formattedValue, attribute: attribute.attribute } : undefined;
+                    }),
                 };
             }),
         };
@@ -565,7 +584,13 @@ function getBooleanValue(item: DataPackageDataValue): Maybe<boolean> {
     }
 }
 
-const formatDhis2Value = (item: DataPackageDataValue, dataForm: DataForm): DataPackageDataValue | undefined => {
+function getOptionValue(originalValue: string, options?: DataOption[]): Optional<DataOption> {
+    if (!options) return undefined;
+
+    return options.find(({ id, name }) => originalValue === id || originalValue === name);
+}
+
+function formatDataValue(item: DataPackageDataValue, dataForm: DataForm): Optional<DataPackageDataValue> {
     const dataElement = dataForm.dataElements.find(({ id }) => item.dataElement === id);
     const booleanValue = getBooleanValue(item);
 
@@ -577,7 +602,26 @@ const formatDhis2Value = (item: DataPackageDataValue, dataForm: DataForm): DataP
         return booleanValue ? { ...item, value: true } : undefined;
     }
 
-    const selectedOption = dataElement?.options?.find(({ id }) => item.value === id);
-    const value = selectedOption?.code ?? item.value;
-    return { ...item, value };
-};
+    const optionValue = isString(item.value) ? getOptionValue(item.value, dataElement?.options) : undefined;
+    const value = optionValue?.code ?? item.value;
+
+    if (item.contentType === "function") {
+        return { ...item, value, optionId: optionValue?.id };
+    } else {
+        return { ...item, value };
+    }
+}
+
+function formatAttributeValue(item: AttributeValue, dataForm: DataForm): AttributeValue | undefined {
+    const attribute = dataForm.teiAttributes?.find(({ id }) => item.attribute.id === id);
+    if (!attribute) return undefined;
+
+    const optionValue = getOptionValue(item.value, attribute.options);
+    const value = optionValue?.code ?? item.value;
+
+    if (item.contentType === "function") {
+        return { ...item, value, optionId: optionValue?.id };
+    } else {
+        return { ...item, value };
+    }
+}
