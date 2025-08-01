@@ -4,7 +4,7 @@ import { fromBase64 } from "../../utils/files";
 import { promiseMap } from "../../utils/promises";
 import { removeCharacters } from "../../utils/string";
 import { getGeometryAsString } from "../entities/Geometry";
-import { DataPackage, DataPackageData, TrackerProgramPackage } from "../entities/DataPackage";
+import { DataPackage } from "../entities/DataPackage";
 import { Relationship } from "../entities/Relationship";
 import {
     CellDataSource,
@@ -18,6 +18,10 @@ import {
     SheetRef,
     TeiRowDataSource,
     Template,
+    TemplateDataPackage,
+    TemplateDataPackageData,
+    templateFromDataPackage,
+    TemplateTrackerProgramPackage,
     TrackerEventRowDataSource,
     TrackerRelationship,
     ValueRef,
@@ -46,27 +50,22 @@ export class ExcelBuilder {
             payload.type === "trackerPrograms"
                 ? await this.instanceRepository.getBuilderMetadata(payload.trackedEntityInstances)
                 : emptyBuilderMetadata;
+        const templatePayload = templateFromDataPackage(payload);
 
         for (const dataSource of dataSourceValues) {
             if (!dataSource.skipPopulate) {
                 switch (dataSource.type) {
                     case "cell":
-                        await this.fillCells(template, dataSource, payload);
+                        await this.fillCells(template, dataSource, templatePayload);
                         break;
                     case "row":
-                        await this.fillRows(template, dataSource, payload);
+                        await this.fillRows(template, dataSource, templatePayload);
                         break;
                     case "rowTei":
-                        await this.fillTeiRows(template, dataSource, payload);
+                        await this.fillTeiRows(template, dataSource, templatePayload);
                         break;
                     case "rowTrackedEvent":
-                        await this.fillTrackerEventRows(
-                            template,
-                            dataSource,
-                            payload as TrackerProgramPackage,
-                            metadata,
-                            settings
-                        );
+                        await this.fillTrackerEventRows(template, dataSource, templatePayload, metadata, settings);
                         break;
                     case "rowTeiRelationship":
                         await this.fillTrackerRelationshipRows(template, dataSource, payload);
@@ -100,7 +99,7 @@ export class ExcelBuilder {
         });
     }
 
-    private async fillCells(template: Template, dataSource: CellDataSource, payload: DataPackage) {
+    private async fillCells(template: Template, dataSource: CellDataSource, payload: TemplateDataPackage) {
         const orgUnit = await this.readCellValue(template, dataSource.orgUnit);
         const dataElement = await this.readCellValue(template, dataSource.dataElement);
         const period = await this.readCellValue(template, dataSource.period);
@@ -125,10 +124,10 @@ export class ExcelBuilder {
         return removeCharacters(await this.excelRepository.readCell(template.id, ref, { formula: options.isFormula }));
     }
 
-    private async fillTeiRows(template: Template, dataSource: TeiRowDataSource, payload: DataPackage) {
-        let { rowStart } = dataSource.attributes;
+    private async fillTeiRows(template: Template, dataSource: TeiRowDataSource, payload: TemplateDataPackage) {
         if (payload.type !== "trackerPrograms") return;
 
+        let { rowStart } = dataSource.attributes;
         const teisToProcess = this.buildTeisForCustomTemplates({ dataSource, payload, template });
 
         for (const tei of teisToProcess) {
@@ -274,10 +273,12 @@ export class ExcelBuilder {
     private async fillTrackerEventRows(
         template: Template,
         dataSource: TrackerEventRowDataSource,
-        payload: TrackerProgramPackage,
+        payload: TemplateDataPackage,
         metadata: BuilderMetadata,
         settings: Settings
     ) {
+        if (payload.type !== "trackerPrograms") return;
+
         let { rowStart } = dataSource.dataValues;
         const dataElementCells = await this.excelRepository.getCellsInRange(template.id, dataSource.dataElements);
 
@@ -386,8 +387,8 @@ export class ExcelBuilder {
     private buildTeiEventsForCustomTemplates(options: {
         template: Template;
         dataSource: TrackerEventRowDataSource;
-        payload: TrackerProgramPackage;
-    }): DataPackageData[] {
+        payload: TemplateTrackerProgramPackage;
+    }): TemplateDataPackageData[] {
         const { template, dataSource, payload } = options;
 
         if (template.type !== "custom") return payload.dataEntries;
@@ -413,7 +414,7 @@ export class ExcelBuilder {
     private buildTeisForCustomTemplates(options: {
         template: Template;
         dataSource: TeiRowDataSource | TrackerEventRowDataSource;
-        payload: TrackerProgramPackage;
+        payload: TemplateTrackerProgramPackage;
     }): TrackedEntityInstance[] {
         const { template, dataSource, payload } = options;
 
@@ -435,7 +436,7 @@ export class ExcelBuilder {
         return dataEntriesTeisWithEvents;
     }
 
-    private async fillRows(template: Template, dataSource: RowDataSource, payload: DataPackage) {
+    private async fillRows(template: Template, dataSource: RowDataSource, payload: TemplateDataPackage) {
         let { rowStart } = dataSource.range;
 
         for (const { id, orgUnit, period, attribute, dataValues, coordinate } of payload.dataEntries) {

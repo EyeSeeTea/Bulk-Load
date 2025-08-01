@@ -2,7 +2,7 @@ import { TeiGetRequest, TrackedEntityInstanceGeometryAttributes } from "@eyeseet
 import { generateUid } from "d2/uid";
 import _ from "lodash";
 import { Moment } from "moment";
-import { DataPackageData } from "../domain/entities/DataPackage";
+import { ProgramPackageData } from "../domain/entities/DataPackage";
 import { Event, EventDataValue } from "../domain/entities/DhisDataPackage";
 import { Geometry } from "../domain/entities/Geometry";
 import { emptyImportSummary } from "../domain/entities/ImportSummary";
@@ -138,7 +138,7 @@ export async function getProgram(api: D2Api, id: Id): Promise<Program | undefine
 export async function updateTrackedEntityInstances(
     api: D2Api,
     trackedEntityInstances: TrackedEntityInstance[],
-    dataEntries: DataPackageData[],
+    dataEntries: ProgramPackageData[],
     importOptions: ImportDataPackageOptions
 ): Promise<SynchronizationResult[]> {
     if (_.isEmpty(trackedEntityInstances)) return [emptyImportSummary];
@@ -287,7 +287,7 @@ async function getMetadata(api: D2Api): Promise<Metadata> {
 async function getApiEvents(
     api: D2Api,
     teis: TrackedEntityInstance[],
-    dataEntries: DataPackageData[],
+    dataEntries: ProgramPackageData[],
     metadata: Metadata,
     teiSeed: string
 ): Promise<Event[]> {

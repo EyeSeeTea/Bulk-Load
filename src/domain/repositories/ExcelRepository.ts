@@ -1,6 +1,6 @@
 import { CellDataValidation } from "../entities/CellDataValidation";
 import { Sheet } from "../entities/Sheet";
-import { CellRef, ColumnRef, Range, RangeRef, RowRef, SheetRef, ValueRef } from "../entities/Template";
+import { CellRef, ColumnRef, ContentType, Range, RangeRef, RowRef, SheetRef, ValueRef } from "../entities/Template";
 import { ThemeStyle } from "../entities/Theme";
 
 export type LoadOptions = WebLoadOptions | FileLoadOptions | FileBase64LoadOptions;
@@ -38,6 +38,11 @@ export abstract class ExcelRepository {
         cellRef?: CellRef | ValueRef,
         options?: ReadCellOptions
     ): Promise<ExcelValue | undefined>;
+    public abstract getContentType(
+        id: string,
+        cellRef?: CellRef | ValueRef,
+        options?: ReadCellOptions
+    ): Promise<ContentType | undefined>;
     public abstract getCellsInRange(id: string, range: Range): Promise<CellRef[]>;
     public abstract addPicture(id: string, location: SheetRef, file: File): Promise<void>;
     public abstract styleCell(id: string, source: SheetRef, style: ThemeStyle): Promise<void>;

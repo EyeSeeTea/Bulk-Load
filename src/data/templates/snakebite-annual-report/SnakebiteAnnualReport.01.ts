@@ -2,13 +2,13 @@ import { generateUid } from "d2/uid";
 import _ from "lodash";
 import { Codec } from "purify-ts";
 import { DataElement, DataForm } from "../../../domain/entities/DataForm";
-import { DataPackage } from "../../../domain/entities/DataPackage";
 import {
     CustomTemplateWithUrl,
     DataSource,
     DownloadCustomizationOptions,
     ImportCustomizationOptions,
     StyleSource,
+    TemplateDataPackage,
 } from "../../../domain/entities/Template";
 import { ThemeStyle } from "../../../domain/entities/Theme";
 import { ExcelRepository } from "../../../domain/repositories/ExcelRepository";
@@ -487,7 +487,7 @@ export class SnakebiteAnnualReport implements CustomTemplateWithUrl {
         _excelRepository: ExcelRepository,
         instanceRepository: InstanceRepository,
         options: ImportCustomizationOptions
-    ): Promise<DataPackage | undefined> {
+    ): Promise<TemplateDataPackage | undefined> {
         const { dataPackage } = options;
         const dataSet = await this.getDataForms(instanceRepository);
 
