@@ -5,11 +5,13 @@ import {
     FormControlLabel,
     Grid,
     GridSize,
+    Icon,
     makeStyles,
     Switch,
     SwitchProps,
     TextField,
     TextFieldProps,
+    Tooltip,
     Typography,
 } from "@material-ui/core";
 import { ConfirmationDialog, useSnackbar } from "@eyeseetea/d2-ui-components";
@@ -17,7 +19,7 @@ import { useDropzone } from "react-dropzone";
 import i18n from "../../../utils/i18n";
 import { Select, SelectOption } from "../select/Select";
 import { CustomTemplate } from "../../../domain/entities/Template";
-import React from "react";
+import React, { ReactNode } from "react";
 import { useDataFormsSelector } from "../../hooks/useDataForms";
 import {
     TemplateView,
@@ -262,7 +264,20 @@ const EditDialog: React.FC<CustomTemplateEditDialogProps2> = React.memo(props =>
                 </Group>
 
                 {isAdvancedMode && template.dataFormType === "trackerPrograms" && (
-                    <Group title={i18n.t("Data Filter")}>
+                    <Group
+                        title={
+                            <>
+                                {i18n.t("Data Filter")}
+                                <Tooltip
+                                    title={i18n.t(
+                                        "Select an attribute to create a data filter. This filter will appear on the downloads page and can be applied to limit the data included in the exported template."
+                                    )}
+                                >
+                                    <Icon style={tooltip}>help</Icon>
+                                </Tooltip>
+                            </>
+                        }
+                    >
                         <FlexRow>
                             <Field
                                 field={"teiFilter"}
@@ -435,13 +450,15 @@ const useStyles = makeStyles({
     dropZoneButton: { marginLeft: 20 },
 });
 
+const tooltip = { fontSize: 15, marginLeft: 10 };
+
 const Div: React.FC<{ visible: boolean }> = React.memo(props => {
     const { visible = true, children } = props;
 
     return visible ? <div>{children}</div> : null;
 });
 
-const Group: React.FC<{ title?: string; visible?: boolean }> = React.memo(props => {
+const Group: React.FC<{ title?: ReactNode; visible?: boolean }> = React.memo(props => {
     const { title, visible = true, children } = props;
     const classes = useStyles();
     if (!visible) return null;

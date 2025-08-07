@@ -5,8 +5,8 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2025-08-07T12:00:30.749Z\n"
-"PO-Revision-Date: 2025-08-07T12:00:30.749Z\n"
+"POT-Creation-Date: 2025-08-07T13:59:56.557Z\n"
+"PO-Revision-Date: 2025-08-07T13:59:56.557Z\n"
 
 msgid "Events - Create/update"
 msgstr ""
@@ -364,6 +364,12 @@ msgid "File"
 msgstr ""
 
 msgid "Data Filter"
+msgstr ""
+
+msgid ""
+"Select an attribute to create a data filter. This filter will appear on the "
+"downloads page and can be applied to limit the data included in the "
+"exported template."
 msgstr ""
 
 msgid "Tei Attribute"
