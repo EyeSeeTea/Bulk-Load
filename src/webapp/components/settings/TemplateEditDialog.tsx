@@ -33,6 +33,7 @@ import { getExtensionFile, MIME_TYPES_BY_EXTENSION } from "../../../utils/files"
 import { DataForm } from "../../../domain/entities/DataForm";
 import { generateUid } from "d2/uid";
 import { TemplateDataFilter } from "../../../domain/entities/TemplateFilter";
+import { FlexRow } from "../FlexRow";
 
 export interface CustomTemplateEditDialogProps {
     formMode: FormMode;
@@ -262,12 +263,21 @@ const EditDialog: React.FC<CustomTemplateEditDialogProps2> = React.memo(props =>
 
                 {isAdvancedMode && template.dataFormType === "trackerPrograms" && (
                     <Group title={i18n.t("Data Filter")}>
-                        <Select
-                            placeholder={i18n.t("Tei Attribute")}
-                            options={dataFilter.teiAttributeOptions}
-                            value={template.teiFilter.teiFilterAttributeId}
-                            onChange={dataFilter.updateFilterTeiAttribute}
-                        />
+                        <FlexRow>
+                            <Field
+                                field={"teiFilter"}
+                                data={data}
+                                onChange={dataFilter.updateFilterLabel}
+                                value={template.teiFilter.label}
+                            ></Field>
+
+                            <Select
+                                placeholder={i18n.t("Tei Attribute")}
+                                options={dataFilter.teiAttributeOptions}
+                                value={template.teiFilter.teiFilterAttributeId}
+                                onChange={dataFilter.updateFilterTeiAttribute}
+                            />
+                        </FlexRow>
                     </Group>
                 )}
             </Div>
@@ -339,21 +349,23 @@ interface FieldDataProp {
     setTemplate: SetTemplate;
 }
 
-interface FieldProps {
+type FieldProps = Omit<TextFieldProps, "onChange"> & {
     field: ViewModelField;
     data: FieldDataProp;
     disabled?: boolean;
     multiline?: boolean;
-}
+    onChange?: (value: string) => void;
+    value?: string;
+};
 
 const Field: React.FC<FieldProps> = React.memo(props => {
-    const { field, data, disabled, multiline } = props;
+    const { field, data, disabled, multiline, onChange, value: initialValue, ...rest } = props;
 
     const { template, setTemplate } = data;
     const classes = useStyles();
     const translations = React.useMemo(() => ViewModelActions.getTranslations(), []);
     const propValue = template[field];
-    const [value, setValue] = React.useState(propValue);
+    const [value, setValue] = React.useState(initialValue ?? propValue);
 
     const setFromEvent = React.useCallback<NonNullable<TextFieldProps["onChange"]>>(
         ev => setValue(ev.target.value),
@@ -361,12 +373,13 @@ const Field: React.FC<FieldProps> = React.memo(props => {
     );
 
     const notifyParent = React.useCallback<NonNullable<TextFieldProps["onChange"]>>(
-        ev => setTemplate(update(field, ev.target.value)),
-        [setTemplate, field]
+        ev => (onChange ? onChange(ev.target.value) : setTemplate(update(field, ev.target.value))),
+        [setTemplate, field, onChange]
     );
 
     return (
         <TextField
+            {...rest}
             className={classes.text}
             label={translations[field]}
             fullWidth={true}
@@ -532,8 +545,20 @@ export function useDataFiltersSelector(props: useDataFiltersSelectorProps) {
         [teiAttributes, template, setTemplate]
     );
 
+    const updateFilterLabel = React.useCallback(
+        (value: string) => {
+            const teiFilter = {
+                ...template.teiFilter,
+                label: value,
+            };
+            setTemplate(update("teiFilter", teiFilter));
+        },
+        [template, setTemplate]
+    );
+
     return {
-        teiAttributeOptions: teiAttributeOptions,
-        updateFilterTeiAttribute: updateFilterTeiAttribute,
+        teiAttributeOptions,
+        updateFilterTeiAttribute,
+        updateFilterLabel,
     };
 }

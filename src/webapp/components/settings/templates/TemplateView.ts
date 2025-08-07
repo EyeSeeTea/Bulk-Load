@@ -741,7 +741,7 @@ export class TemplateViewActions {
             styleSources: i18n.t("Styles"),
             showLanguage: i18n.t("Show Language"),
             showPeriod: i18n.t("Show Period"),
-            teiFilter: i18n.t("Tei Data Filter"),
+            teiFilter: i18n.t("Tei Data Filter - Label"),
         });
     }
 }
