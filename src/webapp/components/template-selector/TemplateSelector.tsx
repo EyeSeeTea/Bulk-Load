@@ -237,18 +237,15 @@ export const TemplateSelector = ({
         }
     };
 
-    const onDataFilterChange = useCallback(
-        (value: SelectOption) => {
-            setState(state => ({
-                ...state,
-                dataFilter: {
-                    ...state.dataFilter,
-                    teiFilterId: value.value,
-                },
-            }));
-        },
-        [state]
-    );
+    const onDataFilterChange = useCallback((value: SelectOption) => {
+        setState(state => ({
+            ...state,
+            dataFilter: {
+                ...state.dataFilter,
+                teiFilterId: value.value,
+            },
+        }));
+    }, []);
 
     const onThemeChange = ({ value }: SelectOption) => {
         setState(state => ({ ...state, theme: value }));
