@@ -103,7 +103,9 @@ export interface CustomTemplateWithUrl extends BaseTemplate {
         instanceRepository: InstanceRepository,
         options: ImportCustomizationOptions
     ) => Promise<Maybe<TemplateDataPackage>>;
-    filters?: TemplateFilter;
+    filters?: {
+        teiFilters: TemplateFilter;
+    };
 }
 
 export interface GenericSheetRef {

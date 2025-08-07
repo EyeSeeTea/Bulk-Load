@@ -1,36 +1,32 @@
-import { Id } from "./ReferenceObject";
+import { NamedRef } from "./ReferenceObject";
 import { BasePackageData, DataPackage, DataPackageValue, ProgramPackageData } from "./DataPackage";
 import { TrackedEntityInstance } from "./TrackedEntityInstance";
 import { Maybe } from "../../types/utils";
 
 //only operator used for now is "equals"
-type FilterOperator =
-    | "equals"
-    | "notEquals"
-    | "contains"
-    | "startsWith"
-    | "endsWith"
-    | "greaterThan"
-    | "lessThan"
-    | "in"
-    | "notIn";
+type BasicOperator = "equals" | "notEquals" | "contains" | "greaterThan" | "lessThan";
+type ArrayOperator = "in" | "notIn";
 
-type FilterCondition = {
-    field: string;
-    operator: FilterOperator;
-    value: FieldValue | Array<FieldValue>;
-};
+type FilterCondition =
+    | {
+          field: string;
+          operator: BasicOperator;
+          value: FieldValue;
+      }
+    | {
+          field: string;
+          operator: ArrayOperator;
+          value: Array<FieldValue>;
+      };
 
-type Filter = {
-    id: Id;
-    name: string;
+export type TemplateDataFilter = NamedRef & {
     description?: string;
     conditions: FilterCondition[];
 };
 
 export type TemplateFilter = {
-    teiFilters?: Filter[];
-    dataEntryFilters?: Filter[];
+    label?: string;
+    filters: TemplateDataFilter[];
 };
 
 export function applyFilter(
@@ -66,7 +62,7 @@ export function applyFilter(
     }
 }
 
-function filterDataEntries<T extends BasePackageData>(dataEntries: T[], filter?: Filter): T[] {
+function filterDataEntries<T extends BasePackageData>(dataEntries: T[], filter?: TemplateDataFilter): T[] {
     if (!filter) {
         return dataEntries;
     } else {
@@ -168,26 +164,22 @@ function evaluateCondition(value: Maybe<FieldValue>, condition: FilterCondition)
             return value !== condition.value;
         case "contains":
             return String(value).includes(String(condition.value));
-        case "startsWith":
-            return String(value).startsWith(String(condition.value));
-        case "endsWith":
-            return String(value).endsWith(String(condition.value));
         case "greaterThan":
             return Number(value) > Number(condition.value);
         case "lessThan":
             return Number(value) < Number(condition.value);
         case "in":
-            return Array.isArray(condition.value) && condition.value.includes(value);
+            return condition.value.includes(value);
         case "notIn":
-            return Array.isArray(condition.value) && !condition.value.includes(value);
+            return !condition.value.includes(value);
         default:
             return false;
     }
 }
 
 type ApplyFilterProps = {
-    dataEntryFilter?: Filter;
-    teiFilter?: Filter;
+    dataEntryFilter?: TemplateDataFilter;
+    teiFilter?: TemplateDataFilter;
 };
 
 type FieldValue = DataPackageValue | Date;
