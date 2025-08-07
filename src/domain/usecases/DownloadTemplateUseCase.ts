@@ -44,6 +44,9 @@ export interface DownloadTemplateProps {
     showLanguage: boolean;
     showPeriod: boolean;
     orgUnitShortName?: boolean;
+    dataFilter: {
+        teiFilterId?: string;
+    };
 }
 
 export class DownloadTemplateUseCase implements UseCase {
@@ -78,6 +81,7 @@ export class DownloadTemplateUseCase implements UseCase {
             useCodesForMetadata,
             showLanguage,
             orgUnitShortName,
+            dataFilter,
         } = options;
 
         const useShortNameInOrgUnit = orgUnitShortName || false;
@@ -153,14 +157,19 @@ export class DownloadTemplateUseCase implements UseCase {
             : undefined;
 
         if (dataPackage && template.type === "custom" && template.filters) {
-            dataPackage = {
-                ...dataPackage,
-                ...applyFilter({
-                    dataPackage,
-                    dataEntryFilter: template.filters?.dataEntryFilters?.filters[0],
-                    teiFilter: template.filters?.teiFilters?.filters[0],
-                }),
-            };
+            const teiFilter = dataFilter?.teiFilterId
+                ? template.filters.teiFilters?.filters.find(filter => filter.id === dataFilter.teiFilterId)
+                : undefined;
+
+            if (teiFilter) {
+                dataPackage = {
+                    ...dataPackage,
+                    ...applyFilter({
+                        dataPackage,
+                        teiFilter: teiFilter,
+                    }),
+                };
+            }
         }
 
         const builder = new ExcelBuilder(this.excelRepository, this.instanceRepository, this.modulesRepositories);
