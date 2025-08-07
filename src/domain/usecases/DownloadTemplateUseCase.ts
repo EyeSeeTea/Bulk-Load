@@ -157,8 +157,8 @@ export class DownloadTemplateUseCase implements UseCase {
                 ...dataPackage,
                 ...applyFilter({
                     dataPackage,
-                    dataEntryFilter: template.filters?.dataEntryFilters?.[0],
-                    teiFilter: template.filters?.teiFilters?.[0],
+                    dataEntryFilter: template.filters?.dataEntryFilters?.filters[0],
+                    teiFilter: template.filters?.teiFilters?.filters[0],
                 }),
             };
         }

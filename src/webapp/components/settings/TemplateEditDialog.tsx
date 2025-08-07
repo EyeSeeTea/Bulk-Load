@@ -20,15 +20,19 @@ import { CustomTemplate } from "../../../domain/entities/Template";
 import React from "react";
 import { useDataFormsSelector } from "../../hooks/useDataForms";
 import {
+    TemplateView,
     TemplateView as ViewModel,
     TemplateViewActions as ViewModelActions,
     TemplateViewKey as ViewModelField,
 } from "./templates/TemplateView";
 import { downloadFile } from "../../utils/download";
 import { useAppContext } from "../../contexts/app-context";
-import { isValueInUnionType } from "../../../types/utils";
+import { isValueInUnionType, Maybe } from "../../../types/utils";
 import { xlsxMimeTypes } from "../../../utils/files";
 import { getExtensionFile, MIME_TYPES_BY_EXTENSION } from "../../../utils/files";
+import { DataForm } from "../../../domain/entities/DataForm";
+import { generateUid } from "d2/uid";
+import { TemplateDataFilter } from "../../../domain/entities/TemplateFilter";
 
 export interface CustomTemplateEditDialogProps {
     formMode: FormMode;
@@ -108,6 +112,11 @@ const EditDialog: React.FC<CustomTemplateEditDialogProps2> = React.memo(props =>
     const dataForms = useDataFormsSelector({
         type: template.dataFormType || undefined,
         initialSelectionId: template.dataFormId || undefined,
+    });
+    const dataFilter = useDataFiltersSelector({
+        dataForm: dataForms.selected,
+        template: template,
+        setTemplate: setTemplate,
     });
 
     const title = formMode.type === "edit" ? i18n.t("Edit custom template") : i18n.t("New custom template");
@@ -250,6 +259,17 @@ const EditDialog: React.FC<CustomTemplateEditDialogProps2> = React.memo(props =>
                 <Group title={i18n.t("File")}>
                     <FileField data={data} field="spreadsheet" mimeType={xlsxMimeTypes} />
                 </Group>
+
+                {isAdvancedMode && template.dataFormType === "trackerPrograms" && (
+                    <Group title={i18n.t("Data Filter")}>
+                        <Select
+                            placeholder={i18n.t("Tei Attribute")}
+                            options={dataFilter.teiAttributeOptions}
+                            value={template.teiFilter.teiFilterAttributeId}
+                            onChange={dataFilter.updateFilterTeiAttribute}
+                        />
+                    </Group>
+                )}
             </Div>
         </ConfirmationDialog>
     );
@@ -465,4 +485,55 @@ function useApplyTo(customTemplates: CustomTemplate[], template: ViewModel, setT
     );
 
     return { current: currentOption, options: options, set: setFromString };
+}
+
+type useDataFiltersSelectorProps = {
+    dataForm: Maybe<DataForm>;
+    template: TemplateView;
+    setTemplate: SetTemplate;
+};
+
+export function useDataFiltersSelector(props: useDataFiltersSelectorProps) {
+    const { dataForm, template, setTemplate } = props;
+
+    const teiAttributes = React.useMemo(() => {
+        if (!dataForm?.teiAttributes) return [];
+        return dataForm.teiAttributes.filter(attribute => Boolean(attribute.options));
+    }, [dataForm]);
+
+    const teiAttributeOptions = React.useMemo(
+        () => teiAttributes.map(attribute => ({ label: attribute.name, value: attribute.id })),
+        [teiAttributes]
+    );
+
+    const updateFilterTeiAttribute = React.useCallback(
+        ({ value }: SelectOption) => {
+            const teiAttributeOptions = teiAttributes.find(attribute => attribute.id === value)?.options;
+            const filters: TemplateDataFilter[] = teiAttributeOptions
+                ? teiAttributeOptions.map(option => ({
+                      id: generateUid(),
+                      name: option.name,
+                      conditions: [
+                          {
+                              field: `attribute.${value}`,
+                              operator: "equals",
+                              value: option.code,
+                          },
+                      ],
+                  }))
+                : [];
+            const teiFilter = {
+                ...template.teiFilter,
+                teiFilterAttributeId: value,
+                filters,
+            };
+            setTemplate(update("teiFilter", teiFilter));
+        },
+        [teiAttributes, template, setTemplate]
+    );
+
+    return {
+        teiAttributeOptions: teiAttributeOptions,
+        updateFilterTeiAttribute: updateFilterTeiAttribute,
+    };
 }

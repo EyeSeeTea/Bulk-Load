@@ -23,6 +23,8 @@ import { fromBase64, getStringFromFile, toBase64 } from "../../../../utils/files
 import { DataFormType } from "../../../../domain/entities/DataForm";
 import { getGeneratedTemplateId } from "../../../logic/sheetBuilder";
 import i18n from "../../../../utils/i18n";
+import { Id } from "../../../../domain/entities/ReferenceObject";
+import { TemplateFilter } from "../../../../domain/entities/TemplateFilter";
 
 export interface TemplateView extends BasicView, AdvancedView {
     mode: "basic" | "advanced";
@@ -51,7 +53,12 @@ export interface AdvancedView extends BaseView {
     styleSources: Maybe<File>;
     showLanguage: boolean;
     showPeriod: boolean;
+    teiFilter: TeiTemplateFilterView;
 }
+
+type TeiTemplateFilterView = TemplateFilter & {
+    teiFilterAttributeId: Id;
+};
 
 export interface BasicView extends BaseView {
     // Data Source (dataSets and programs)
@@ -128,6 +135,11 @@ export interface BasicView extends BaseView {
 }
 
 const defaultSheet = "Data Entry";
+export const defaultTemplateFilter: TeiTemplateFilterView = {
+    filters: [],
+    teiFilterAttributeId: "",
+    label: "TEI Data Filter",
+};
 
 type ValidationKey = "column" | "row" | "range" | "cell";
 
@@ -222,6 +234,7 @@ const viewDefs = {
     styleSources: definition(undefined),
     showLanguage: definition(false),
     showPeriod: definition(false),
+    teiFilter: definition(defaultTemplateFilter),
 } as const;
 
 const viewEmpty = _.mapValues(viewDefs, def => def.default) as TemplateView;
@@ -292,6 +305,13 @@ export class TemplateViewActions {
     }
 
     async fromCustomTemplate(template: CustomTemplate): Promise<TemplateView> {
+        //only teiFilters are supported for now
+        //only one tei Attribute is selected for configuration
+        //filters conditions are generated based on potential values
+        const teiFilter = template.filters?.teiFilters;
+        const teiFilterField = teiFilter?.filters?.[0]?.conditions?.[0]?.field;
+        const teifilterAttributeId = teiFilterField ? teiFilterField.split(".")[1] : undefined;
+
         const base: Partial<TemplateView> = {
             action: "edit",
             isDefault: template.isDefault,
@@ -305,6 +325,13 @@ export class TemplateViewActions {
             spreadsheet: await getSpreadsheetFile(template.file).catch(() => undefined),
             showLanguage: template.showLanguage || false,
             showPeriod: template.showPeriod || false,
+            teiFilter:
+                teiFilter && teifilterAttributeId
+                    ? {
+                          ...teiFilter,
+                          teiFilterAttributeId: teifilterAttributeId,
+                      }
+                    : defaultTemplateFilter,
         };
 
         return { ...viewEmpty, ...base, ...this.get(template) };
@@ -564,6 +591,20 @@ export class TemplateViewActions {
                     styleSources: await arrayFromFile<StyleSource>(view.styleSources),
                     showLanguage: view.showLanguage,
                     showPeriod: view.showPeriod,
+                    filters: view.teiFilter.teiFilterAttributeId
+                        ? {
+                              teiFilters: {
+                                  label: view.teiFilter.label,
+                                  filters: view.teiFilter.filters.map(filter => ({
+                                      ...filter,
+                                      conditions: filter.conditions.map(condition => ({
+                                          ...condition,
+                                          field: `attribute.${view.teiFilter.teiFilterAttributeId}.${condition.field}`,
+                                      })),
+                                  })),
+                              },
+                          }
+                        : undefined,
                 };
         }
     }
@@ -700,6 +741,7 @@ export class TemplateViewActions {
             styleSources: i18n.t("Styles"),
             showLanguage: i18n.t("Show Language"),
             showPeriod: i18n.t("Show Period"),
+            teiFilter: i18n.t("Tei Data Filter"),
         });
     }
 }

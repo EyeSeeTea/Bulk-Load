@@ -7,17 +7,16 @@ import { Maybe } from "../../types/utils";
 type BasicOperator = "equals" | "notEquals" | "contains" | "greaterThan" | "lessThan";
 type ArrayOperator = "in" | "notIn";
 
-type FilterCondition =
+type FilterCondition = { field: string } & (
     | {
-          field: string;
           operator: BasicOperator;
           value: FieldValue;
       }
     | {
-          field: string;
           operator: ArrayOperator;
           value: Array<FieldValue>;
-      };
+      }
+);
 
 export type TemplateDataFilter = NamedRef & {
     description?: string;

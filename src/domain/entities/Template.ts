@@ -104,7 +104,8 @@ export interface CustomTemplateWithUrl extends BaseTemplate {
         options: ImportCustomizationOptions
     ) => Promise<Maybe<TemplateDataPackage>>;
     filters?: {
-        teiFilters: TemplateFilter;
+        teiFilters?: TemplateFilter;
+        dataEntryFilters?: TemplateFilter;
     };
 }
 
