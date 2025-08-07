@@ -31,7 +31,7 @@ export type TrackerProgramPackage = BaseDataPackage & {
     dataEntries: ProgramPackageData[];
 };
 
-type BasePackageData = {
+export type BasePackageData = {
     orgUnit: Id;
     dataForm: Id;
     period: string;

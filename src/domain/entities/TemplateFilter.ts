@@ -1,8 +1,10 @@
 import { Id } from "./ReferenceObject";
-import { DataPackage, DataPackageData } from "./DataPackage";
+import { BasePackageData, DataPackage, DataPackageValue, ProgramPackageData } from "./DataPackage";
 import { TrackedEntityInstance } from "./TrackedEntityInstance";
+import { Maybe } from "../../types/utils";
 
-export type FilterOperator =
+//only operator used for now is "equals"
+type FilterOperator =
     | "equals"
     | "notEquals"
     | "contains"
@@ -13,59 +15,80 @@ export type FilterOperator =
     | "in"
     | "notIn";
 
-export interface FilterCondition {
+type FilterCondition = {
     field: string;
     operator: FilterOperator;
-    value: string | number | boolean | Array<string | number>;
-}
+    value: FieldValue | Array<FieldValue>;
+};
 
-export interface Filter {
+type Filter = {
     id: Id;
     name: string;
     description?: string;
     conditions: FilterCondition[];
-}
+};
 
-export interface TemplateFilter {
+export type TemplateFilter = {
     teiFilters?: Filter[];
     dataEntryFilters?: Filter[];
-}
+};
 
-export interface FilterResult {
-    dataEntries: DataPackageData[];
-    trackedEntityInstances?: TrackedEntityInstance[];
-}
-
-export function applyFilter(props: {
-    dataPackage: DataPackage;
-    dataEntryFilter?: Filter;
-    teiFilter?: Filter;
-}): FilterResult {
+export function applyFilter(
+    props: ApplyFilterProps & {
+        dataPackage: DataPackage;
+    }
+): DataPackage {
     const { dataPackage, teiFilter, dataEntryFilter } = props;
-    const filteredDataEntries = dataEntryFilter
-        ? dataPackage.dataEntries.filter(entry =>
-              dataEntryFilter.conditions.every(condition => matchesCondition(entry, condition))
-          )
-        : dataPackage.dataEntries;
+    switch (dataPackage.type) {
+        case "dataSets":
+            return {
+                ...dataPackage,
+                dataEntries: filterDataEntries(dataPackage.dataEntries, dataEntryFilter),
+            };
+        case "programs":
+            return {
+                ...dataPackage,
+                dataEntries: filterDataEntries(dataPackage.dataEntries, dataEntryFilter),
+            };
+        case "trackerPrograms": {
+            const filteredResult = filterTeiAndEvents({
+                teis: dataPackage.trackedEntityInstances,
+                dataEntries: dataPackage.dataEntries,
+                teiFilter,
+                dataEntryFilter,
+            });
+            return {
+                ...dataPackage,
+                trackedEntityInstances: filteredResult.trackedEntityInstances || [],
+                dataEntries: filteredResult.dataEntries,
+            };
+        }
+    }
+}
 
-    if (dataPackage.type === "trackerPrograms") {
-        return filterTeiAndEvents(dataPackage.trackedEntityInstances, filteredDataEntries, teiFilter);
+function filterDataEntries<T extends BasePackageData>(dataEntries: T[], filter?: Filter): T[] {
+    if (!filter) {
+        return dataEntries;
     } else {
-        return {
-            dataEntries: filteredDataEntries,
-        };
+        return dataEntries.filter(entry => filter.conditions.every(condition => matchesCondition(entry, condition)));
     }
 }
 
 function filterTeiAndEvents(
-    teis: TrackedEntityInstance[],
-    dataEntries: DataPackageData[],
-    teiFilter?: Filter
-): FilterResult {
+    props: ApplyFilterProps & {
+        teis: TrackedEntityInstance[];
+        dataEntries: ProgramPackageData[];
+    }
+): {
+    dataEntries: ProgramPackageData[];
+    trackedEntityInstances?: TrackedEntityInstance[];
+} {
+    const { teis, dataEntries, teiFilter, dataEntryFilter } = props;
+    const filteredDataEntries = filterDataEntries(dataEntries, dataEntryFilter);
     if (!teiFilter) {
         return {
             trackedEntityInstances: teis,
-            dataEntries: dataEntries,
+            dataEntries: filteredDataEntries,
         };
     } else {
         const filteredTeis = teis.filter(tei =>
@@ -81,7 +104,7 @@ function filterTeiAndEvents(
     }
 }
 
-function matchesCondition(entry: DataPackageData, condition: FilterCondition): boolean {
+function matchesCondition<T extends BasePackageData>(entry: T, condition: FilterCondition): boolean {
     const value = getFieldValue(entry, condition.field);
     return evaluateCondition(value, condition);
 }
@@ -91,26 +114,53 @@ function matchesTeiCondition(tei: TrackedEntityInstance, condition: FilterCondit
     return evaluateCondition(value, condition);
 }
 
-function getFieldValue(entry: DataPackageData, field: string): any {
+function getFieldValue<T extends BasePackageData>(entry: T, field: string): Maybe<FieldValue> {
     if (field.startsWith("dataValue.")) {
         const dataElementId = field.split(".")[1];
         return entry.dataValues.find(dv => dv.dataElement === dataElementId)?.value;
     }
 
     const parts = field.split(".");
-    return parts.reduce((obj: any, part) => obj?.[part], entry);
+    return getNestedValue(entry, parts);
 }
 
-function getTeiFieldValue(tei: TrackedEntityInstance, field: string): any {
+function getTeiFieldValue(tei: TrackedEntityInstance, field: string): Maybe<FieldValue> {
     if (field.startsWith("attribute.")) {
         const attributeId = field.split(".")[1];
         return tei.attributeValues.find(av => av.attribute.id === attributeId)?.value;
     }
     const parts = field.split(".");
-    return parts.reduce((obj: any, part) => obj?.[part], tei);
+    return getNestedValue(tei as unknown as Record<string, unknown>, parts);
 }
 
-function evaluateCondition(value: any, condition: FilterCondition): boolean {
+function getNestedValue(obj: Record<string, unknown>, parts: string[]): Maybe<FieldValue> {
+    let current: unknown = obj;
+
+    for (const part of parts) {
+        if (current == null || typeof current !== "object") {
+            return undefined;
+        }
+        current = (current as Record<string, unknown>)[part];
+    }
+
+    // Type guard to ensure we return only valid field values
+    if (
+        typeof current === "string" ||
+        typeof current === "number" ||
+        typeof current === "boolean" ||
+        current instanceof Date
+    ) {
+        return current as FieldValue;
+    }
+
+    return undefined;
+}
+
+function evaluateCondition(value: Maybe<FieldValue>, condition: FilterCondition): boolean {
+    if (value === undefined || value === null) {
+        return false;
+    }
+
     switch (condition.operator) {
         case "equals":
             return value === condition.value;
@@ -134,3 +184,10 @@ function evaluateCondition(value: any, condition: FilterCondition): boolean {
             return false;
     }
 }
+
+type ApplyFilterProps = {
+    dataEntryFilter?: Filter;
+    teiFilter?: Filter;
+};
+
+type FieldValue = DataPackageValue | Date;

@@ -153,15 +153,13 @@ export class DownloadTemplateUseCase implements UseCase {
             : undefined;
 
         if (dataPackage && template.type === "custom" && template.filters) {
-            const { dataEntries, trackedEntityInstances } = applyFilter({
-                dataPackage,
-                dataEntryFilter: template.filters?.dataEntryFilters?.[0],
-                teiFilter: template.filters?.teiFilters?.[0],
-            });
             dataPackage = {
                 ...dataPackage,
-                dataEntries,
-                ...(dataPackage.type === "trackerPrograms" ? { trackedEntityInstances } : {}),
+                ...applyFilter({
+                    dataPackage,
+                    dataEntryFilter: template.filters?.dataEntryFilters?.[0],
+                    teiFilter: template.filters?.teiFilters?.[0],
+                }),
             };
         }
 
