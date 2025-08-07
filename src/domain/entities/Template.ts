@@ -11,6 +11,7 @@ import { Sheet as SheetE } from "./Sheet";
 import { ModulesRepositories } from "../repositories/ModulesRepositories";
 import { TrackedEntityInstance } from "./TrackedEntityInstance";
 import { Geometry } from "./DhisDataPackage";
+import { TemplateFilter } from "./TemplateFilter";
 
 export interface DataFormTemplate extends DataForm {
     templateId: string;
@@ -102,6 +103,7 @@ export interface CustomTemplateWithUrl extends BaseTemplate {
         instanceRepository: InstanceRepository,
         options: ImportCustomizationOptions
     ) => Promise<Maybe<TemplateDataPackage>>;
+    filters?: TemplateFilter;
 }
 
 export interface GenericSheetRef {

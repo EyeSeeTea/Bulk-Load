@@ -19,6 +19,7 @@ import { ModulesRepositories } from "../repositories/ModulesRepositories";
 import { TemplateRepository } from "../repositories/TemplateRepository";
 import { UsersRepository } from "../repositories/UsersRepository";
 import { buildAllPossiblePeriods } from "../../webapp/utils/periods";
+import { applyFilter } from "../entities/TemplateFilter";
 
 export interface DownloadTemplateProps {
     type: DataFormType;
@@ -139,7 +140,7 @@ export class DownloadTemplateUseCase implements UseCase {
 
         const enablePopulate = populate && !!populateStartDate && !!populateEndDate;
 
-        const dataPackage = enablePopulate
+        let dataPackage = enablePopulate
             ? await this.instanceRepository.getDataPackage({
                   type,
                   id,
@@ -150,6 +151,19 @@ export class DownloadTemplateUseCase implements UseCase {
                   relationshipsOuFilter,
               })
             : undefined;
+
+        if (dataPackage && template.type === "custom" && template.filters) {
+            const { dataEntries, trackedEntityInstances } = applyFilter({
+                dataPackage,
+                dataEntryFilter: template.filters?.dataEntryFilters?.[0],
+                teiFilter: template.filters?.teiFilters?.[0],
+            });
+            dataPackage = {
+                ...dataPackage,
+                dataEntries,
+                ...(dataPackage.type === "trackerPrograms" ? { trackedEntityInstances } : {}),
+            };
+        }
 
         const builder = new ExcelBuilder(this.excelRepository, this.instanceRepository, this.modulesRepositories);
 
