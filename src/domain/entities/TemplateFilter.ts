@@ -4,7 +4,7 @@ import { TrackedEntityInstance } from "./TrackedEntityInstance";
 import { Maybe } from "../../types/utils";
 
 //only operator used for now is "equals"
-type BasicOperator = "equals" | "notEquals" | "contains" | "greaterThan" | "lessThan";
+type BasicOperator = "equals" | "notEquals" | "greaterThan" | "lessThan";
 type ArrayOperator = "in" | "notIn";
 
 type FilterCondition = { field: string } & (
@@ -129,26 +129,18 @@ function getTeiFieldValue(tei: TrackedEntityInstance, field: string): Maybe<Fiel
 }
 
 function getNestedValue(obj: Record<string, unknown>, parts: string[]): Maybe<FieldValue> {
-    let current: unknown = obj;
+    const value = parts.reduce<unknown>((acc, part) => {
+        if (acc == null || typeof acc !== "object") return undefined;
+        return (acc as Record<string, unknown>)[part];
+    }, obj);
 
-    for (const part of parts) {
-        if (current == null || typeof current !== "object") {
-            return undefined;
-        }
-        current = (current as Record<string, unknown>)[part];
-    }
+    return isFieldValue(value) ? value : undefined;
+}
 
-    // Type guard to ensure we return only valid field values
-    if (
-        typeof current === "string" ||
-        typeof current === "number" ||
-        typeof current === "boolean" ||
-        current instanceof Date
-    ) {
-        return current as FieldValue;
-    }
-
-    return undefined;
+function isFieldValue(value: unknown): value is FieldValue {
+    return (
+        typeof value === "string" || typeof value === "number" || typeof value === "boolean" || value instanceof Date
+    );
 }
 
 function evaluateCondition(value: Maybe<FieldValue>, condition: FilterCondition): boolean {
@@ -161,8 +153,6 @@ function evaluateCondition(value: Maybe<FieldValue>, condition: FilterCondition)
             return value === condition.value;
         case "notEquals":
             return value !== condition.value;
-        case "contains":
-            return String(value).includes(String(condition.value));
         case "greaterThan":
             return Number(value) > Number(condition.value);
         case "lessThan":
