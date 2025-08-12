@@ -1,6 +1,6 @@
 import React from "react";
 import { MarkdownViewer } from "../../components/markdown/MarkdownViewer";
-import i18n from "../../../locales";
+import i18n from "../../../utils/i18n";
 import "./AboutPage.css";
 import { Typography } from "@material-ui/core";
 

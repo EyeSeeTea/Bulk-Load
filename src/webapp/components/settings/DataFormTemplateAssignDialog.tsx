@@ -5,7 +5,7 @@ import { makeStyles } from "@material-ui/core";
 
 import { NamedRef } from "../../../domain/entities/ReferenceObject";
 import { CustomTemplate, getDataFormRef } from "../../../domain/entities/Template";
-import i18n from "../../../locales";
+import i18n from "../../../utils/i18n";
 import { useAppContext } from "../../contexts/app-context";
 import { modelToSelectOption } from "../../utils/refs";
 import { Select } from "../select/Select";

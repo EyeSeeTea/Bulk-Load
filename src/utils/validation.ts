@@ -1,10 +1,12 @@
 import _ from "lodash";
 import { Validation } from "../domain/entities/Validation";
-import i18n from "../locales";
+import i18n from "../utils/i18n";
 
-const translations: Record<string, (namespace: object) => string> = {
-    isBlank: (namespace: object) => i18n.t("Field {{field}} cannot be blank", namespace),
-    isEmpty: (namespace: object) => i18n.t("You need to select at least one {{element}}", namespace),
+const translations: Record<string, (namespace: Record<string, string>) => string> = {
+    isBlank: (namespace: Record<string, string>) =>
+        i18n.t("Field {{field}} cannot be blank", { field: namespace.field }),
+    isEmpty: (namespace: Record<string, string>) =>
+        i18n.t("You need to select at least one {{element}}", { element: namespace.element }),
 };
 
 export async function getValidationMessages(validation: Validation, validationKeys = null): Promise<string[]> {
@@ -15,7 +17,7 @@ export async function getValidationMessages(validation: Validation, validationKe
         .map(error => {
             const translation = translations[error.key];
             if (translation) {
-                return i18n.t(translation(error.namespace));
+                return translation({ ...error.namespace });
             } else {
                 return `Missing translation: ${error.key}`;
             }

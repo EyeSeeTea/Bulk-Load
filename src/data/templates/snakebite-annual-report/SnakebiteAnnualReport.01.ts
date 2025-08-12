@@ -2,19 +2,19 @@ import { generateUid } from "d2/uid";
 import _ from "lodash";
 import { Codec } from "purify-ts";
 import { DataElement, DataForm } from "../../../domain/entities/DataForm";
-import { DataPackage } from "../../../domain/entities/DataPackage";
 import {
     CustomTemplateWithUrl,
     DataSource,
     DownloadCustomizationOptions,
     ImportCustomizationOptions,
     StyleSource,
+    TemplateDataPackage,
 } from "../../../domain/entities/Template";
 import { ThemeStyle } from "../../../domain/entities/Theme";
 import { ExcelRepository } from "../../../domain/repositories/ExcelRepository";
 import { InstanceRepository } from "../../../domain/repositories/InstanceRepository";
 import { ModulesRepositories } from "../../../domain/repositories/ModulesRepositories";
-import i18n from "../../../locales";
+import i18n from "../../../utils/i18n";
 import { cache } from "../../../utils/cache";
 import { GetSchemaType, Schema } from "../../../utils/codec";
 import { promiseMap } from "../../../utils/promises";
@@ -487,7 +487,7 @@ export class SnakebiteAnnualReport implements CustomTemplateWithUrl {
         _excelRepository: ExcelRepository,
         instanceRepository: InstanceRepository,
         options: ImportCustomizationOptions
-    ): Promise<DataPackage | undefined> {
+    ): Promise<TemplateDataPackage | undefined> {
         const { dataPackage } = options;
         const dataSet = await this.getDataForms(instanceRepository);
 
@@ -631,7 +631,7 @@ export class SnakebiteAnnualReport implements CustomTemplateWithUrl {
                         throw new Error(
                             i18n.t(
                                 "It is not possible to create product. Monovalent and Polyvalent should be exclusive for product {{product}}.",
-                                { product: productName }
+                                { product: String(productName) }
                             )
                         );
                     }

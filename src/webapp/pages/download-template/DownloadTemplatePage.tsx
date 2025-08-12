@@ -1,7 +1,7 @@
 import { useLoading, useSnackbar } from "@eyeseetea/d2-ui-components";
 import { Button, makeStyles } from "@material-ui/core";
 import React, { useState } from "react";
-import i18n from "../../../locales";
+import i18n from "../../../utils/i18n";
 import {
     DataModelProps,
     TemplateSelector,

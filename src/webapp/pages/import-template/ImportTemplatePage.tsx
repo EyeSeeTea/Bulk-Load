@@ -8,15 +8,15 @@ import moment from "moment";
 import React, { useCallback, useEffect, useState } from "react";
 import Dropzone from "react-dropzone";
 import { DataForm, DataFormType } from "../../../domain/entities/DataForm";
-import { DataPackage } from "../../../domain/entities/DataPackage";
 import { SynchronizationResult } from "../../../domain/entities/SynchronizationResult";
 import { ImportTemplateUseCaseParams } from "../../../domain/usecases/ImportTemplateUseCase";
-import i18n from "../../../locales";
+import i18n from "../../../utils/i18n";
 import ModalDialog, { ModalDialogProps } from "../../components/modal-dialog/ModalDialog";
 import SyncSummary from "../../components/sync-summary/SyncSummary";
 import { useAppContext } from "../../contexts/app-context";
 import { orgUnitListParams } from "../../utils/template";
 import { RouteComponentProps } from "../Router";
+import { TemplateDataPackage, templateToDataPackage } from "../../../domain/entities/Template";
 
 interface ImportState {
     dataForm: DataForm;
@@ -272,8 +272,8 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
         });
     };
 
-    const downloadInvalidOrganisations = (dataPackage: DataPackage) => {
-        const object = compositionRoot.form.convertDataPackage(dataPackage);
+    const downloadInvalidOrganisations = (dataPackage: TemplateDataPackage) => {
+        const object = compositionRoot.form.convertDataPackage(templateToDataPackage(dataPackage));
         const json = JSON.stringify(object, null, 4);
         const blob = new Blob([json], { type: "application/json" });
         const date = moment().format("YYYYMMDDHHmm");

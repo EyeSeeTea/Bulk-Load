@@ -1,5 +1,5 @@
 import { Provider } from "@dhis2/app-runtime";
-import i18n from "@dhis2/d2-i18n";
+import i18n from "./utils/i18n";
 import axios from "axios";
 import { init } from "d2";
 import _ from "lodash";

@@ -22,7 +22,7 @@ import { assertUnreachable, Maybe, ofType, OkOrError } from "../../../../types/u
 import { fromBase64, getStringFromFile, toBase64 } from "../../../../utils/files";
 import { DataFormType } from "../../../../domain/entities/DataForm";
 import { getGeneratedTemplateId } from "../../../logic/sheetBuilder";
-import i18n from "../../../../locales";
+import i18n from "../../../../utils/i18n";
 
 export interface TemplateView extends BasicView, AdvancedView {
     mode: "basic" | "advanced";
@@ -876,7 +876,10 @@ function getErrorsByDefinition(fieldsByType: (keyof TemplateView)[], view: Templ
         const value = view[field];
         const { validations } = viewDefs[field];
         const fieldT = translations[field];
-        const msg = i18n.t("Value for field '{{field}}' is invalid - {{value}}", { field: fieldT, value });
+        const msg = i18n.t("Value for field '{{field}}' is invalid - {{value}}", {
+            field: fieldT,
+            value: String(value),
+        });
 
         return _(validations)
             .map((validation): string | null => {

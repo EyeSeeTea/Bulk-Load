@@ -5,7 +5,7 @@ import moment from "moment";
 import { isDefined } from "../../utils";
 import { promiseMap } from "../../utils/promises";
 import { removeCharacters } from "../../utils/string";
-import { DataForm, DataFormFeatureType } from "../entities/DataForm";
+import { DataForm, dataFormTypeMap, DataFormFeatureType } from "../entities/DataForm";
 import { DataPackage, DataPackageData } from "../entities/DataPackage";
 import { buildGeometry, getGeometryFromString } from "../entities/Geometry";
 import { Relationship } from "../entities/Relationship";
@@ -22,6 +22,8 @@ import {
     SheetRef,
     TeiRowDataSource,
     Template,
+    TemplateDataPackage,
+    TemplateDataPackageData,
     TrackerEventRowDataSource,
     TrackerRelationship,
     ValueRef,
@@ -30,23 +32,28 @@ import { TrackedEntityInstance } from "../entities/TrackedEntityInstance";
 import { ExcelRepository, ExcelValue, ReadCellOptions } from "../repositories/ExcelRepository";
 import { InstanceRepository } from "../repositories/InstanceRepository";
 import { Coordinates, Geometry } from "../entities/DhisDataPackage";
+import { Maybe } from "../../types/utils";
 
 const dateFormat = "YYYY-MM-DD";
 
 export class ExcelReader {
     constructor(private excelRepository: ExcelRepository, private instanceRepository: InstanceRepository) {}
 
-    public async readTemplate(template: Template, dataForm: DataForm): Promise<DataPackage | undefined> {
+    public async readTemplate(template: Template, dataForm: DataForm): Promise<TemplateDataPackage | undefined> {
         const { dataSources = [] } = template;
 
         const dataFormType = await this.readCellValue(template, template.dataFormType);
         const dataSourceValues = await this.getDataSourceValues(template, dataSources);
 
-        if (dataFormType !== "dataSets" && dataFormType !== "programs" && dataFormType !== "trackerPrograms") {
+        if (
+            dataFormType !== dataFormTypeMap.dataSets &&
+            dataFormType !== dataFormTypeMap.programs &&
+            dataFormType !== dataFormTypeMap.trackerPrograms
+        ) {
             return undefined;
         }
 
-        const data: DataPackageData[] = [];
+        const data: TemplateDataPackageData[] = [];
         const teis: TrackedEntityInstance[] = [];
         const relationships: Relationship[] = [];
 
@@ -106,19 +113,15 @@ export class ExcelReader {
             .compact()
             .value();
 
-        if (dataFormType === "trackerPrograms") {
+        if (dataFormType === dataFormTypeMap.trackerPrograms) {
             const trackedEntityInstances = this.addTeiRelationships(teis, relationships);
-            return { type: "trackerPrograms", dataEntries, trackedEntityInstances };
+            return { type: dataFormType, dataEntries, trackedEntityInstances };
         }
 
         return { type: dataFormType, dataEntries };
     }
 
-    private async readByRow(
-        template: Template,
-        dataSource: RowDataSource,
-        dataForm: DataForm
-    ): Promise<DataPackageData[]> {
+    private async readByRow(template: Template, dataSource: RowDataSource, dataForm: DataForm): Promise<TemplateDataPackageData[]> {
         const cells = await this.excelRepository.getCellsInRange(template.id, dataSource.range);
 
         const values = await promiseMap(cells, async cell => {
@@ -137,18 +140,15 @@ export class ExcelReader {
             const dataFormId = await this.readCellValue(template, template.dataFormId, cell);
             if (!dataFormId) return undefined;
 
-            const category = await this.readCellValue(template, dataSource.categoryOption, cell);
-            /*const category2 = await this.excelRepository.readCell(template.id, dataSource.categoryOption, cell, {
-                formula: true,
-            });
-            console.log({ category, category2 });
-            */
+            const [category, attribute, eventId, latitude, longitude, contentType] = await Promise.all([
+                this.readCellValue(template, dataSource.categoryOption, cell),
+                this.readCellValue(template, dataSource.attribute, cell),
+                this.readCellValue(template, dataSource.eventId, cell),
+                this.readCellValue(template, dataSource.coordinates?.latitude, cell),
+                this.readCellValue(template, dataSource.coordinates?.longitude, cell),
+                this.excelRepository.getContentType(template.id, cell),
+            ]);
 
-            const attribute = await this.readCellValue(template, dataSource.attribute, cell);
-            const eventId = await this.readCellValue(template, dataSource.eventId, cell);
-
-            const latitude = await this.readCellValue(template, dataSource.coordinates?.latitude, cell);
-            const longitude = await this.readCellValue(template, dataSource.coordinates?.longitude, cell);
             const hasCoordinate = isDefined(latitude) && isDefined(longitude);
 
             const hasGeometry = dataForm.type === "programs";
@@ -164,6 +164,8 @@ export class ExcelReader {
                 coordinate: hasCoordinate
                     ? { latitude: this.formatValue(latitude), longitude: this.formatValue(longitude) }
                     : undefined,
+                trackedEntityInstance: undefined,
+                programStage: undefined,
                 geometry: isDefined(geometry) ? this.formatGeometry(geometry, dataForm.featureType) : undefined,
                 dataValues: [
                     {
@@ -171,6 +173,8 @@ export class ExcelReader {
                         category: category ? this.formatValue(category) : undefined,
                         value: this.formatValue(value),
                         optionId: optionId ? removeCharacters(optionId) : undefined,
+
+                        contentType: contentType,
                     },
                 ],
             };
@@ -194,7 +198,7 @@ export class ExcelReader {
         return undefined;
     }
 
-    private async readByCell(template: Template, dataSource: CellDataSource): Promise<DataPackageData[]> {
+    private async readByCell(template: Template, dataSource: CellDataSource): Promise<TemplateDataPackageData[]> {
         const cell = await this.excelRepository.findRelativeCell(template.id, dataSource.ref);
         const value = cell ? await this.readCellValue(template, cell) : undefined;
         const optionId = await this.excelRepository.readCell(template.id, cell, { formula: true });
@@ -212,9 +216,12 @@ export class ExcelReader {
         const dataFormId = await this.readCellValue(template, template.dataFormId);
         if (!dataFormId) return [];
 
-        const category = await this.readCellValue(template, dataSource.categoryOption);
-        const attribute = await this.readCellValue(template, dataSource.attribute);
-        const eventId = await this.readCellValue(template, dataSource.eventId);
+        const [category, attribute, eventId, contentType] = await Promise.all([
+            this.readCellValue(template, dataSource.categoryOption),
+            this.readCellValue(template, dataSource.attribute),
+            this.readCellValue(template, dataSource.eventId),
+            this.excelRepository.getContentType(template.id, cell),
+        ]);
 
         return [
             {
@@ -224,12 +231,16 @@ export class ExcelReader {
                 orgUnit: String(orgUnit),
                 period: String(period),
                 attribute: attribute ? String(attribute) : undefined,
+                coordinate: undefined,
+                trackedEntityInstance: undefined,
+                programStage: undefined,
                 dataValues: [
                     {
                         dataElement: String(dataElement),
                         category: category ? String(category) : undefined,
                         value: this.formatValue(value),
                         optionId: optionId ? removeCharacters(optionId) : undefined,
+                        contentType: contentType,
                     },
                 ],
             },
@@ -268,7 +279,7 @@ export class ExcelReader {
         dataSource: TrackerEventRowDataSource,
         teis: TrackedEntityInstance[],
         dataForm: DataForm
-    ): Promise<DataPackageData[]> {
+    ): Promise<TemplateDataPackageData[]> {
         const programId = await this.getFormulaCell(template, template.dataFormId);
         const teiById = _.keyBy(teis, tei => tei.id);
         if (!programId) return [];
@@ -279,12 +290,18 @@ export class ExcelReader {
         const dataValuesCells = await this.excelRepository.getCellsInRange(template.id, dataSource.dataValues);
 
         const dataValues = await promiseMap(dataValuesCells, async cell => {
-            return {
-                row: this.excelRepository.buildRowNumber(cell.ref),
-                value: await this.excelRepository.readCell(template.id, cell),
-                optionId: await this.excelRepository.readCell(template.id, cell, {
+            const [value, optionId, contentType] = await Promise.all([
+                this.excelRepository.readCell(template.id, cell),
+                this.excelRepository.readCell(template.id, cell, {
                     formula: true,
                 }),
+                this.excelRepository.getContentType(template.id, cell),
+            ]);
+            return {
+                row: this.excelRepository.buildRowNumber(cell.ref),
+                value: value,
+                optionId: optionId,
+                contentType: contentType,
             };
         });
 
@@ -313,22 +330,25 @@ export class ExcelReader {
                 // If column id does not exist on program, exclude values => Attributes
                 if (!dataForm.dataElements.find(({ id }) => id === dataElementId)) return null;
 
-                const { value, optionId } = item;
+                const { value, optionId, contentType } = item;
 
-                const data: DataPackageData = {
+                const data: TemplateDataPackageData = {
                     group: rowIdx,
-                    id: eventId ? String(eventId) : undefined,
                     dataForm: String(programId),
+                    id: eventId ? String(eventId) : undefined,
                     orgUnit: tei.orgUnit.id,
                     period: this.formatValue(date),
                     attribute: cocId,
+                    coordinate: undefined,
                     trackedEntityInstance: String(teiId),
                     programStage: String(programStageId),
                     dataValues: [
                         {
                             dataElement: String(dataElementId),
+                            category: undefined,
                             value: this.formatValue(value),
                             optionId: optionId ? removeCharacters(optionId) : undefined,
+                            contentType: contentType,
                         },
                     ],
                 };
@@ -394,8 +414,13 @@ export class ExcelReader {
 
             if (!attributeId) return undefined;
 
-            const attributeValueVal = await this.excelRepository.readCell(template.id, cell);
-            const attributeValueFormula = await this.excelRepository.readCell(template.id, cell, { formula: true });
+            const [attributeValueVal, attributeValueFormula, contentType] = await Promise.all([
+                this.excelRepository.readCell(template.id, cell),
+                this.excelRepository.readCell(template.id, cell, {
+                    formula: true,
+                }),
+                this.excelRepository.getContentType(template.id, cell),
+            ]);
 
             return {
                 row: this.excelRepository.buildRowNumber(cell.ref),
@@ -405,6 +430,7 @@ export class ExcelReader {
                 },
                 value: attributeValueVal !== undefined ? String(attributeValueVal) : "",
                 optionId: attributeValueFormula ? removeCharacters(attributeValueFormula) : undefined,
+                contentType: contentType,
             };
         });
 
@@ -522,7 +548,10 @@ export class ExcelReader {
         });
     }
 
-    public async templateCustomization(template: Template, dataPackage: DataPackage): Promise<DataPackage | undefined> {
+    public async templateCustomization(
+        template: Template,
+        dataPackage: TemplateDataPackage
+    ): Promise<Maybe<TemplateDataPackage>> {
         if (template.type === "custom" && template.importCustomization) {
             return template.importCustomization(this.excelRepository, this.instanceRepository, {
                 dataPackage,

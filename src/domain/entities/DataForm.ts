@@ -1,8 +1,13 @@
-import i18n from "../../locales";
+import i18n from "../../utils/i18n";
 import { ofType } from "../../types/utils";
 import { Id, NamedRef } from "./ReferenceObject";
 
-export const dataFormTypes = ["dataSets", "programs", "trackerPrograms"] as const;
+export const dataFormTypeMap = {
+    dataSets: "dataSets",
+    programs: "programs",
+    trackerPrograms: "trackerPrograms",
+} as const;
+export const dataFormTypes = Object.values(dataFormTypeMap) as typeof dataFormTypeMap[keyof typeof dataFormTypeMap][];
 export type DataFormType = typeof dataFormTypes[number];
 export type DataFormPeriod = "Daily" | "Monthly" | "Yearly" | "Weekly" | "Quarterly";
 
@@ -41,6 +46,7 @@ export interface DataForm {
 
 export interface TrackedEntityAttributeType extends NamedRef {
     valueType: DataElementType | undefined;
+    options: Array<DataOption>;
 }
 
 export interface TrackedEntityType {
@@ -55,8 +61,10 @@ export interface DataElement {
     name: string;
     valueType: DataElementType;
     categoryOptionCombos?: Array<{ id: Id; name: string }>;
-    options: Array<{ id: Id; code: string }>;
+    options: Array<DataOption>;
 }
+
+export type DataOption = { id: Id; code: string; name: string };
 
 export type DataElementType =
     | "TEXT"
@@ -83,7 +91,8 @@ export type DataElementType =
     | "AGE"
     | "URL"
     | "FILE_RESOURCE"
-    | "IMAGE";
+    | "IMAGE"
+    | "MULTI_TEXT";
 
 export interface OrganisationUnit {
     id: Id;

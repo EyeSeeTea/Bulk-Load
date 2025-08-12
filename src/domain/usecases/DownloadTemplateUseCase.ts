@@ -9,9 +9,9 @@ import { getExtensionFile, XLSX_EXTENSION } from "../../utils/files";
 import { promiseMap } from "../../utils/promises";
 import Settings from "../../webapp/logic/settings";
 import { getGeneratedTemplateId, SheetBuilder } from "../../webapp/logic/sheetBuilder";
-import { DataFormType } from "../entities/DataForm";
+import { DataFormType, dataFormTypeMap } from "../entities/DataForm";
 import { Id, Ref } from "../entities/ReferenceObject";
-import { TemplateType } from "../entities/Template";
+import { templateFromDataPackage, TemplateType } from "../entities/Template";
 import { ExcelBuilder } from "../helpers/ExcelBuilder";
 import { ExcelRepository } from "../repositories/ExcelRepository";
 import { InstanceRepository } from "../repositories/InstanceRepository";
@@ -158,7 +158,7 @@ export class DownloadTemplateUseCase implements UseCase {
             type,
             id,
             populate,
-            dataPackage,
+            dataPackage: dataPackage ? templateFromDataPackage(dataPackage) : undefined,
             orgUnits,
             language: showLanguage ? language : undefined,
         });
@@ -206,7 +206,7 @@ export class DownloadTemplateUseCase implements UseCase {
 }
 
 async function getElement(api: D2Api, type: DataFormType, id: string) {
-    const endpoint = type === "dataSets" ? "dataSets" : "programs";
+    const endpoint = type === dataFormTypeMap.dataSets ? "dataSets" : "programs";
     const fields = [
         "id",
         "displayName",
@@ -253,7 +253,7 @@ async function getElementMetadata({
     orgUnitShortName: boolean;
 }) {
     const elementMetadataMap = new Map();
-    const endpoint = element.type === "dataSets" ? "dataSets" : "programs";
+    const endpoint = element.type === dataFormTypeMap.dataSets ? "dataSets" : "programs";
     const elementMetadata = await api.get<ElementMetadata>(`/${endpoint}/${element.id}/metadata.json`).getData();
 
     const rawMetadata = await filterRawMetadata({ api, element, elementMetadata, orgUnitIds, startDate, endDate });

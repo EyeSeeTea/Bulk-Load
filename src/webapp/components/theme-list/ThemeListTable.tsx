@@ -12,7 +12,7 @@ import { Button, Icon } from "@material-ui/core";
 import _ from "lodash";
 import React, { ReactNode, useEffect, useState } from "react";
 import { Theme } from "../../../domain/entities/Theme";
-import i18n from "../../../locales";
+import i18n from "../../../utils/i18n";
 import { useAppContext } from "../../contexts/app-context";
 import { RouteComponentProps } from "../../pages/Router";
 import { promiseMap } from "../../../utils/promises";

@@ -1,6 +1,6 @@
 import _ from "lodash";
 import { SynchronizationResult, SynchronizationStats } from "../domain/entities/SynchronizationResult";
-import i18n from "../locales";
+import i18n from "../utils/i18n";
 import { D2Api, Id } from "../types/d2-api";
 import { Ref } from "../domain/entities/ReferenceObject";
 
