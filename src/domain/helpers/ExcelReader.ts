@@ -6,7 +6,6 @@ import { isDefined } from "../../utils";
 import { promiseMap } from "../../utils/promises";
 import { removeCharacters } from "../../utils/string";
 import { DataForm, dataFormTypeMap, DataFormFeatureType } from "../entities/DataForm";
-import { DataPackage, DataPackageData } from "../entities/DataPackage";
 import { buildGeometry, getGeometryFromString } from "../entities/Geometry";
 import { Relationship } from "../entities/Relationship";
 import {
@@ -121,7 +120,11 @@ export class ExcelReader {
         return { type: dataFormType, dataEntries };
     }
 
-    private async readByRow(template: Template, dataSource: RowDataSource, dataForm: DataForm): Promise<TemplateDataPackageData[]> {
+    private async readByRow(
+        template: Template,
+        dataSource: RowDataSource,
+        dataForm: DataForm
+    ): Promise<TemplateDataPackageData[]> {
         const cells = await this.excelRepository.getCellsInRange(template.id, dataSource.range);
 
         const values = await promiseMap(cells, async cell => {
@@ -234,6 +237,7 @@ export class ExcelReader {
                 coordinate: undefined,
                 trackedEntityInstance: undefined,
                 programStage: undefined,
+                geometry: undefined,
                 dataValues: [
                     {
                         dataElement: String(dataElement),
@@ -340,6 +344,7 @@ export class ExcelReader {
                     period: this.formatValue(date),
                     attribute: cocId,
                     coordinate: undefined,
+                    geometry: undefined,
                     trackedEntityInstance: String(teiId),
                     programStage: String(programStageId),
                     dataValues: [

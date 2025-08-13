@@ -407,6 +407,7 @@ export type TemplateDataPackageData = {
         contentType: Maybe<ContentType>;
         comment?: string;
     }[];
+    geometry: Maybe<Geometry>;
 };
 
 export function templateToDataPackage(template: TemplateDataPackage): DataPackage {
@@ -465,6 +466,7 @@ export function templateFromDataPackage(dataPackage: DataPackage): TemplateDataP
                     period: entry.period,
                     attribute: entry.attribute,
                     coordinate: undefined,
+                    geometry: undefined,
                     trackedEntityInstance: undefined,
                     programStage: undefined,
                     dataValues: entry.dataValues.map((dv: DataSetPackageDataValue) => ({
@@ -506,7 +508,7 @@ function mapToProgramData(entry: TemplateDataPackageData): ProgramPackageData {
         trackedEntityInstance: entry.trackedEntityInstance,
         programStage: entry.programStage,
         coordinate: entry.coordinate,
-        geometry: coordinateToGeometry(entry),
+        geometry: entry.geometry,
         dataValues: entry.dataValues.map(dv => ({
             dataElement: dv.dataElement,
             value: dv.value,
@@ -525,7 +527,8 @@ function mapFromProgramData(entry: ProgramPackageData): TemplateDataPackageData 
         orgUnit: entry.orgUnit,
         period: entry.period,
         attribute: entry.attribute,
-        coordinate: entry.coordinate ?? geometryToCoordinate(entry.geometry ?? undefined),
+        coordinate: entry.coordinate,
+        geometry: entry.geometry,
         trackedEntityInstance: entry.trackedEntityInstance,
         programStage: entry.programStage,
         dataValues: entry.dataValues.map(dv => ({
@@ -537,38 +540,4 @@ function mapFromProgramData(entry: ProgramPackageData): TemplateDataPackageData 
             contentType: dv.contentType,
         })),
     };
-}
-
-function coordinateToGeometry(entry: TemplateDataPackageData): Maybe<Geometry> {
-    const { coordinate } = entry;
-    if (!coordinate) return undefined;
-
-    const longitude = parseInt(coordinate.longitude);
-    const latitude = parseInt(coordinate.latitude);
-
-    if (longitude === undefined || latitude === undefined) return undefined;
-
-    return {
-        type: "Point",
-        coordinates: [longitude, latitude],
-    };
-}
-
-function geometryToCoordinate(geometry?: Geometry): Maybe<TemplateDataPackageData["coordinate"]> {
-    //currenly, coordinate prop is only being used for point
-    switch (geometry?.type) {
-        case "Point": {
-            if (!geometry || !Array.isArray(geometry.coordinates) || geometry.type !== "Point") return undefined;
-
-            const [longitude, latitude] = geometry.coordinates;
-
-            return {
-                latitude: latitude.toString(),
-                longitude: longitude.toString(),
-            };
-        }
-        case "Polygon":
-        default:
-            return undefined;
-    }
 }
