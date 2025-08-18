@@ -7,7 +7,24 @@ import { Maybe } from "../../types/utils";
 type BasicOperator = "equals" | "notEquals" | "greaterThan" | "lessThan";
 type ArrayOperator = "in" | "notIn";
 
-type FilterCondition = { field: string } & (
+type NestedKeyOf<T> = T extends object
+    ? {
+          [K in keyof T]: K extends string
+              ? T[K] extends object
+                  ? `${K}` | `${K}.${NestedKeyOf<T[K]>}`
+                  : `${K}`
+              : never;
+      }[keyof T]
+    : never;
+
+type DataValueField = `dataValue.${string}`;
+type AttributeField = `attribute.${string}`;
+type DataPackageNestedField = NestedKeyOf<DataPackageData>;
+type TeiNestedField = NestedKeyOf<TrackedEntityInstance>;
+
+type FilterField = DataValueField | AttributeField | DataPackageNestedField | TeiNestedField;
+
+type FilterCondition = { field: FilterField } & (
     | {
           operator: BasicOperator;
           value: FieldValue;
@@ -28,6 +45,8 @@ export type TemplateFilter = {
     filters: TemplateDataFilter[];
 };
 
+//filters are only available for trackerPrograms for now
+//but implementation supports event programs and user of other operators as well
 export function applyFilter(
     props: ApplyFilterProps & {
         dataPackage: DataPackage;
@@ -36,10 +55,7 @@ export function applyFilter(
     const { dataPackage, teiFilter, dataEntryFilter } = props;
     switch (dataPackage.type) {
         case "dataSets":
-            return {
-                ...dataPackage,
-                dataEntries: filterDataEntries(dataPackage.dataEntries, dataEntryFilter),
-            };
+            return dataPackage;
         case "programs":
             return {
                 ...dataPackage,
@@ -109,7 +125,7 @@ function matchesTeiCondition(tei: TrackedEntityInstance, condition: FilterCondit
     return evaluateCondition(value, condition);
 }
 
-function getFieldValue<T extends DataPackageData>(entry: T, field: string): Maybe<FieldValue> {
+function getFieldValue<T extends DataPackageData>(entry: T, field: FilterField): Maybe<FieldValue> {
     if (field.startsWith("dataValue.")) {
         const dataElementId = field.split(".")[1];
         return entry.dataValues.find(dv => dv.dataElement === dataElementId)?.value;
@@ -119,7 +135,7 @@ function getFieldValue<T extends DataPackageData>(entry: T, field: string): Mayb
     return getNestedValue(entry, parts);
 }
 
-function getTeiFieldValue(tei: TrackedEntityInstance, field: string): Maybe<FieldValue> {
+function getTeiFieldValue(tei: TrackedEntityInstance, field: FilterField): Maybe<FieldValue> {
     if (field.startsWith("attribute.")) {
         const attributeId = field.split(".")[1];
         return tei.attributeValues.find(av => av.attribute.id === attributeId)?.value;
@@ -130,7 +146,8 @@ function getTeiFieldValue(tei: TrackedEntityInstance, field: string): Maybe<Fiel
 
 function getNestedValue(obj: Record<string, unknown>, parts: string[]): Maybe<FieldValue> {
     const value = parts.reduce<unknown>((acc, part) => {
-        if (acc == null || typeof acc !== "object") return undefined;
+        if (acc == null) return undefined;
+        if (typeof acc !== "object") return acc;
         return (acc as Record<string, unknown>)[part];
     }, obj);
 
