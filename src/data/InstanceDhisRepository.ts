@@ -1,7 +1,14 @@
 import _ from "lodash";
 import "lodash.product";
 import moment from "moment";
-import { DataElement, DataForm, DataFormFeatureType, DataFormPeriod, DataFormType, dataFormTypeMap } from "../domain/entities/DataForm";
+import {
+    DataElement,
+    DataForm,
+    DataFormFeatureType,
+    DataFormPeriod,
+    DataFormType,
+    dataFormTypeMap,
+} from "../domain/entities/DataForm";
 import {
     DataPackage,
     DataSetPackageDataValue,
@@ -711,9 +718,9 @@ export class InstanceDhisRepository implements InstanceRepository {
                     coordinate:
                         geometry && geometry.type === "Point"
                             ? {
-                                longitude: geometry.coordinates[0].toString() ?? "",
-                                latitude: geometry.coordinates[1].toString() ?? "",
-                            }
+                                  longitude: geometry.coordinates[0].toString() ?? "",
+                                  latitude: geometry.coordinates[1].toString() ?? "",
+                              }
                             : coordinate,
                     geometry: geometry,
                     trackedEntityInstance: trackedEntity,
