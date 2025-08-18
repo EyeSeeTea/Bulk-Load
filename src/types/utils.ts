@@ -55,3 +55,17 @@ export type RecursivePartial<T> = {
         ? RecursivePartial<T[P]>
         : T[P];
 };
+
+type PrevDepth = [never, 0, 1, 2, 3, 4, 5];
+type UnwrapMaybe<T> = T extends Maybe<infer U> ? U : T;
+export type NestedKeyOf<T, Prefix extends string = "", Depth extends number = 5> = Depth extends 0
+    ? never
+    : T extends object
+    ? {
+          [K in keyof T & string]: UnwrapMaybe<T[K]> extends readonly any[] // ignore arrays. Add specific handling if needed
+              ? never
+              : UnwrapMaybe<T[K]> extends object
+              ? `${Prefix}${K}` | NestedKeyOf<UnwrapMaybe<T[K]>, `${Prefix}${K}.`, PrevDepth[Depth]>
+              : `${Prefix}${K}`;
+      }[keyof T & string]
+    : never;

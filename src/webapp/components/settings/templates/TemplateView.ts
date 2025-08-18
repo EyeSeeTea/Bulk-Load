@@ -512,6 +512,8 @@ export class TemplateViewActions {
             getStyleSource("logo", defaultSheet, view.stylesLogoRange),
         ];
 
+        const { teiFilterAttributeId, ...teiFilters } = view.teiFilter;
+
         switch (view.mode) {
             case "basic": {
                 switch (view.dataFormType) {
@@ -591,18 +593,9 @@ export class TemplateViewActions {
                     styleSources: await arrayFromFile<StyleSource>(view.styleSources),
                     showLanguage: view.showLanguage,
                     showPeriod: view.showPeriod,
-                    filters: view.teiFilter.teiFilterAttributeId
+                    filters: teiFilterAttributeId
                         ? {
-                              teiFilters: {
-                                  label: view.teiFilter.label,
-                                  filters: view.teiFilter.filters.map(filter => ({
-                                      ...filter,
-                                      conditions: filter.conditions.map(condition => ({
-                                          ...condition,
-                                          field: `attribute.${view.teiFilter.teiFilterAttributeId}.${condition.field}`,
-                                      })),
-                                  })),
-                              },
+                              teiFilters: teiFilters,
                           }
                         : undefined,
                 };

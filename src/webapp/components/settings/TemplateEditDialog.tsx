@@ -545,7 +545,7 @@ export function useDataFiltersSelector(props: useDataFiltersSelectorProps) {
                       name: option.name,
                       conditions: [
                           {
-                              field: `attribute.${value}`,
+                              field: `attribute.${value}.value`,
                               operator: "equals",
                               value: option.code,
                           },

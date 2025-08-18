@@ -1,28 +1,18 @@
-import { NamedRef } from "./ReferenceObject";
-import { DataPackage, DataPackageData, DataPackageValue, ProgramPackageData } from "./DataPackage";
-import { TrackedEntityInstance } from "./TrackedEntityInstance";
-import { Maybe } from "../../types/utils";
+import { Id, NamedRef } from "./ReferenceObject";
+import { BasePackageDataValue, DataPackage, DataPackageValue, ProgramPackageData } from "./DataPackage";
+import { AttributeValue, TrackedEntityInstance } from "./TrackedEntityInstance";
+import { Maybe, NestedKeyOf } from "../../types/utils";
 
 //only operator used for now is "equals"
 type BasicOperator = "equals" | "notEquals" | "greaterThan" | "lessThan";
 type ArrayOperator = "in" | "notIn";
 
-type NestedKeyOf<T> = T extends object
-    ? {
-          [K in keyof T]: K extends string
-              ? T[K] extends object
-                  ? `${K}` | `${K}.${NestedKeyOf<T[K]>}`
-                  : `${K}`
-              : never;
-      }[keyof T]
-    : never;
-
-type DataValueField = `dataValue.${string}`;
-type AttributeField = `attribute.${string}`;
-type DataPackageNestedField = NestedKeyOf<DataPackageData>;
+type DataValueField = NestedKeyOf<BasePackageDataValue, `dataValue.${Id}.`>;
+type AttributeField = NestedKeyOf<AttributeValue, `attribute.${Id}.`>;
+type ProgramPackageDataNestedField = NestedKeyOf<ProgramPackageData>;
 type TeiNestedField = NestedKeyOf<TrackedEntityInstance>;
 
-type FilterField = DataValueField | AttributeField | DataPackageNestedField | TeiNestedField;
+type FilterField = DataValueField | AttributeField | ProgramPackageDataNestedField | TeiNestedField;
 
 type FilterCondition = { field: FilterField } & (
     | {
@@ -77,7 +67,7 @@ export function applyFilter(
     }
 }
 
-function filterDataEntries<T extends DataPackageData>(dataEntries: T[], filter?: TemplateDataFilter): T[] {
+function filterDataEntries<T extends ProgramPackageData>(dataEntries: T[], filter?: TemplateDataFilter): T[] {
     if (!filter) {
         return dataEntries;
     } else {
@@ -115,7 +105,7 @@ function filterTeiAndEvents(
     }
 }
 
-function matchesCondition<T extends DataPackageData>(entry: T, condition: FilterCondition): boolean {
+function matchesCondition<T extends ProgramPackageData>(entry: T, condition: FilterCondition): boolean {
     const value = getFieldValue(entry, condition.field);
     return evaluateCondition(value, condition);
 }
@@ -125,10 +115,11 @@ function matchesTeiCondition(tei: TrackedEntityInstance, condition: FilterCondit
     return evaluateCondition(value, condition);
 }
 
-function getFieldValue<T extends DataPackageData>(entry: T, field: FilterField): Maybe<FieldValue> {
-    if (field.startsWith("dataValue.")) {
-        const dataElementId = field.split(".")[1];
-        return entry.dataValues.find(dv => dv.dataElement === dataElementId)?.value;
+function getFieldValue<T extends ProgramPackageData>(entry: T, field: FilterField): Maybe<FieldValue> {
+    if (field.startsWith("dataValue.") && "dataValues" in entry) {
+        const [, dataElementId, ...rest] = field.split(".");
+        const dataElement = entry.dataValues.find(dv => dv.dataElement === dataElementId);
+        return dataElement ? getNestedValue(dataElement, rest) : undefined;
     }
 
     const parts = field.split(".");
@@ -137,8 +128,9 @@ function getFieldValue<T extends DataPackageData>(entry: T, field: FilterField):
 
 function getTeiFieldValue(tei: TrackedEntityInstance, field: FilterField): Maybe<FieldValue> {
     if (field.startsWith("attribute.")) {
-        const attributeId = field.split(".")[1];
-        return tei.attributeValues.find(av => av.attribute.id === attributeId)?.value;
+        const [, attributeId, ...rest] = field.split(".");
+        const attribute = tei.attributeValues.find(av => av.attribute.id === attributeId);
+        return attribute ? getNestedValue(attribute as unknown as Record<string, unknown>, rest) : undefined;
     }
     const parts = field.split(".");
     return getNestedValue(tei as unknown as Record<string, unknown>, parts);
