@@ -95,12 +95,12 @@ function filterTeiAndEvents(
         const filteredTeis = teis.filter(tei =>
             teiFilter.conditions.every(condition => matchesTeiCondition(tei, condition))
         );
-        const filteredDataEntries = dataEntries.filter(entry =>
+        const filterDataEntitiesByTei = filteredDataEntries.filter(entry =>
             filteredTeis.some(tei => tei.id === entry.trackedEntityInstance)
         );
         return {
             trackedEntityInstances: filteredTeis,
-            dataEntries: filteredDataEntries,
+            dataEntries: filterDataEntitiesByTei,
         };
     }
 }
