@@ -217,7 +217,7 @@ async function getElement(api: D2Api, type: DataFormType, id: string) {
         "formType",
         "sections[id,sortOrder,dataElements[id]]",
         "periodType",
-        "programStages[id,access]",
+        "programStages[id,access,featureType]",
         "programType",
         "enrollmentDateLabel",
         "incidentDateLabel",

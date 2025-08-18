@@ -5,8 +5,8 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2024-12-17T16:04:30.663Z\n"
-"PO-Revision-Date: 2024-12-17T16:04:30.663Z\n"
+"POT-Creation-Date: 2025-02-20T09:16:57.132Z\n"
+"PO-Revision-Date: 2025-02-20T09:16:57.132Z\n"
 
 msgid "Events - Create/update"
 msgstr ""
@@ -934,6 +934,11 @@ msgid "True only"
 msgstr ""
 
 msgid "Metadata version"
+msgstr ""
+
+msgid ""
+"Polygon in map\n"
+"([[LON1, LAT1], [LON2, LAT2], ...])"
 msgstr ""
 
 msgid "Latitude"
