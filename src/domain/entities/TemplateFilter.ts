@@ -146,6 +146,7 @@ function getNestedValue(obj: Record<string, unknown>, parts: string[]): Maybe<Fi
     return isFieldValue(value) ? value : undefined;
 }
 
+// TODO: consider using Codec
 function isFieldValue(value: unknown): value is FieldValue {
     return (
         typeof value === "string" || typeof value === "number" || typeof value === "boolean" || value instanceof Date
