@@ -162,13 +162,10 @@ export class DownloadTemplateUseCase implements UseCase {
                 : undefined;
 
             if (teiFilter) {
-                dataPackage = {
-                    ...dataPackage,
-                    ...applyFilter({
-                        dataPackage,
-                        teiFilter: teiFilter,
-                    }),
-                };
+                dataPackage = applyFilter({
+                    dataPackage,
+                    teiFilter: teiFilter,
+                });
             }
         }
 

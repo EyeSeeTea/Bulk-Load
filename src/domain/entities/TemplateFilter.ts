@@ -1,5 +1,5 @@
 import { NamedRef } from "./ReferenceObject";
-import { BasePackageData, DataPackage, DataPackageValue, ProgramPackageData } from "./DataPackage";
+import { DataPackage, DataPackageData, DataPackageValue, ProgramPackageData } from "./DataPackage";
 import { TrackedEntityInstance } from "./TrackedEntityInstance";
 import { Maybe } from "../../types/utils";
 
@@ -54,14 +54,14 @@ export function applyFilter(
             });
             return {
                 ...dataPackage,
-                trackedEntityInstances: filteredResult.trackedEntityInstances || [],
+                trackedEntityInstances: filteredResult.trackedEntityInstances,
                 dataEntries: filteredResult.dataEntries,
             };
         }
     }
 }
 
-function filterDataEntries<T extends BasePackageData>(dataEntries: T[], filter?: TemplateDataFilter): T[] {
+function filterDataEntries<T extends DataPackageData>(dataEntries: T[], filter?: TemplateDataFilter): T[] {
     if (!filter) {
         return dataEntries;
     } else {
@@ -76,7 +76,7 @@ function filterTeiAndEvents(
     }
 ): {
     dataEntries: ProgramPackageData[];
-    trackedEntityInstances?: TrackedEntityInstance[];
+    trackedEntityInstances: TrackedEntityInstance[];
 } {
     const { teis, dataEntries, teiFilter, dataEntryFilter } = props;
     const filteredDataEntries = filterDataEntries(dataEntries, dataEntryFilter);
@@ -99,7 +99,7 @@ function filterTeiAndEvents(
     }
 }
 
-function matchesCondition<T extends BasePackageData>(entry: T, condition: FilterCondition): boolean {
+function matchesCondition<T extends DataPackageData>(entry: T, condition: FilterCondition): boolean {
     const value = getFieldValue(entry, condition.field);
     return evaluateCondition(value, condition);
 }
@@ -109,7 +109,7 @@ function matchesTeiCondition(tei: TrackedEntityInstance, condition: FilterCondit
     return evaluateCondition(value, condition);
 }
 
-function getFieldValue<T extends BasePackageData>(entry: T, field: string): Maybe<FieldValue> {
+function getFieldValue<T extends DataPackageData>(entry: T, field: string): Maybe<FieldValue> {
     if (field.startsWith("dataValue.")) {
         const dataElementId = field.split(".")[1];
         return entry.dataValues.find(dv => dv.dataElement === dataElementId)?.value;
