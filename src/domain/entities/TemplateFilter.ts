@@ -116,8 +116,8 @@ function matchesTeiCondition(tei: TrackedEntityInstance, condition: FilterCondit
 }
 
 function getFieldValue<T extends ProgramPackageData>(entry: T, field: FilterField): Maybe<FieldValue> {
-    if (field.startsWith("dataValue.") && "dataValues" in entry) {
-        const [, dataElementId, ...rest] = field.split(".");
+    if (field.startsWith("dataValue.")) {
+        const [_, dataElementId, ...rest] = field.split(".");
         const dataElement = entry.dataValues.find(dv => dv.dataElement === dataElementId);
         return dataElement ? getNestedValue(dataElement, rest) : undefined;
     }
@@ -128,7 +128,7 @@ function getFieldValue<T extends ProgramPackageData>(entry: T, field: FilterFiel
 
 function getTeiFieldValue(tei: TrackedEntityInstance, field: FilterField): Maybe<FieldValue> {
     if (field.startsWith("attribute.")) {
-        const [, attributeId, ...rest] = field.split(".");
+        const [_, attributeId, ...rest] = field.split(".");
         const attribute = tei.attributeValues.find(av => av.attribute.id === attributeId);
         return attribute ? getNestedValue(attribute as unknown as Record<string, unknown>, rest) : undefined;
     }
