@@ -1,6 +1,7 @@
 import { ConfigWebRepository, JsonConfig } from "./data/ConfigWebRepository";
 import { D2UsersRepository } from "./data/D2UsersRepository";
 import { ExcelPopulateRepository } from "./data/ExcelPopulateRepository";
+import { HistoryDataStoreRepository } from "./data/HistoryDataStoreRepository";
 import { InstanceDhisRepository } from "./data/InstanceDhisRepository";
 import { MigrationsAppRepository } from "./data/MigrationsAppRepository";
 import { StorageConstantRepository } from "./data/StorageConstantRepository";
@@ -9,6 +10,7 @@ import { TemplateWebRepository } from "./data/TemplateWebRepository";
 import { DhisInstance } from "./domain/entities/DhisInstance";
 import { ConfigRepository } from "./domain/repositories/ConfigRepository";
 import { ExcelRepository } from "./domain/repositories/ExcelRepository";
+import { HistoryRepository } from "./domain/repositories/HistoryRepository";
 import { InstanceRepository } from "./domain/repositories/InstanceRepository";
 import { MigrationsRepository } from "./domain/repositories/MigrationsRepository";
 import { StorageRepository } from "./domain/repositories/StorageRepository";
@@ -74,6 +76,7 @@ export function getCompositionRoot({ appConfig, dhisInstance, mockApi, importSou
     const fileRepository = new FileD2Repository(dhisInstance);
     const importSourceRepository =
         importSource === "zip" ? new ImportSourceZipRepository() : new ImportSourceNodeRepository();
+    const historyRepository: HistoryRepository = new HistoryDataStoreRepository(dhisInstance, mockApi);
 
     return {
         orgUnits: getExecute({
@@ -98,7 +101,8 @@ export function getCompositionRoot({ appConfig, dhisInstance, mockApi, importSou
                 templateManager,
                 excelReader,
                 fileRepository,
-                importSourceRepository
+                importSourceRepository,
+                historyRepository
             ),
             list: new ListDataFormsUseCase(instance),
             getDataFormsForGeneration: new GetDataFormsForGenerationUseCase(instance),
