@@ -153,6 +153,7 @@ export default function TemplateListTable(props: TemplateListTableProps) {
                     useCodesForMetadata: false,
                     showLanguage: false,
                     showPeriod: false,
+                    dataFilter: {},
                 });
             } else {
                 snackbar.error(i18n.t("Cannot download spreadsheet for template"));

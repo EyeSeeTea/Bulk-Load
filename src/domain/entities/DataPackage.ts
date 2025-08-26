@@ -7,7 +7,7 @@ import { Geometry } from "./DhisDataPackage";
 
 export type DataPackage = DataSetPackage | EventProgramPackage | TrackerProgramPackage;
 export type DataPackageValue = string | number | boolean;
-export type DataPackageData = BasePackageData | DataSetPackageData | ProgramPackageData;
+export type DataPackageData = DataSetPackageData | ProgramPackageData;
 export type DataPackageDataValue = BasePackageDataValue | DataSetPackageDataValue;
 
 interface BaseDataPackage {

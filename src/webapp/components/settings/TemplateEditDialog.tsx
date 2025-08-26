@@ -5,11 +5,13 @@ import {
     FormControlLabel,
     Grid,
     GridSize,
+    Icon,
     makeStyles,
     Switch,
     SwitchProps,
     TextField,
     TextFieldProps,
+    Tooltip,
     Typography,
 } from "@material-ui/core";
 import { ConfirmationDialog, useSnackbar } from "@eyeseetea/d2-ui-components";
@@ -17,18 +19,23 @@ import { useDropzone } from "react-dropzone";
 import i18n from "../../../utils/i18n";
 import { Select, SelectOption } from "../select/Select";
 import { CustomTemplate } from "../../../domain/entities/Template";
-import React from "react";
+import React, { ReactNode } from "react";
 import { useDataFormsSelector } from "../../hooks/useDataForms";
 import {
+    TemplateView,
     TemplateView as ViewModel,
     TemplateViewActions as ViewModelActions,
     TemplateViewKey as ViewModelField,
 } from "./templates/TemplateView";
 import { downloadFile } from "../../utils/download";
 import { useAppContext } from "../../contexts/app-context";
-import { isValueInUnionType } from "../../../types/utils";
+import { isValueInUnionType, Maybe } from "../../../types/utils";
 import { xlsxMimeTypes } from "../../../utils/files";
 import { getExtensionFile, MIME_TYPES_BY_EXTENSION } from "../../../utils/files";
+import { DataForm } from "../../../domain/entities/DataForm";
+import { generateUid } from "d2/uid";
+import { TemplateDataFilter } from "../../../domain/entities/TemplateFilter";
+import { FlexRow } from "../FlexRow";
 
 export interface CustomTemplateEditDialogProps {
     formMode: FormMode;
@@ -108,6 +115,11 @@ const EditDialog: React.FC<CustomTemplateEditDialogProps2> = React.memo(props =>
     const dataForms = useDataFormsSelector({
         type: template.dataFormType || undefined,
         initialSelectionId: template.dataFormId || undefined,
+    });
+    const dataFilter = useDataFiltersSelector({
+        dataForm: dataForms.selected,
+        template: template,
+        setTemplate: setTemplate,
     });
 
     const title = formMode.type === "edit" ? i18n.t("Edit custom template") : i18n.t("New custom template");
@@ -250,6 +262,39 @@ const EditDialog: React.FC<CustomTemplateEditDialogProps2> = React.memo(props =>
                 <Group title={i18n.t("File")}>
                     <FileField data={data} field="spreadsheet" mimeType={xlsxMimeTypes} />
                 </Group>
+
+                {isAdvancedMode && template.dataFormType === "trackerPrograms" && (
+                    <Group
+                        title={
+                            <>
+                                {i18n.t("Data Filter")}
+                                <Tooltip
+                                    title={i18n.t(
+                                        "Select an attribute to create a data filter. This filter will appear on the downloads page and can be applied to limit the data included in the exported template."
+                                    )}
+                                >
+                                    <Icon style={tooltip}>help</Icon>
+                                </Tooltip>
+                            </>
+                        }
+                    >
+                        <FlexRow>
+                            <Field
+                                field={"teiFilter"}
+                                data={data}
+                                onChange={dataFilter.updateFilterLabel}
+                                value={template.teiFilter.label}
+                            ></Field>
+
+                            <Select
+                                placeholder={i18n.t("Tei Attribute")}
+                                options={dataFilter.teiAttributeOptions}
+                                value={template.teiFilter.teiFilterAttributeId}
+                                onChange={dataFilter.updateFilterTeiAttribute}
+                            />
+                        </FlexRow>
+                    </Group>
+                )}
             </Div>
         </ConfirmationDialog>
     );
@@ -319,21 +364,23 @@ interface FieldDataProp {
     setTemplate: SetTemplate;
 }
 
-interface FieldProps {
+type FieldProps = Omit<TextFieldProps, "onChange"> & {
     field: ViewModelField;
     data: FieldDataProp;
     disabled?: boolean;
     multiline?: boolean;
-}
+    onChange?: (value: string) => void;
+    value?: string;
+};
 
 const Field: React.FC<FieldProps> = React.memo(props => {
-    const { field, data, disabled, multiline } = props;
+    const { field, data, disabled, multiline, onChange, value: initialValue, ...rest } = props;
 
     const { template, setTemplate } = data;
     const classes = useStyles();
     const translations = React.useMemo(() => ViewModelActions.getTranslations(), []);
     const propValue = template[field];
-    const [value, setValue] = React.useState(propValue);
+    const [value, setValue] = React.useState(initialValue ?? propValue);
 
     const setFromEvent = React.useCallback<NonNullable<TextFieldProps["onChange"]>>(
         ev => setValue(ev.target.value),
@@ -341,12 +388,13 @@ const Field: React.FC<FieldProps> = React.memo(props => {
     );
 
     const notifyParent = React.useCallback<NonNullable<TextFieldProps["onChange"]>>(
-        ev => setTemplate(update(field, ev.target.value)),
-        [setTemplate, field]
+        ev => (onChange ? onChange(ev.target.value) : setTemplate(update(field, ev.target.value))),
+        [setTemplate, field, onChange]
     );
 
     return (
         <TextField
+            {...rest}
             className={classes.text}
             label={translations[field]}
             fullWidth={true}
@@ -402,13 +450,15 @@ const useStyles = makeStyles({
     dropZoneButton: { marginLeft: 20 },
 });
 
+const tooltip = { fontSize: 15, marginLeft: 10 };
+
 const Div: React.FC<{ visible: boolean }> = React.memo(props => {
     const { visible = true, children } = props;
 
     return visible ? <div>{children}</div> : null;
 });
 
-const Group: React.FC<{ title?: string; visible?: boolean }> = React.memo(props => {
+const Group: React.FC<{ title?: ReactNode; visible?: boolean }> = React.memo(props => {
     const { title, visible = true, children } = props;
     const classes = useStyles();
     if (!visible) return null;
@@ -465,4 +515,67 @@ function useApplyTo(customTemplates: CustomTemplate[], template: ViewModel, setT
     );
 
     return { current: currentOption, options: options, set: setFromString };
+}
+
+type useDataFiltersSelectorProps = {
+    dataForm: Maybe<DataForm>;
+    template: TemplateView;
+    setTemplate: SetTemplate;
+};
+
+export function useDataFiltersSelector(props: useDataFiltersSelectorProps) {
+    const { dataForm, template, setTemplate } = props;
+
+    const teiAttributes = React.useMemo(() => {
+        if (!dataForm?.teiAttributes) return [];
+        return dataForm.teiAttributes.filter(attribute => Boolean(attribute.options));
+    }, [dataForm]);
+
+    const teiAttributeOptions = React.useMemo(
+        () => teiAttributes.map(attribute => ({ label: attribute.name, value: attribute.id })),
+        [teiAttributes]
+    );
+
+    const updateFilterTeiAttribute = React.useCallback(
+        ({ value }: SelectOption) => {
+            const teiAttributeOptions = teiAttributes.find(attribute => attribute.id === value)?.options;
+            const filters: TemplateDataFilter[] = teiAttributeOptions
+                ? teiAttributeOptions.map(option => ({
+                      id: generateUid(),
+                      name: option.name,
+                      conditions: [
+                          {
+                              field: `attribute.${value}.value`,
+                              operator: "equals",
+                              value: option.code,
+                          },
+                      ],
+                  }))
+                : [];
+            const teiFilter = {
+                ...template.teiFilter,
+                teiFilterAttributeId: value,
+                filters,
+            };
+            setTemplate(update("teiFilter", teiFilter));
+        },
+        [teiAttributes, template, setTemplate]
+    );
+
+    const updateFilterLabel = React.useCallback(
+        (value: string) => {
+            const teiFilter = {
+                ...template.teiFilter,
+                label: value,
+            };
+            setTemplate(update("teiFilter", teiFilter));
+        },
+        [template, setTemplate]
+    );
+
+    return {
+        teiAttributeOptions,
+        updateFilterTeiAttribute,
+        updateFilterLabel,
+    };
 }

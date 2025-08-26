@@ -19,6 +19,7 @@ import { ModulesRepositories } from "../repositories/ModulesRepositories";
 import { TemplateRepository } from "../repositories/TemplateRepository";
 import { UsersRepository } from "../repositories/UsersRepository";
 import { buildAllPossiblePeriods } from "../../webapp/utils/periods";
+import { applyFilter } from "../entities/TemplateFilter";
 
 export interface DownloadTemplateProps {
     type: DataFormType;
@@ -43,6 +44,9 @@ export interface DownloadTemplateProps {
     showLanguage: boolean;
     showPeriod: boolean;
     orgUnitShortName?: boolean;
+    dataFilter: {
+        teiFilterId?: string;
+    };
 }
 
 export class DownloadTemplateUseCase implements UseCase {
@@ -77,6 +81,7 @@ export class DownloadTemplateUseCase implements UseCase {
             useCodesForMetadata,
             showLanguage,
             orgUnitShortName,
+            dataFilter,
         } = options;
 
         const useShortNameInOrgUnit = orgUnitShortName || false;
@@ -139,7 +144,7 @@ export class DownloadTemplateUseCase implements UseCase {
 
         const enablePopulate = populate && !!populateStartDate && !!populateEndDate;
 
-        const dataPackage = enablePopulate
+        let dataPackage = enablePopulate
             ? await this.instanceRepository.getDataPackage({
                   type,
                   id,
@@ -150,6 +155,19 @@ export class DownloadTemplateUseCase implements UseCase {
                   relationshipsOuFilter,
               })
             : undefined;
+
+        if (dataPackage && template.type === "custom" && template.filters) {
+            const teiFilter = dataFilter?.teiFilterId
+                ? template.filters.teiFilters?.filters.find(filter => filter.id === dataFilter.teiFilterId)
+                : undefined;
+
+            if (teiFilter) {
+                dataPackage = applyFilter({
+                    dataPackage,
+                    teiFilter: teiFilter,
+                });
+            }
+        }
 
         const builder = new ExcelBuilder(this.excelRepository, this.instanceRepository, this.modulesRepositories);
 
