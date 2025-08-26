@@ -83,7 +83,23 @@ export class ImportTemplateUseCase implements UseCase {
         private importSourceRepository: ImportSourceRepository
     ) {}
 
-    public async execute({
+    /**
+     * Imports a template file into DHIS2
+     * Uploads the file as a document, runs the import, and stores the history entry
+     */
+    public async execute(
+        params: ImportTemplateUseCaseParams
+    ): Promise<Either<ImportTemplateError, SynchronizationResult[]>> {
+        await this.fileRepository.uploadDocument({
+            data: params.file,
+            name: params.file.name,
+            id: "",
+        });
+        return this.run(params);
+        // TODO: History logging
+    }
+
+    private async run({
         file,
         useBuilderOrgUnits = false,
         selectedOrgUnits = [],

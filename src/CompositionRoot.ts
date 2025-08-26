@@ -38,6 +38,7 @@ import { SaveCustomTemplateUseCase } from "./domain/usecases/SaveCustomTemplateU
 import { SaveThemeUseCase } from "./domain/usecases/SaveThemeUseCase";
 import { SearchUsersUseCase } from "./domain/usecases/SearchUsersUseCase";
 import { WriteSettingsUseCase } from "./domain/usecases/WriteSettingsUseCase";
+import { UploadsCleanupUseCase } from "./domain/usecases/UploadsCleanupUseCase";
 import { D2Api, D2ApiDefault } from "./types/d2-api";
 import { GetFilteredThemesUseCase } from "./domain/usecases/GetFilteredThemesUseCase";
 import { NRCModuleMetadataD2Repository } from "./data/templates/nrc/NRCModuleMetadataD2Repository";
@@ -128,6 +129,9 @@ export function getCompositionRoot({ appConfig, dhisInstance, mockApi, importSou
         }),
         users: getExecute({
             search: new SearchUsersUseCase(usersRepository),
+        }),
+        uploads: getExecute({
+            cleanup: new UploadsCleanupUseCase(fileRepository),
         }),
     };
 }
