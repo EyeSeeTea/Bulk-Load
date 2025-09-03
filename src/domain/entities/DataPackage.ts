@@ -1,44 +1,69 @@
 import { DataFormType } from "./DataForm";
 import { Id } from "./ReferenceObject";
 import { TrackedEntityInstance } from "./TrackedEntityInstance";
+import { ContentType } from "./Template";
+import { Maybe } from "../../types/utils";
+import { Geometry } from "./DhisDataPackage";
 
-export type DataPackage = GenericProgramPackage | TrackerProgramPackage;
+export type DataPackage = DataSetPackage | EventProgramPackage | TrackerProgramPackage;
 export type DataPackageValue = string | number | boolean;
+export type DataPackageData = DataSetPackageData | ProgramPackageData;
+export type DataPackageDataValue = BasePackageDataValue | DataSetPackageDataValue;
 
-export interface BaseDataPackage {
+interface BaseDataPackage {
     type: DataFormType;
-    dataEntries: DataPackageData[];
+    dataEntries: BasePackageData[];
 }
 
-export interface GenericProgramPackage extends BaseDataPackage {
-    type: "dataSets" | "programs";
-}
+type DataSetPackage = BaseDataPackage & {
+    type: "dataSets";
+    dataEntries: DataSetPackageData[];
+};
 
-export interface TrackerProgramPackage extends BaseDataPackage {
+type EventProgramPackage = BaseDataPackage & {
+    type: "programs";
+    dataEntries: ProgramPackageData[];
+};
+
+export type TrackerProgramPackage = BaseDataPackage & {
     type: "trackerPrograms";
     trackedEntityInstances: TrackedEntityInstance[];
-}
+    dataEntries: ProgramPackageData[];
+};
 
-export interface DataPackageData {
-    group?: number | string;
-    id?: Id;
-    dataForm: Id;
+type BasePackageData = {
     orgUnit: Id;
+    dataForm: Id;
     period: string;
-    attribute?: Id;
-    trackedEntityInstance?: Id;
-    programStage?: Id;
-    coordinate?: {
+    attribute: Maybe<Id>;
+    dataValues: (BasePackageDataValue | DataSetPackageDataValue)[];
+};
+
+export type DataSetPackageData = BasePackageData & {
+    type: "aggregated";
+    dataValues: DataSetPackageDataValue[];
+};
+
+export type ProgramPackageData = BasePackageData & {
+    id: Maybe<Id>;
+    trackedEntityInstance: Maybe<Id>;
+    programStage: Maybe<Id>;
+    coordinate: Maybe<{
         latitude: string;
         longitude: string;
-    };
-    dataValues: DataPackageDataValue[];
-}
+    }>;
+    dataValues: BasePackageDataValue[];
+    geometry: Maybe<Geometry>;
+};
 
-export interface DataPackageDataValue {
+export type BasePackageDataValue = {
     dataElement: Id;
-    category?: Id;
     value: DataPackageValue;
     optionId?: Id;
+    contentType?: ContentType;
+};
+
+export type DataSetPackageDataValue = BasePackageDataValue & {
+    category: Maybe<Id>;
     comment?: string;
-}
+};

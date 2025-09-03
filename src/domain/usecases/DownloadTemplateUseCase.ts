@@ -9,9 +9,9 @@ import { getExtensionFile, XLSX_EXTENSION } from "../../utils/files";
 import { promiseMap } from "../../utils/promises";
 import Settings from "../../webapp/logic/settings";
 import { getGeneratedTemplateId, SheetBuilder } from "../../webapp/logic/sheetBuilder";
-import { DataFormType } from "../entities/DataForm";
+import { DataFormType, dataFormTypeMap } from "../entities/DataForm";
 import { Id, Ref } from "../entities/ReferenceObject";
-import { TemplateType } from "../entities/Template";
+import { templateFromDataPackage, TemplateType } from "../entities/Template";
 import { ExcelBuilder } from "../helpers/ExcelBuilder";
 import { ExcelRepository } from "../repositories/ExcelRepository";
 import { InstanceRepository } from "../repositories/InstanceRepository";
@@ -19,6 +19,7 @@ import { ModulesRepositories } from "../repositories/ModulesRepositories";
 import { TemplateRepository } from "../repositories/TemplateRepository";
 import { UsersRepository } from "../repositories/UsersRepository";
 import { buildAllPossiblePeriods } from "../../webapp/utils/periods";
+import { applyFilter } from "../entities/TemplateFilter";
 
 export interface DownloadTemplateProps {
     type: DataFormType;
@@ -43,6 +44,9 @@ export interface DownloadTemplateProps {
     showLanguage: boolean;
     showPeriod: boolean;
     orgUnitShortName?: boolean;
+    dataFilter: {
+        teiFilterId?: string;
+    };
 }
 
 export class DownloadTemplateUseCase implements UseCase {
@@ -77,6 +81,7 @@ export class DownloadTemplateUseCase implements UseCase {
             useCodesForMetadata,
             showLanguage,
             orgUnitShortName,
+            dataFilter,
         } = options;
 
         const useShortNameInOrgUnit = orgUnitShortName || false;
@@ -139,7 +144,7 @@ export class DownloadTemplateUseCase implements UseCase {
 
         const enablePopulate = populate && !!populateStartDate && !!populateEndDate;
 
-        const dataPackage = enablePopulate
+        let dataPackage = enablePopulate
             ? await this.instanceRepository.getDataPackage({
                   type,
                   id,
@@ -151,6 +156,19 @@ export class DownloadTemplateUseCase implements UseCase {
               })
             : undefined;
 
+        if (dataPackage && template.type === "custom" && template.filters) {
+            const teiFilter = dataFilter?.teiFilterId
+                ? template.filters.teiFilters?.filters.find(filter => filter.id === dataFilter.teiFilterId)
+                : undefined;
+
+            if (teiFilter) {
+                dataPackage = applyFilter({
+                    dataPackage,
+                    teiFilter: teiFilter,
+                });
+            }
+        }
+
         const builder = new ExcelBuilder(this.excelRepository, this.instanceRepository, this.modulesRepositories);
 
         await builder.templateCustomization(template, {
@@ -158,7 +176,7 @@ export class DownloadTemplateUseCase implements UseCase {
             type,
             id,
             populate,
-            dataPackage,
+            dataPackage: dataPackage ? templateFromDataPackage(dataPackage) : undefined,
             orgUnits,
             language: showLanguage ? language : undefined,
         });
@@ -206,7 +224,7 @@ export class DownloadTemplateUseCase implements UseCase {
 }
 
 async function getElement(api: D2Api, type: DataFormType, id: string) {
-    const endpoint = type === "dataSets" ? "dataSets" : "programs";
+    const endpoint = type === dataFormTypeMap.dataSets ? "dataSets" : "programs";
     const fields = [
         "id",
         "displayName",
@@ -253,7 +271,7 @@ async function getElementMetadata({
     orgUnitShortName: boolean;
 }) {
     const elementMetadataMap = new Map();
-    const endpoint = element.type === "dataSets" ? "dataSets" : "programs";
+    const endpoint = element.type === dataFormTypeMap.dataSets ? "dataSets" : "programs";
     const elementMetadata = await api.get<ElementMetadata>(`/${endpoint}/${element.id}/metadata.json`).getData();
 
     const rawMetadata = await filterRawMetadata({ api, element, elementMetadata, orgUnitIds, startDate, endDate });
