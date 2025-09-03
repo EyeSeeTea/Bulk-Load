@@ -350,6 +350,8 @@ export const TemplateSelector = ({
                         onChange={onDataFilterChange}
                         options={state.dataFilterOptions.teiFilter.filters}
                         value={state.dataFilter.teiFilterId}
+                        allowEmpty={true}
+                        emptyLabel={i18n.t("<No value>")}
                     />
                 </div>
             )}
