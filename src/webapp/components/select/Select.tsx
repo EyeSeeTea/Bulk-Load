@@ -69,7 +69,7 @@ export const Select: React.FC<SelectProps> = ({
 const useStyles = makeStyles(() =>
     createStyles({
         formControl: {
-            margin: 0,
+            margin: "10px 0",
             display: "flex",
         },
         menuItem: {

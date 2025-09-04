@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2025-09-04T17:52:22.552Z\n"
+"POT-Creation-Date: 2025-09-04T17:58:37.478Z\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -545,6 +545,18 @@ msgstr ""
 msgid "File"
 msgstr ""
 
+msgid "Data Filter"
+msgstr "Filtro de datos"
+
+msgid ""
+"Select an attribute to create a data filter. This filter will appear on the "
+"downloads page and can be applied to limit the data included in the exported "
+"template."
+msgstr ""
+
+msgid "Tei Attribute"
+msgstr "Atributo TEI"
+
 msgid "Download"
 msgstr "Descargar"
 
@@ -865,6 +877,9 @@ msgstr "Mostrar Idioma"
 msgid "Show Period"
 msgstr "Mostrar Periodo"
 
+msgid "Tei Data Filter - Label"
+msgstr ""
+
 msgid "Value for field '{{field}}' is invalid - {{value}}"
 msgstr ""
 
@@ -913,6 +928,9 @@ msgstr "Modelo de Datos"
 msgid "Select template to export..."
 msgstr "Seleccione plantilla para exportar..."
 
+msgid "<No value>"
+msgstr "<Sin valor>"
+
 msgid "Start period"
 msgstr "Periodo inicial"
 
@@ -942,9 +960,6 @@ msgstr ""
 
 msgid "Theme"
 msgstr "Tema"
-
-msgid "<No value>"
-msgstr "<Sin valor>"
 
 msgid "Populate template with data"
 msgstr "Rellenar la plantilla con datos"

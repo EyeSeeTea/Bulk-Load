@@ -5,8 +5,8 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2025-09-04T17:52:22.552Z\n"
-"PO-Revision-Date: 2025-09-04T17:52:22.552Z\n"
+"POT-Creation-Date: 2025-09-04T17:58:37.478Z\n"
+"PO-Revision-Date: 2025-09-04T17:58:37.478Z\n"
 
 msgid "Events - Create/update"
 msgstr ""
@@ -500,6 +500,18 @@ msgstr ""
 msgid "File"
 msgstr ""
 
+msgid "Data Filter"
+msgstr ""
+
+msgid ""
+"Select an attribute to create a data filter. This filter will appear on the "
+"downloads page and can be applied to limit the data included in the "
+"exported template."
+msgstr ""
+
+msgid "Tei Attribute"
+msgstr ""
+
 msgid "Download"
 msgstr ""
 
@@ -817,6 +829,9 @@ msgstr ""
 msgid "Show Period"
 msgstr ""
 
+msgid "Tei Data Filter - Label"
+msgstr ""
+
 msgid "Value for field '{{field}}' is invalid - {{value}}"
 msgstr ""
 
@@ -865,6 +880,9 @@ msgstr ""
 msgid "Select template to export..."
 msgstr ""
 
+msgid "<No value>"
+msgstr ""
+
 msgid "Start period"
 msgstr ""
 
@@ -893,9 +911,6 @@ msgid "Split data entry tabs by section"
 msgstr ""
 
 msgid "Theme"
-msgstr ""
-
-msgid "<No value>"
 msgstr ""
 
 msgid "Populate template with data"
