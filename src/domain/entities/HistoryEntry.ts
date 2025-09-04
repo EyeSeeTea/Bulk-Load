@@ -1,4 +1,3 @@
-import { FileResource } from "./FileResource";
 import { Id } from "./ReferenceObject";
 import { generateUid } from "d2/uid";
 import { SynchronizationResult } from "./SynchronizationResult";
@@ -7,13 +6,14 @@ import { ImportTemplateError } from "../usecases/ImportTemplateUseCase";
 import { User } from "./User";
 import { DataForm } from "./DataForm";
 import { Either } from "./Either";
+import { Document } from "./Document";
 
 export class HistoryEntry {
     public readonly id: Id;
     public readonly dataForm: Maybe<DataForm>;
     public readonly timestamp: Date;
     public readonly user: User;
-    public readonly fileResource: FileResource;
+    public readonly document: Document;
     public readonly syncResults: Maybe<SynchronizationResult[]>;
     public readonly errorDetails: Maybe<ErrorDetails>;
 
@@ -22,13 +22,13 @@ export class HistoryEntry {
         timestamp = new Date(),
         dataForm,
         user,
-        fileResource,
+        document,
         syncResults,
         errorDetails,
     }: Partial<HistoryEntry> & {
         dataForm: Maybe<DataForm>;
         user: User;
-        fileResource: FileResource;
+        document: Document;
         syncResults: Maybe<SynchronizationResult[]>;
         errorDetails: Maybe<ErrorDetails>;
     }) {
@@ -36,7 +36,7 @@ export class HistoryEntry {
         this.dataForm = dataForm;
         this.timestamp = timestamp;
         this.user = user;
-        this.fileResource = fileResource;
+        this.document = document;
         this.syncResults = syncResults;
         this.errorDetails = errorDetails;
         if (!this.syncResults && !this.errorDetails) {
@@ -46,7 +46,7 @@ export class HistoryEntry {
 
     static create(data: {
         user: User;
-        fileResource: FileResource;
+        document: Document;
         dataForm: Maybe<DataForm>;
         syncResults: Maybe<SynchronizationResult[]>;
         errorDetails: Maybe<ErrorDetails>;
@@ -56,14 +56,14 @@ export class HistoryEntry {
 
     static fromImportResult(data: {
         user: User;
-        fileResource: FileResource;
+        document: Document;
         dataForm: Maybe<DataForm>;
         result: Either<ImportTemplateError, SynchronizationResult[]>;
     }): HistoryEntry {
         if (data.result.isError()) {
             return new HistoryEntry({
                 user: data.user,
-                fileResource: data.fileResource,
+                document: data.document,
                 dataForm: data.dataForm,
                 syncResults: undefined,
                 errorDetails: data.result.value.error,
@@ -71,7 +71,7 @@ export class HistoryEntry {
         } else {
             return new HistoryEntry({
                 user: data.user,
-                fileResource: data.fileResource,
+                document: data.document,
                 dataForm: data.dataForm,
                 syncResults: data.result.value.data,
                 errorDetails: undefined,
@@ -90,8 +90,8 @@ export class HistoryEntry {
             timestamp: this.timestamp.toISOString(),
             status: this.computeStatus(),
             username: this.user.username,
-            fileResourceId: this.fileResource.id,
-            fileName: this.fileResource.name,
+            documentId: this.document.id,
+            fileName: this.document.name,
         };
     }
 
@@ -129,7 +129,7 @@ export interface HistoryEntrySummary {
     timestamp: string;
     status: "SUCCESS" | "ERROR" | "WARNING";
     username: string;
-    fileResourceId: Id;
+    documentId: Id;
     fileName: string;
 }
 

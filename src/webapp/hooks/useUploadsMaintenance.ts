@@ -20,7 +20,7 @@ export function useUploadsMaintenance() {
     const executeCleanup = useCallback(async () => {
         setIsLoading(true);
         try {
-            await compositionRoot.uploads.cleanup();
+            await compositionRoot.history.cleanupDocuments();
             snackbar.success(i18n.t("File cleanup completed successfully"));
             setConfirmationVisible(false);
         } catch (error: any) {

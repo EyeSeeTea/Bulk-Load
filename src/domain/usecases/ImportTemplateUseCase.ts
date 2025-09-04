@@ -30,6 +30,7 @@ import { HistoryRepository } from "../repositories/HistoryRepository";
 import { AttributeValue, TrackedEntityInstance } from "../entities/TrackedEntityInstance";
 import { Maybe } from "../../types/utils";
 import { HistoryEntry } from "../entities/HistoryEntry";
+import { DocumentRepository } from "../repositories/DocumentRepository";
 
 export type ImportTemplateError =
     | {
@@ -83,7 +84,8 @@ export class ImportTemplateUseCase implements UseCase {
         private excelRepository: ExcelRepository,
         private fileRepository: FileRepository,
         private importSourceRepository: ImportSourceRepository,
-        private historyRepository: HistoryRepository
+        private historyRepository: HistoryRepository,
+        private documentRepository: DocumentRepository
     ) {}
 
     /**
@@ -93,16 +95,15 @@ export class ImportTemplateUseCase implements UseCase {
     public async execute(
         params: ImportTemplateUseCaseParams
     ): Promise<Either<ImportTemplateError, SynchronizationResult[]>> {
-        const uploadedDocument = await this.fileRepository.uploadDocument({
+        const uploadedDocument = await this.documentRepository.upload({
             data: params.file,
             name: params.file.name,
-            id: "",
         });
         try {
             const { dataForm, result } = await this.run(params);
             const historyEntry = HistoryEntry.fromImportResult({
                 user: params.settings.currentUser,
-                fileResource: uploadedDocument,
+                document: uploadedDocument,
                 dataForm,
                 result,
             });
@@ -113,7 +114,7 @@ export class ImportTemplateUseCase implements UseCase {
             // an example for this is a user without access to some org unit
             const historyEntry = HistoryEntry.create({
                 user: params.settings.currentUser,
-                fileResource: uploadedDocument,
+                document: uploadedDocument,
                 errorDetails: { type: "UNHANDLED_EXCEPTION", message: (error as Error).message },
                 dataForm: undefined,
                 syncResults: undefined,

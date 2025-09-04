@@ -1,17 +1,17 @@
-import { UploadsCleanupUseCase } from "../../../src/domain/usecases/UploadsCleanupUseCase";
-import { FileRepository } from "../../../src/domain/repositories/FileRepository";
+import { DocumentRepository } from "../../domain/repositories/DocumentRepository";
+import { DocumentsCleanupUseCase } from "../../domain/usecases/DocumentsCleanupUseCase";
 
-describe("UploadsCleanupUseCase", () => {
-    let fileRepository: jest.Mocked<FileRepository>;
-    let useCase: UploadsCleanupUseCase;
+describe("DocumentsCleanupUseCase", () => {
+    let fileRepository: jest.Mocked<DocumentRepository>;
+    let useCase: DocumentsCleanupUseCase;
 
     beforeEach(() => {
         fileRepository = {
-            uploadDocument: jest.fn(),
-            deleteDocuments: jest.fn(),
-            uploadAll: jest.fn(),
+            upload: jest.fn(),
+            delete: jest.fn(),
+            download: jest.fn(),
         };
-        useCase = new UploadsCleanupUseCase(fileRepository);
+        useCase = new DocumentsCleanupUseCase(fileRepository);
     });
 
     it("should call deleteDocuments with a date from 1 year ago", async () => {
@@ -27,17 +27,17 @@ describe("UploadsCleanupUseCase", () => {
 
         await useCase.execute();
 
-        expect(fileRepository.deleteDocuments).toHaveBeenCalledWith({
+        expect(fileRepository.delete).toHaveBeenCalledWith({
             until: expectedDate,
         });
-        expect(fileRepository.deleteDocuments).toHaveBeenCalledTimes(1);
+        expect(fileRepository.delete).toHaveBeenCalledTimes(1);
 
         (global.Date as any).mockRestore();
     });
 
     it("should handle repository errors gracefully", async () => {
         const error = new Error("Repository error");
-        fileRepository.deleteDocuments.mockRejectedValue(error);
+        fileRepository.delete.mockRejectedValue(error);
 
         await expect(useCase.execute()).rejects.toThrow("Repository error");
     });
