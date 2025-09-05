@@ -1,21 +1,10 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { ConfirmationDialog, useLoading, useSnackbar } from "@eyeseetea/d2-ui-components";
-import {
-    DialogContent,
-    Typography,
-    makeStyles,
-    Accordion,
-    AccordionSummary,
-    AccordionDetails,
-} from "@material-ui/core";
-import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
+import { ConfirmationDialog } from "@eyeseetea/d2-ui-components";
+import { DialogContent, Typography, makeStyles, CircularProgress, Box } from "@material-ui/core";
 
-import { HistoryEntryDetails } from "../../../domain/entities/HistoryEntry";
 import { Id } from "../../../domain/entities/ReferenceObject";
-import { SynchronizationResult } from "../../../domain/entities/SynchronizationResult";
 import i18n from "../../../utils/i18n";
-import { useAppContext } from "../../contexts/app-context";
 import SyncSummary from "../sync-summary/SyncSummary";
+import { useHistoryDetails } from "../../hooks/useHistoryDetails";
 
 interface HistoryDetailsDialogProps {
     isOpen: boolean;
@@ -29,12 +18,23 @@ const useStyles = makeStyles({
         minHeight: 400,
         padding: "16px 24px",
     },
+    section: {
+        marginBottom: 24,
+    },
+    sectionTitle: {
+        marginBottom: 16,
+        fontWeight: 600,
+    },
+    sectionContent: {
+        marginLeft: 0,
+    },
     errorSection: {
         marginTop: 16,
     },
     errorTitle: {
         color: "#f44336",
         marginBottom: 8,
+        fontWeight: 600,
     },
     errorMessage: {
         padding: 16,
@@ -51,47 +51,20 @@ const useStyles = makeStyles({
 
 export function HistoryDetailsDialog({ isOpen, entryId, entryName, onClose }: HistoryDetailsDialogProps) {
     const classes = useStyles();
-    const { compositionRoot } = useAppContext();
-    const loading = useLoading();
-    const snackbar = useSnackbar();
-
-    const [details, setDetails] = useState<HistoryEntryDetails | null>(null);
-    const [showSyncSummary, setShowSyncSummary] = useState(false);
-
-    useEffect(() => {
-        if (!isOpen) return;
-
-        const loadDetails = async () => {
-            try {
-                loading.show();
-                const entryDetails = await compositionRoot.history.getDetails(entryId);
-                setDetails(entryDetails);
-            } catch (error) {
-                console.error("Error loading history details:", error);
-                snackbar.error(i18n.t("Error loading import details"));
-            } finally {
-                loading.hide();
-            }
-        };
-
-        loadDetails();
-    }, [isOpen, entryId, compositionRoot.history, loading, snackbar]);
-
-    const handleClose = useCallback(() => {
-        setDetails(null);
-        setShowSyncSummary(false);
-        onClose();
-    }, [onClose]);
-
-    const showSyncResults = useCallback(() => {
-        setShowSyncSummary(true);
-    }, []);
-
-    const hideSyncResults = useCallback(() => {
-        setShowSyncSummary(false);
-    }, []);
+    const { details, loading } = useHistoryDetails({
+        isOpen,
+        entryId,
+    });
 
     const renderContent = () => {
+        if (loading) {
+            return (
+                <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
+                    <CircularProgress />
+                </Box>
+            );
+        }
+
         if (!details) {
             return (
                 <div className={classes.noDataMessage}>
@@ -104,58 +77,23 @@ export function HistoryDetailsDialog({ isOpen, entryId, entryName, onClose }: Hi
 
         return (
             <>
-                {/* Show SyncSummary dialog if requested */}
-                {showSyncSummary && results && <SyncSummary results={results} onClose={hideSyncResults} />}
-
-                {/* Import Results Section */}
                 {results && results.length > 0 && (
-                    <Accordion defaultExpanded>
-                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                            <Typography variant="h6">{i18n.t("Import Results")}</Typography>
-                        </AccordionSummary>
-                        <AccordionDetails style={{ flexDirection: "column" }}>
-                            <Typography variant="body2" style={{ marginBottom: 16 }}>
-                                {i18n.t("This import completed with {{count}} result(s).", { count: results.length })}
-                            </Typography>
-
-                            {/* Summary of results */}
-                            {results.map((result, index) => (
-                                <div key={index} style={{ marginBottom: 8 }}>
-                                    <Typography variant="body2">
-                                        <strong>{result.title}:</strong> {getStatusText(result.status)}
-                                        {result.message && ` - ${result.message}`}
-                                    </Typography>
-                                </div>
-                            ))}
-
-                            <div style={{ marginTop: 16 }}>
-                                <button
-                                    onClick={showSyncResults}
-                                    style={{
-                                        padding: "8px 16px",
-                                        backgroundColor: "#1976d2",
-                                        color: "white",
-                                        border: "none",
-                                        borderRadius: 4,
-                                        cursor: "pointer",
-                                    }}
-                                >
-                                    {i18n.t("View Detailed Results")}
-                                </button>
-                            </div>
-                        </AccordionDetails>
-                    </Accordion>
+                    <div className={classes.section}>
+                        <Typography variant="h6" className={classes.sectionTitle}>
+                            {i18n.t("Import Results")}
+                        </Typography>
+                        <div className={classes.sectionContent}>
+                            <SyncSummary results={results} />
+                        </div>
+                    </div>
                 )}
 
-                {/* Error Details Section */}
                 {errorDetails && (
-                    <Accordion defaultExpanded>
-                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                            <Typography variant="h6" className={classes.errorTitle}>
-                                {i18n.t("Import Errors")}
-                            </Typography>
-                        </AccordionSummary>
-                        <AccordionDetails style={{ flexDirection: "column" }}>
+                    <div className={classes.section}>
+                        <Typography variant="h6" className={classes.errorTitle}>
+                            {i18n.t("Import Errors")}
+                        </Typography>
+                        <div className={classes.sectionContent}>
                             <div className={classes.errorMessage}>
                                 {errorDetails.type === "UNHANDLED_EXCEPTION" ? (
                                     <div>
@@ -173,8 +111,8 @@ export function HistoryDetailsDialog({ isOpen, entryId, entryName, onClose }: Hi
                                     </div>
                                 )}
                             </div>
-                        </AccordionDetails>
-                    </Accordion>
+                        </div>
+                    </div>
                 )}
 
                 {/* No data available */}
@@ -193,7 +131,7 @@ export function HistoryDetailsDialog({ isOpen, entryId, entryName, onClose }: Hi
         <ConfirmationDialog
             isOpen={isOpen}
             title={i18n.t("Import Details: {{name}}", { name: entryName, nsSeparator: false })}
-            onCancel={handleClose}
+            onCancel={onClose}
             cancelText={i18n.t("Close")}
             maxWidth="lg"
             fullWidth
@@ -201,23 +139,6 @@ export function HistoryDetailsDialog({ isOpen, entryId, entryName, onClose }: Hi
             <DialogContent className={classes.dialogContent}>{renderContent()}</DialogContent>
         </ConfirmationDialog>
     );
-}
-
-function getStatusText(status: SynchronizationResult["status"]): string {
-    switch (status) {
-        case "SUCCESS":
-            return i18n.t("Success");
-        case "ERROR":
-            return i18n.t("Error");
-        case "WARNING":
-            return i18n.t("Warning");
-        case "NETWORK ERROR":
-            return i18n.t("Network Error");
-        case "PENDING":
-            return i18n.t("Pending");
-        default:
-            return status;
-    }
 }
 
 function getErrorTypeTitle(type: string): string {
