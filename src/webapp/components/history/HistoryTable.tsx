@@ -1,81 +1,62 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
     ObjectsTable,
-    PaginationOptions,
     SearchBox,
     TableAction,
     TableColumn,
     TableSelection,
     TableState,
-    useLoading,
     useSnackbar,
 } from "@eyeseetea/d2-ui-components";
 import { Icon, makeStyles } from "@material-ui/core";
 import moment from "moment";
 
-import { HistoryEntrySummary } from "../../../domain/entities/HistoryEntry";
+import { HistoryEntryStatus, HistoryEntrySummary } from "../../../domain/entities/HistoryEntry";
 import i18n from "../../../utils/i18n";
 import { useAppContext } from "../../contexts/app-context";
 import { Select } from "../select/Select";
 import { HistoryDetailsDialog } from "./HistoryDetailsDialog";
 import { firstOrFail } from "../../../types/utils";
 import { downloadFile } from "../../utils/download";
-
-const paginationOptions: PaginationOptions = {
-    pageSizeOptions: [10, 20, 50],
-    pageSizeInitialValue: 20,
-};
+import useHistory from "../../hooks/useHistory";
 
 export function HistoryTable() {
     const classes = useStyles();
     const { compositionRoot } = useAppContext();
-    const loading = useLoading();
     const snackbar = useSnackbar();
 
-    const [allHistoryEntries, setAllHistoryEntries] = useState<HistoryEntrySummary[]>([]);
     const [selection, setSelection] = useState<TableSelection[]>([]);
-    const [searchText, setSearchText] = useState("");
-    const [statusFilter, setStatusFilter] = useState<"SUCCESS" | "ERROR" | "WARNING" | undefined>();
     const [detailsDialog, setDetailsDialog] = useState<{ entryId: string; entryName: string } | null>(null);
+    const [searchText, setSearchText] = useState("");
+    const [statusFilter, setStatusFilter] = useState<HistoryEntryStatus | undefined>();
+
+    const { entries, loading, load } = useHistory();
 
     useEffect(() => {
-        const loadHistoryEntries = async () => {
-            try {
-                loading.show();
-                const entries = await compositionRoot.history.getEntries();
-                setAllHistoryEntries(entries);
-            } catch (error) {
-                console.error("Error loading history entries:", error);
-                snackbar.error(i18n.t("Error loading history entries"));
-            } finally {
-                loading.hide();
+        load({ searchText, status: statusFilter });
+    }, [load, searchText, statusFilter]);
+
+    const onClickDownload = useCallback(
+        async selectedIds => {
+            const entryId = firstOrFail(selectedIds) as string;
+            const entry = entries.find((e: HistoryEntrySummary) => e.id === entryId);
+            if (entry && entry.documentId) {
+                try {
+                    const blob = await compositionRoot.history.downloadDocument(entry.documentId);
+                    downloadFile({
+                        filename: entry.fileName,
+                        data: blob,
+                    });
+                } catch (error: any) {
+                    console.error("Download error:", error);
+                    snackbar.error(error.message || i18n.t("Failed to download file"));
+                }
+            } else {
+                snackbar.warning(i18n.t("No file available for download"));
             }
-        };
-
-        loadHistoryEntries();
-    }, [compositionRoot.history, loading, snackbar]);
-
-    const filteredEntries = React.useMemo(() => {
-        let filtered = allHistoryEntries;
-
-        // Apply search filter
-        if (searchText.trim()) {
-            const searchLower = searchText.toLowerCase();
-            filtered = filtered.filter(
-                entry =>
-                    entry.fileName.toLowerCase().includes(searchLower) ||
-                    entry.name.toLowerCase().includes(searchLower) ||
-                    entry.username.toLowerCase().includes(searchLower)
-            );
-        }
-
-        // Apply status filter
-        if (statusFilter) {
-            filtered = filtered.filter(entry => entry.status === statusFilter);
-        }
-
-        return filtered;
-    }, [allHistoryEntries, searchText, statusFilter]);
+        },
+        [compositionRoot.history, entries, snackbar]
+    );
 
     const columns: TableColumn<HistoryEntrySummary>[] = [
         { name: "name", text: i18n.t("Data Form") },
@@ -108,11 +89,11 @@ export function HistoryTable() {
             primary: true,
             onClick: selectedIds => {
                 const entryId = firstOrFail(selectedIds);
-                const entry = filteredEntries.find(e => e.id === entryId);
+                const entry = entries.find((e: HistoryEntrySummary) => e.id === entryId);
                 if (entry) {
                     setDetailsDialog({
                         entryId: entry.id,
-                        entryName: entry.fileName || entry.name,
+                        entryName: entry.name || entry.fileName,
                     });
                 }
             },
@@ -122,24 +103,7 @@ export function HistoryTable() {
             name: "download_file",
             text: i18n.t("Download File"),
             primary: false,
-            onClick: async selectedIds => {
-                const entryId = firstOrFail(selectedIds) as string;
-                const entry = filteredEntries.find(e => e.id === entryId);
-                if (entry && entry.documentId) {
-                    try {
-                        const blob = await compositionRoot.history.downloadDocument(entry.documentId);
-                        downloadFile({
-                            filename: entry.fileName,
-                            data: blob,
-                        });
-                    } catch (error: any) {
-                        console.error("Download error:", error);
-                        snackbar.error(error.message || i18n.t("Failed to download file"));
-                    }
-                } else {
-                    snackbar.warning(i18n.t("No file available for download"));
-                }
-            },
+            onClick: onClickDownload,
             icon: <Icon>download</Icon>,
         },
     ];
@@ -148,22 +112,33 @@ export function HistoryTable() {
         setSelection(selection);
     };
 
-    const statusOptions = [
+    const statusOptions: { value: HistoryEntryStatus; label: string }[] = [
         { value: "SUCCESS", label: i18n.t("Success") },
         { value: "ERROR", label: i18n.t("Error") },
         { value: "WARNING", label: i18n.t("Warning") },
     ];
 
-    if (allHistoryEntries.length === 0 && !loading.isLoading) {
-        return (
-            <div style={{ textAlign: "center", padding: "2rem" }}>
-                <Icon style={{ fontSize: 48, color: "#ccc" }}>history</Icon>
-                <p style={{ color: "#666", marginTop: "1rem" }}>
-                    {i18n.t("No import history found. Import data files to see them here.")}
-                </p>
+    const customFilters = (
+        <React.Fragment key="filters">
+            <SearchBox
+                key="history-search-box"
+                className={classes.searchBox}
+                value={searchText}
+                hintText={i18n.t("Search by file name, data form, or user")}
+                onChange={setSearchText}
+            />
+            <div className={classes.statusSelect}>
+                <Select
+                    placeholder={i18n.t("Status")}
+                    options={statusOptions}
+                    onChange={option => setStatusFilter(option.value as typeof statusFilter)}
+                    value={statusFilter}
+                    allowEmpty
+                    emptyLabel={i18n.t("All")}
+                />
             </div>
-        );
-    }
+        </React.Fragment>
+    );
 
     return (
         <>
@@ -177,33 +152,14 @@ export function HistoryTable() {
             )}
 
             <ObjectsTable<HistoryEntrySummary>
-                rows={filteredEntries}
+                rows={entries}
                 columns={columns}
                 actions={actions}
                 selection={selection}
+                initialState={{ sorting: { field: "timestamp", order: "desc" } }}
                 onChange={onTableChange}
-                paginationOptions={paginationOptions}
-                filterComponents={
-                    <React.Fragment key="filters">
-                        <SearchBox
-                            key="history-search-box"
-                            className={classes.searchBox}
-                            value={searchText}
-                            hintText={i18n.t("Search by file name, data form, or user")}
-                            onChange={setSearchText}
-                        />
-                        <div className={classes.statusSelect}>
-                            <Select
-                                placeholder={i18n.t("Status")}
-                                options={statusOptions}
-                                onChange={option => setStatusFilter(option.value as typeof statusFilter)}
-                                value={statusFilter}
-                                allowEmpty
-                                emptyLabel={i18n.t("All")}
-                            />
-                        </div>
-                    </React.Fragment>
-                }
+                loading={loading}
+                filterComponents={customFilters}
             />
         </>
     );

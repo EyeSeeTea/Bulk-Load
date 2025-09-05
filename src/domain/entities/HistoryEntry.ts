@@ -86,7 +86,7 @@ export class HistoryEntry {
     public toSummary(): HistoryEntrySummary {
         return {
             id: this.id,
-            name: this.dataForm?.name || "N/A",
+            name: this.dataForm?.name || "",
             timestamp: this.timestamp.toISOString(),
             status: this.computeStatus(),
             username: this.user.username,
@@ -95,7 +95,7 @@ export class HistoryEntry {
         };
     }
 
-    private computeStatus(): "SUCCESS" | "ERROR" | "WARNING" {
+    private computeStatus(): HistoryEntryStatus {
         if (this.errorDetails) {
             return "ERROR";
         }
@@ -123,11 +123,13 @@ export class HistoryEntry {
     }
 }
 
+export type HistoryEntryStatus = "SUCCESS" | "ERROR" | "WARNING";
+
 export interface HistoryEntrySummary {
     id: Id;
     name: string;
     timestamp: string;
-    status: "SUCCESS" | "ERROR" | "WARNING";
+    status: HistoryEntryStatus;
     username: string;
     documentId: Id;
     fileName: string;
