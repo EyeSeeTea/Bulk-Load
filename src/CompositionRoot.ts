@@ -1,6 +1,7 @@
 import { ConfigWebRepository, JsonConfig } from "./data/ConfigWebRepository";
 import { D2UsersRepository } from "./data/D2UsersRepository";
 import { ExcelPopulateRepository } from "./data/ExcelPopulateRepository";
+import { HistoryDataStoreRepository } from "./data/HistoryDataStoreRepository";
 import { InstanceDhisRepository } from "./data/InstanceDhisRepository";
 import { MigrationsAppRepository } from "./data/MigrationsAppRepository";
 import { StorageConstantRepository } from "./data/StorageConstantRepository";
@@ -9,6 +10,7 @@ import { TemplateWebRepository } from "./data/TemplateWebRepository";
 import { DhisInstance } from "./domain/entities/DhisInstance";
 import { ConfigRepository } from "./domain/repositories/ConfigRepository";
 import { ExcelRepository } from "./domain/repositories/ExcelRepository";
+import { HistoryRepository } from "./domain/repositories/HistoryRepository";
 import { InstanceRepository } from "./domain/repositories/InstanceRepository";
 import { MigrationsRepository } from "./domain/repositories/MigrationsRepository";
 import { StorageRepository } from "./domain/repositories/StorageRepository";
@@ -38,10 +40,15 @@ import { SaveCustomTemplateUseCase } from "./domain/usecases/SaveCustomTemplateU
 import { SaveThemeUseCase } from "./domain/usecases/SaveThemeUseCase";
 import { SearchUsersUseCase } from "./domain/usecases/SearchUsersUseCase";
 import { WriteSettingsUseCase } from "./domain/usecases/WriteSettingsUseCase";
+import { DocumentsCleanupUseCase } from "./domain/usecases/DocumentsCleanupUseCase";
+import { GetHistoryEntriesUseCase } from "./domain/usecases/GetHistoryEntriesUseCase";
+import { GetHistoryEntryDetailsUseCase } from "./domain/usecases/GetHistoryEntryDetailsUseCase";
+import { DownloadDocumentUseCase } from "./domain/usecases/DownloadDocumentUseCase";
 import { D2Api, D2ApiDefault } from "./types/d2-api";
 import { GetFilteredThemesUseCase } from "./domain/usecases/GetFilteredThemesUseCase";
 import { NRCModuleMetadataD2Repository } from "./data/templates/nrc/NRCModuleMetadataD2Repository";
 import { FileD2Repository } from "./data/FileD2Repository";
+import { DocumentD2Repository } from "./data/DocumentD2Repository";
 import { ImportSourceZipRepository } from "./data/ImportSourceZipRepository";
 import { MSFModuleMetadataD2Repository } from "./data/templates/nrc/MSFModuleMetadataD2Repository";
 import { ModulesRepositories } from "./domain/repositories/ModulesRepositories";
@@ -71,8 +78,10 @@ export function getCompositionRoot({ appConfig, dhisInstance, mockApi, importSou
         msf: new MSFModuleMetadataD2Repository(api),
     };
     const fileRepository = new FileD2Repository(dhisInstance);
+    const documentRepository = new DocumentD2Repository(dhisInstance);
     const importSourceRepository =
         importSource === "zip" ? new ImportSourceZipRepository() : new ImportSourceNodeRepository();
+    const historyRepository: HistoryRepository = new HistoryDataStoreRepository(dhisInstance, mockApi);
 
     return {
         orgUnits: getExecute({
@@ -97,7 +106,9 @@ export function getCompositionRoot({ appConfig, dhisInstance, mockApi, importSou
                 templateManager,
                 excelReader,
                 fileRepository,
-                importSourceRepository
+                importSourceRepository,
+                historyRepository,
+                documentRepository
             ),
             list: new ListDataFormsUseCase(instance),
             getDataFormsForGeneration: new GetDataFormsForGenerationUseCase(instance),
@@ -128,6 +139,12 @@ export function getCompositionRoot({ appConfig, dhisInstance, mockApi, importSou
         }),
         users: getExecute({
             search: new SearchUsersUseCase(usersRepository),
+        }),
+        history: getExecute({
+            getEntries: new GetHistoryEntriesUseCase(historyRepository),
+            getDetails: new GetHistoryEntryDetailsUseCase(historyRepository),
+            downloadDocument: new DownloadDocumentUseCase(documentRepository),
+            cleanupDocuments: new DocumentsCleanupUseCase(documentRepository),
         }),
     };
 }

@@ -10,6 +10,7 @@ import {
     makeStyles,
     TextField,
 } from "@material-ui/core";
+import { ConfirmationDialog } from "@eyeseetea/d2-ui-components";
 import React, { ChangeEvent, useCallback, useMemo, useState } from "react";
 import { DuplicateToleranceUnit, Model, OrgUnitSelectionSetting } from "../../../domain/entities/AppSettings";
 import i18n from "../../../utils/i18n";
@@ -22,6 +23,7 @@ import { PermissionsDialog } from "./PermissionsDialog";
 import { ProgramStageFilterDialog } from "./ProgramStageFilterDialog";
 import { TemplatesDialog } from "./TemplatesDialog";
 import { RouteComponentProps } from "../../pages/Router";
+import { useUploadsMaintenance } from "../../hooks/useUploadsMaintenance";
 
 type CustomTemplatesProps = Pick<RouteComponentProps, "customTemplates" | "setCustomTemplates">;
 
@@ -33,6 +35,7 @@ export interface SettingsFieldsProps {
 export default function SettingsFields(props: SettingsFieldsProps & CustomTemplatesProps) {
     const { settings, onChange, customTemplates, setCustomTemplates } = props;
     const classes = useStyles();
+    const uploadsMaintenance = useUploadsMaintenance();
 
     const [permissionsType, setPermissionsType] = useState<PermissionSetting | null>(null);
     const [isExclusionDialogVisible, showExclusionDialog] = useState<boolean>(false);
@@ -405,6 +408,34 @@ export default function SettingsFields(props: SettingsFieldsProps & CustomTempla
                     />
                 </ListItem>
             </FormGroup>
+
+            <h3 className={classes.title}>{i18n.t("Maintenance")}</h3>
+            <ListItem button onClick={uploadsMaintenance.showConfirmation} disabled={uploadsMaintenance.isLoading}>
+                <ListItemIcon>
+                    <Icon>delete</Icon>
+                </ListItemIcon>
+                <ListItemText
+                    primary={uploadsMaintenance.isLoading ? i18n.t("Cleaning up files...") : i18n.t("File cleanup")}
+                    secondary={i18n.t(
+                        "Remove files older than 1 year from the system. History entries will be kept but the files will be unaccessible."
+                    )}
+                />
+            </ListItem>
+
+            {uploadsMaintenance.isConfirmationVisible && (
+                <ConfirmationDialog
+                    isOpen={true}
+                    title={i18n.t("Confirm File Cleanup")}
+                    description={i18n.t(
+                        "Are you sure you want to remove all files older than 1 year? This action cannot be undone. History entries will be kept but the files will be inaccessible."
+                    )}
+                    onSave={uploadsMaintenance.executeCleanup}
+                    onCancel={uploadsMaintenance.hideConfirmation}
+                    saveText={i18n.t("Clean up files")}
+                    cancelText={i18n.t("Cancel")}
+                    disableSave={uploadsMaintenance.isLoading}
+                />
+            )}
         </React.Fragment>
     );
 }
