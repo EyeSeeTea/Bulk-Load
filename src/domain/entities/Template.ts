@@ -151,8 +151,8 @@ export interface Range {
 }
 
 type BaseDataProcessingRule = {
-    type: "coalesce" | "skip";
-    condition: "onExport" | "onImport";
+    type: "coalesce";
+    condition: "onExport";
     description?: string;
 };
 
