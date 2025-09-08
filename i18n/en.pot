@@ -5,8 +5,8 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2025-09-04T17:58:37.478Z\n"
-"PO-Revision-Date: 2025-09-04T17:58:37.478Z\n"
+"POT-Creation-Date: 2025-09-08T13:57:29.068Z\n"
+"PO-Revision-Date: 2025-09-08T13:57:29.068Z\n"
 
 msgid "Events - Create/update"
 msgstr ""
@@ -106,21 +106,10 @@ msgstr ""
 msgid "You need to select at least one {{element}}"
 msgstr ""
 
-msgid "Error loading import details"
-msgstr ""
-
 msgid "No details available for this import"
 msgstr ""
 
 msgid "Import Results"
-msgstr ""
-
-msgid "This import completed with {{count}} result(s)."
-msgid_plural "This import completed with {{count}} result(s)."
-msgstr[0] ""
-msgstr[1] ""
-
-msgid "View Detailed Results"
 msgstr ""
 
 msgid "Import Errors"
@@ -136,21 +125,6 @@ msgid "Import Details: {{name}}"
 msgstr ""
 
 msgid "Close"
-msgstr ""
-
-msgid "Success"
-msgstr ""
-
-msgid "Error"
-msgstr ""
-
-msgid "Warning"
-msgstr ""
-
-msgid "Network Error"
-msgstr ""
-
-msgid "Pending"
 msgstr ""
 
 msgid "Invalid Organization Units"
@@ -187,16 +161,10 @@ msgstr ""
 msgid "An error occurred during the import process."
 msgstr ""
 
-msgid "Error loading history entries"
-msgstr ""
-
-msgid "Data Form"
+msgid "Import Summary"
 msgstr ""
 
 msgid "Timestamp"
-msgstr ""
-
-msgid "File Name"
 msgstr ""
 
 msgid "User"
@@ -205,19 +173,28 @@ msgstr ""
 msgid "Status"
 msgstr ""
 
+msgid "File"
+msgstr ""
+
+msgid "Success"
+msgstr ""
+
+msgid "Error"
+msgstr ""
+
+msgid "Warning"
+msgstr ""
+
+msgid "Data Form"
+msgstr ""
+
+msgid "File Name"
+msgstr ""
+
 msgid "View Details"
 msgstr ""
 
 msgid "Download File"
-msgstr ""
-
-msgid "Failed to download file"
-msgstr ""
-
-msgid "No file available for download"
-msgstr ""
-
-msgid "No import history found. Import data files to see them here."
 msgstr ""
 
 msgid "Search by file name, data form, or user"
@@ -495,9 +472,6 @@ msgid "Fixed Metadata / Dynamic Metadata (TODO)"
 msgstr ""
 
 msgid "Styles"
-msgstr ""
-
-msgid "File"
 msgstr ""
 
 msgid "Data Filter"
@@ -859,9 +833,6 @@ msgstr ""
 msgid "Details"
 msgstr ""
 
-msgid "Synchronization Results"
-msgstr ""
-
 msgid "Summary"
 msgstr ""
 
@@ -869,6 +840,9 @@ msgid "Messages"
 msgstr ""
 
 msgid "JSON Response"
+msgstr ""
+
+msgid "Synchronization Results"
 msgstr ""
 
 msgid "Template"
@@ -1015,6 +989,18 @@ msgid "Access to Themes"
 msgstr ""
 
 msgid "Error while updating sharing settings"
+msgstr ""
+
+msgid "Failed to download file"
+msgstr ""
+
+msgid "No file available for download"
+msgstr ""
+
+msgid "Error loading history entries"
+msgstr ""
+
+msgid "Error loading import details"
 msgstr ""
 
 msgid "File cleanup completed successfully"

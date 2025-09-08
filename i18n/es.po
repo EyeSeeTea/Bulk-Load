@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2025-09-04T17:58:37.478Z\n"
+"POT-Creation-Date: 2025-09-08T13:57:29.068Z\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -117,23 +117,12 @@ msgstr "El campo {{field}} no se puede dejar vacio"
 msgid "You need to select at least one {{element}}"
 msgstr "Seleccione al menos un {{element}}"
 
-msgid "Error loading import details"
-msgstr ""
-
 msgid "No details available for this import"
 msgstr ""
 
 #, fuzzy
 msgid "Import Results"
 msgstr "Importar datos"
-
-msgid "This import completed with {{count}} result(s)."
-msgid_plural "This import completed with {{count}} result(s)."
-msgstr[0] ""
-msgstr[1] ""
-
-msgid "View Detailed Results"
-msgstr ""
 
 #, fuzzy
 msgid "Import Errors"
@@ -150,22 +139,6 @@ msgstr ""
 
 msgid "Close"
 msgstr "Cerrar"
-
-msgid "Success"
-msgstr ""
-
-msgid "Error"
-msgstr "Error"
-
-msgid "Warning"
-msgstr ""
-
-msgid "Network Error"
-msgstr ""
-
-#, fuzzy
-msgid "Pending"
-msgstr "Encabezamientos"
 
 #, fuzzy
 msgid "Invalid Organization Units"
@@ -208,19 +181,12 @@ msgstr ""
 msgid "An error occurred during the import process."
 msgstr "Ha ocurrido un error mientras se guardaba el tema"
 
-msgid "Error loading history entries"
-msgstr ""
-
 #, fuzzy
-msgid "Data Form"
-msgstr "Fuente de datos"
+msgid "Import Summary"
+msgstr "Resumen"
 
 msgid "Timestamp"
 msgstr ""
-
-#, fuzzy
-msgid "File Name"
-msgstr "Nombre"
 
 msgid "User"
 msgstr ""
@@ -228,21 +194,32 @@ msgstr ""
 msgid "Status"
 msgstr "Estado"
 
+msgid "File"
+msgstr ""
+
+msgid "Success"
+msgstr ""
+
+msgid "Error"
+msgstr "Error"
+
+msgid "Warning"
+msgstr ""
+
+#, fuzzy
+msgid "Data Form"
+msgstr "Fuente de datos"
+
+#, fuzzy
+msgid "File Name"
+msgstr "Nombre"
+
 msgid "View Details"
 msgstr ""
 
 #, fuzzy
 msgid "Download File"
 msgstr "Descargar"
-
-msgid "Failed to download file"
-msgstr ""
-
-msgid "No file available for download"
-msgstr ""
-
-msgid "No import history found. Import data files to see them here."
-msgstr ""
 
 msgid "Search by file name, data form, or user"
 msgstr ""
@@ -540,9 +517,6 @@ msgid "Fixed Metadata / Dynamic Metadata (TODO)"
 msgstr ""
 
 msgid "Styles"
-msgstr ""
-
-msgid "File"
 msgstr ""
 
 msgid "Data Filter"
@@ -907,9 +881,6 @@ msgstr "Mensaje"
 msgid "Details"
 msgstr ""
 
-msgid "Synchronization Results"
-msgstr "Resultados de la sincronización"
-
 msgid "Summary"
 msgstr "Resumen"
 
@@ -918,6 +889,9 @@ msgstr "Mensajes"
 
 msgid "JSON Response"
 msgstr "Respuesta JSON"
+
+msgid "Synchronization Results"
+msgstr "Resultados de la sincronización"
 
 msgid "Template"
 msgstr "Plantilla"
@@ -1064,6 +1038,18 @@ msgid "Access to Themes"
 msgstr "Acceso a plantillas"
 
 msgid "Error while updating sharing settings"
+msgstr ""
+
+msgid "Failed to download file"
+msgstr ""
+
+msgid "No file available for download"
+msgstr ""
+
+msgid "Error loading history entries"
+msgstr ""
+
+msgid "Error loading import details"
 msgstr ""
 
 msgid "File cleanup completed successfully"
@@ -1385,3 +1371,7 @@ msgstr ""
 
 msgid "Settings saved"
 msgstr "Configuración guardada"
+
+#, fuzzy
+#~ msgid "Pending"
+#~ msgstr "Encabezamientos"

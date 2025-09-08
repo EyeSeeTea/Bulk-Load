@@ -1,15 +1,15 @@
 import { ConfirmationDialog } from "@eyeseetea/d2-ui-components";
 import { DialogContent, Typography, makeStyles, CircularProgress, Box } from "@material-ui/core";
 
-import { Id } from "../../../domain/entities/ReferenceObject";
+import { HistoryEntrySummary } from "../../../domain/entities/HistoryEntry";
 import i18n from "../../../utils/i18n";
 import SyncSummary from "../sync-summary/SyncSummary";
 import { useHistoryDetails } from "../../hooks/useHistoryDetails";
+import { HistoryImportSummary } from "./HistoryImportSummary";
 
 interface HistoryDetailsDialogProps {
     isOpen: boolean;
-    entryId: Id;
-    entryName: string;
+    entry: HistoryEntrySummary;
     onClose: () => void;
 }
 
@@ -27,9 +27,6 @@ const useStyles = makeStyles({
     },
     sectionContent: {
         marginLeft: 0,
-    },
-    errorSection: {
-        marginTop: 16,
     },
     errorTitle: {
         color: "#f44336",
@@ -49,11 +46,11 @@ const useStyles = makeStyles({
     },
 });
 
-export function HistoryDetailsDialog({ isOpen, entryId, entryName, onClose }: HistoryDetailsDialogProps) {
+export function HistoryDetailsDialog({ isOpen, entry, onClose }: HistoryDetailsDialogProps) {
     const classes = useStyles();
     const { details, loading } = useHistoryDetails({
         isOpen,
-        entryId,
+        entryId: entry.id,
     });
 
     const renderContent = () => {
@@ -77,6 +74,8 @@ export function HistoryDetailsDialog({ isOpen, entryId, entryName, onClose }: Hi
 
         return (
             <>
+                <HistoryImportSummary entry={entry} />
+
                 {results && results.length > 0 && (
                     <div className={classes.section}>
                         <Typography variant="h6" className={classes.sectionTitle}>
@@ -115,7 +114,6 @@ export function HistoryDetailsDialog({ isOpen, entryId, entryName, onClose }: Hi
                     </div>
                 )}
 
-                {/* No data available */}
                 {!results && !errorDetails && (
                     <div className={classes.noDataMessage}>
                         <Typography variant="body1">
@@ -130,7 +128,7 @@ export function HistoryDetailsDialog({ isOpen, entryId, entryName, onClose }: Hi
     return (
         <ConfirmationDialog
             isOpen={isOpen}
-            title={i18n.t("Import Details: {{name}}", { name: entryName, nsSeparator: false })}
+            title={i18n.t("Import Details: {{name}}", { name: entry.name || entry.fileName, nsSeparator: false })}
             onCancel={onClose}
             cancelText={i18n.t("Close")}
             maxWidth="lg"
