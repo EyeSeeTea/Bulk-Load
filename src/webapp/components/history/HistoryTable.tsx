@@ -7,7 +7,7 @@ import {
     TableSelection,
     TableState,
 } from "@eyeseetea/d2-ui-components";
-import { Icon, makeStyles } from "@material-ui/core";
+import { Icon, makeStyles, Typography } from "@material-ui/core";
 import moment from "moment";
 
 import { HistoryEntryStatus, HistoryEntrySummary } from "../../../domain/entities/HistoryEntry";
@@ -50,7 +50,15 @@ export function HistoryTable() {
             text: i18n.t("Timestamp"),
             getValue: entry => moment(entry.timestamp).format("YYYY-MM-DD HH:mm:ss"),
         },
-        { name: "fileName", text: i18n.t("File Name") },
+        {
+            name: "fileName",
+            text: i18n.t("File Name"),
+            getValue: entry => (
+                <Typography variant="body2" className={entry.documentDeleted ? classes.deletedFileName : undefined}>
+                    {entry.fileName}
+                </Typography>
+            ),
+        },
         { name: "username", text: i18n.t("User") },
         {
             name: "status",
@@ -79,6 +87,13 @@ export function HistoryTable() {
             primary: false,
             onClick: onClickDownload,
             icon: <Icon>get_app</Icon>,
+            isActive: rows => {
+                if (rows.length !== 1) {
+                    return false;
+                }
+                const entry = firstOrFail(rows);
+                return !entry.documentDeleted;
+            },
         },
     ];
 
@@ -144,5 +159,9 @@ const useStyles = makeStyles({
         width: 120,
         marginLeft: 20,
         marginTop: -9,
+    },
+    deletedFileName: {
+        textDecoration: "line-through",
+        color: "#666",
     },
 });

@@ -144,7 +144,7 @@ export function getCompositionRoot({ appConfig, dhisInstance, mockApi, importSou
             getEntries: new GetHistoryEntriesUseCase(historyRepository),
             getDetails: new GetHistoryEntryDetailsUseCase(historyRepository),
             downloadDocument: new DownloadDocumentUseCase(documentRepository),
-            cleanupDocuments: new DocumentsCleanupUseCase(documentRepository),
+            cleanupDocuments: new DocumentsCleanupUseCase(documentRepository, historyRepository),
         }),
     };
 }

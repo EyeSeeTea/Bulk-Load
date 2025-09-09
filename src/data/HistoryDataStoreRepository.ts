@@ -48,6 +48,24 @@ export class HistoryDataStoreRepository implements HistoryRepository {
         }
     }
 
+    public async updateSummaries(
+        condition: (summary: HistoryEntrySummary) => boolean,
+        update: (summary: HistoryEntrySummary) => HistoryEntrySummary
+    ): Promise<Id[]> {
+        const summaries = await this.getSummaries();
+        const filtered = summaries.filter(condition);
+        if (filtered.length === 0) {
+            return [];
+        }
+        const updated = filtered.map(update);
+        const updatedIds = updated.map(s => s.id);
+        const newSummaries = summaries.map(s =>
+            updatedIds.includes(s.id) ? updated.find(u => u.id === s.id) ?? s : s
+        );
+        await this.saveSummaries(newSummaries);
+        return updatedIds;
+    }
+
     private async getSummaries(): Promise<HistoryEntrySummary[]> {
         try {
             const summaries = await this.dataStore.get<HistoryEntrySummary[]>(this.HISTORY_KEY).getData();

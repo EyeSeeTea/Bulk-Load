@@ -1,5 +1,5 @@
 import React from "react";
-import { Typography, makeStyles, Button, Icon } from "@material-ui/core";
+import { Typography, makeStyles, Button, Icon, Tooltip } from "@material-ui/core";
 import moment from "moment";
 
 import { HistoryEntrySummary } from "../../../domain/entities/HistoryEntry";
@@ -40,6 +40,25 @@ const useStyles = makeStyles({
         padding: "4px 8px",
         fontSize: "0.75rem",
     },
+    deletedFile: {
+        display: "flex",
+        alignItems: "center",
+        padding: "4px 8px",
+        backgroundColor: "#fff3cd",
+        border: "1px solid #ffeaa7",
+        borderRadius: 4,
+        color: "#856404",
+    },
+    deletedFileIcon: {
+        fontSize: 16,
+        marginRight: 6,
+        color: "#f39c12",
+    },
+    deletedFileName: {
+        textDecoration: "line-through",
+        marginRight: 8,
+        fontWeight: 500,
+    },
 });
 
 export function HistoryImportSummary({ entry }: HistoryImportSummaryProps) {
@@ -65,20 +84,35 @@ export function HistoryImportSummary({ entry }: HistoryImportSummaryProps) {
             </div>
             <div className={classes.infoRow}>
                 <Typography className={classes.infoLabel}>{i18n.t("File")}:</Typography>
-                <Button
-                    size="small"
-                    variant="outlined"
-                    className={classes.downloadButton}
-                    startIcon={<Icon>get_app</Icon>}
-                    onClick={() =>
-                        downloadDocument({
-                            documentId: entry.documentId,
-                            fileName: entry.fileName,
-                        })
-                    }
-                >
-                    {entry.fileName}
-                </Button>
+                {entry.documentDeleted ? (
+                    <Tooltip
+                        title={i18n.t("The original file has been deleted and is no longer available for download")}
+                        arrow
+                        placement="top"
+                    >
+                        <div className={classes.deletedFile}>
+                            <Icon className={classes.deletedFileIcon}>warning</Icon>
+                            <Typography variant="body2" className={classes.deletedFileName}>
+                                {entry.fileName}
+                            </Typography>
+                        </div>
+                    </Tooltip>
+                ) : (
+                    <Button
+                        size="small"
+                        variant="outlined"
+                        className={classes.downloadButton}
+                        startIcon={<Icon>get_app</Icon>}
+                        onClick={() =>
+                            downloadDocument({
+                                documentId: entry.documentId,
+                                fileName: entry.fileName,
+                            })
+                        }
+                    >
+                        {entry.fileName}
+                    </Button>
+                )}
             </div>
         </div>
     );

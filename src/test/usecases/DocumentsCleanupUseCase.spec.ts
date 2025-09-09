@@ -1,8 +1,10 @@
 import { DocumentRepository } from "../../domain/repositories/DocumentRepository";
+import { HistoryRepository } from "../../domain/repositories/HistoryRepository";
 import { DocumentsCleanupUseCase } from "../../domain/usecases/DocumentsCleanupUseCase";
 
 describe("DocumentsCleanupUseCase", () => {
     let fileRepository: jest.Mocked<DocumentRepository>;
+    let historyRepository: jest.Mocked<HistoryRepository>;
     let useCase: DocumentsCleanupUseCase;
 
     beforeEach(() => {
@@ -11,7 +13,13 @@ describe("DocumentsCleanupUseCase", () => {
             delete: jest.fn(),
             download: jest.fn(),
         };
-        useCase = new DocumentsCleanupUseCase(fileRepository);
+        historyRepository = {
+            get: jest.fn(),
+            getDetails: jest.fn(),
+            save: jest.fn(),
+            updateSummaries: jest.fn(),
+        };
+        useCase = new DocumentsCleanupUseCase(fileRepository, historyRepository);
     });
 
     it("should call deleteDocuments with a date from 1 year ago", async () => {

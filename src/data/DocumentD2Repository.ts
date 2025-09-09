@@ -33,9 +33,9 @@ export class DocumentD2Repository implements DocumentRepository {
         return document;
     }
 
-    async delete(params: { until: Date }): Promise<void> {
+    async delete(params: { until: Date }): Promise<Id[]> {
         const list = await this.dataStore.get<Document[]>(this.dataStoreHistoryKey).getData();
-        if (!list) return;
+        if (!list) return [];
         const toDelete = list.filter(item => {
             if (!item.createdAt || item.deletedAt) return false;
             return new Date(item.createdAt) < params.until;
@@ -55,6 +55,7 @@ export class DocumentD2Repository implements DocumentRepository {
             toDelete.find(d => d.id === item.id) ? { ...item, deletedAt: new Date().toISOString() } : item
         );
         await this.dataStore.save(this.dataStoreHistoryKey, updatedList).getData();
+        return toDelete.map(d => d.id);
     }
 
     async download(fileResourceId: Id): Promise<Blob> {

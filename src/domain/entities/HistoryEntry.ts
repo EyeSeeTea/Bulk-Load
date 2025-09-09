@@ -92,6 +92,7 @@ export class HistoryEntry {
             username: this.user.username,
             documentId: this.document.id,
             fileName: this.document.name,
+            ...(this.document.deletedAt ? { documentDeleted: true } : {}),
         };
     }
 
@@ -133,6 +134,7 @@ export interface HistoryEntrySummary {
     username: string;
     documentId: Id;
     fileName: string;
+    documentDeleted?: boolean;
 }
 
 export interface HistoryEntryDetails {
