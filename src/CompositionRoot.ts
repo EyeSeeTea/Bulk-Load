@@ -46,6 +46,8 @@ import { ImportSourceZipRepository } from "./data/ImportSourceZipRepository";
 import { MSFModuleMetadataD2Repository } from "./data/templates/nrc/MSFModuleMetadataD2Repository";
 import { ModulesRepositories } from "./domain/repositories/ModulesRepositories";
 import { ImportSourceNodeRepository } from "./data/ImportSourceNodeRepository";
+import { DataElementDisaggregationsMappingD2Repository } from "./data/DataElementDisaggregationsMappingD2Repository";
+import { GetDataElementDisaggregationsMappingUseCase } from "./domain/usecases/GetDataElementDisaggregationsMappingUseCase";
 
 export interface CompositionRootOptions {
     appConfig: JsonConfig;
@@ -74,6 +76,8 @@ export function getCompositionRoot({ appConfig, dhisInstance, mockApi, importSou
     const importSourceRepository =
         importSource === "zip" ? new ImportSourceZipRepository() : new ImportSourceNodeRepository();
 
+    const dataElementDisaggregationsMappingRepository = new DataElementDisaggregationsMappingD2Repository(api);
+
     return {
         orgUnits: getExecute({
             getUserRoots: new GetOrgUnitRootsUseCase(instance),
@@ -82,22 +86,32 @@ export function getCompositionRoot({ appConfig, dhisInstance, mockApi, importSou
         form: getExecute({
             getDataPackage: new GetFormDataPackageUseCase(instance),
             convertDataPackage: new ConvertDataPackageUseCase(instance),
+            getDataElementMapping: new GetDataElementDisaggregationsMappingUseCase(
+                dataElementDisaggregationsMappingRepository
+            ),
         }),
         templates: getExecute({
-            analyze: new AnalyzeTemplateUseCase(instance, templateManager, excelReader),
+            analyze: new AnalyzeTemplateUseCase(
+                instance,
+                templateManager,
+                excelReader,
+                dataElementDisaggregationsMappingRepository
+            ),
             download: new DownloadTemplateUseCase(
                 instance,
                 templateManager,
                 excelReader,
                 modulesRepository,
-                usersRepository
+                usersRepository,
+                dataElementDisaggregationsMappingRepository
             ),
             import: new ImportTemplateUseCase(
                 instance,
                 templateManager,
                 excelReader,
                 fileRepository,
-                importSourceRepository
+                importSourceRepository,
+                dataElementDisaggregationsMappingRepository
             ),
             list: new ListDataFormsUseCase(instance),
             getDataFormsForGeneration: new GetDataFormsForGenerationUseCase(instance),

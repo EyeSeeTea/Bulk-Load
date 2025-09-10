@@ -6,12 +6,11 @@ import {
     CustomTemplateWithUrl,
     DataSource,
     DownloadCustomizationOptions,
+    DownloadCustomizationRepositories,
     RangeRef,
     StyleSource,
 } from "../../../domain/entities/Template";
 import { ExcelRepository } from "../../../domain/repositories/ExcelRepository";
-import { InstanceRepository } from "../../../domain/repositories/InstanceRepository";
-import { ModulesRepositories } from "../../../domain/repositories/ModulesRepositories";
 import { NRCModuleMetadataRepository } from "../../../domain/repositories/templates/NRCModuleMetadataRepository";
 import { Workbook } from "../../../webapp/logic/Workbook";
 
@@ -42,11 +41,10 @@ export class NRCModule101 implements CustomTemplateWithUrl {
     public readonly styleSources: StyleSource[] = [];
 
     public async downloadCustomization(
-        excelRepository: ExcelRepository,
-        _instanceRepository: InstanceRepository,
-        modulesRepositories: ModulesRepositories,
+        repositories: DownloadCustomizationRepositories,
         options: DownloadCustomizationOptions
     ): Promise<void> {
+        const { excelRepository, modulesRepositories } = repositories;
         return new DownloadCustomization(this.id, excelRepository, modulesRepositories.nrc, options).execute();
     }
 }

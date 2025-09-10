@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2024-06-25T17:49:07.727Z\n"
+"POT-Creation-Date: 2025-09-10T10:28:53.478Z\n"
 "Language: pt\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -800,11 +800,11 @@ msgstr "Resposta do JSON"
 msgid "Template"
 msgstr "Modelo"
 
-msgid "Select template to export..."
-msgstr "Selecione o planilha para exportar ..."
-
 msgid "Data Model"
 msgstr "Modelo de dados"
+
+msgid "Select template to export..."
+msgstr "Selecione o planilha para exportar ..."
 
 msgid "Start period"
 msgstr "Período inicial"
@@ -1065,9 +1065,9 @@ msgid ""
 "Samaritan’s Purse, Medecins Sans Frontières (MSF), the the Norwegian Refugee "
 "Council (NRC) and the Clinton Health Access Initiative (CHAI) to support "
 "countries in strengthening the collection and use of health data by using "
-"DHIS2. The application has been developed by [EyeSeeTea SL](http://eyeseetea."
-"com). Source code, documentation and release notes can be found at the "
-"[EyeSeetea GitHub Project Page](https://eyeseetea.github.io/Bulk-Load-"
+"DHIS2. The application has been developed by [EyeSeeTea SL](http://"
+"eyeseetea.com). Source code, documentation and release notes can be found at "
+"the [EyeSeetea GitHub Project Page](https://eyeseetea.github.io/Bulk-Load-"
 "blessed/)."
 msgstr ""
 
@@ -1148,6 +1148,7 @@ msgstr "Importando dados ..."
 msgid "Existing data values"
 msgstr "Valores de dados existentes"
 
+#, fuzzy
 msgid ""
 "There are {{totalExisting}} data values in the database for this "
 "organisation unit and periods. If you proceed, all those data values will be "
@@ -1228,6 +1229,23 @@ msgstr ""
 
 msgid "Settings saved"
 msgstr "Configurações salvas"
+
+#~ msgid "Events - Create/update"
+#~ msgstr "Valores dos dados - Criar/actualizar"
+
+#, fuzzy
+#~ msgid "Import failed"
+#~ msgstr "Importado"
+
+#~ msgid "Data Filter"
+#~ msgstr "Filtro de dados"
+
+#~ msgid "Tei Attribute"
+#~ msgstr "Atributo TEI"
+
+#, fuzzy
+#~ msgid "Import and Update"
+#~ msgstr "Importar dados"
 
 #, fuzzy
 #~ msgid "Template Code"

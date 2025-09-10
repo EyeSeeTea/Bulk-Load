@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2024-06-25T17:49:07.727Z\n"
+"POT-Creation-Date: 2025-09-10T10:28:53.478Z\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -802,11 +802,11 @@ msgstr "Ответ JSON"
 msgid "Template"
 msgstr "Шаблон"
 
-msgid "Select template to export..."
-msgstr "Выберите шаблон для экспорта..."
-
 msgid "Data Model"
 msgstr "Модель данных"
+
+msgid "Select template to export..."
+msgstr "Выберите шаблон для экспорта..."
 
 msgid "Start period"
 msgstr "Начальный период"
@@ -1069,9 +1069,9 @@ msgid ""
 "Samaritan’s Purse, Medecins Sans Frontières (MSF), the the Norwegian Refugee "
 "Council (NRC) and the Clinton Health Access Initiative (CHAI) to support "
 "countries in strengthening the collection and use of health data by using "
-"DHIS2. The application has been developed by [EyeSeeTea SL](http://eyeseetea."
-"com). Source code, documentation and release notes can be found at the "
-"[EyeSeetea GitHub Project Page](https://eyeseetea.github.io/Bulk-Load-"
+"DHIS2. The application has been developed by [EyeSeeTea SL](http://"
+"eyeseetea.com). Source code, documentation and release notes can be found at "
+"the [EyeSeetea GitHub Project Page](https://eyeseetea.github.io/Bulk-Load-"
 "blessed/)."
 msgstr ""
 
@@ -1152,6 +1152,7 @@ msgstr "Импорт данных..."
 msgid "Existing data values"
 msgstr "Существующие значения данных"
 
+#, fuzzy
 msgid ""
 "There are {{totalExisting}} data values in the database for this "
 "organisation unit and periods. If you proceed, all those data values will be "
@@ -1230,6 +1231,23 @@ msgstr "Нет захвата орг единицы соответствие э�
 
 msgid "Settings saved"
 msgstr "Сохранение настроек"
+
+#~ msgid "Events - Create/update"
+#~ msgstr "Значения данных - создание/обновление"
+
+#, fuzzy
+#~ msgid "Import failed"
+#~ msgstr "Импортировано"
+
+#~ msgid "Data Filter"
+#~ msgstr "Фильтр данных"
+
+#~ msgid "Tei Attribute"
+#~ msgstr "Атрибут TEI"
+
+#, fuzzy
+#~ msgid "Import and Update"
+#~ msgstr "Импортные данные"
 
 #, fuzzy
 #~ msgid "Template Code"
