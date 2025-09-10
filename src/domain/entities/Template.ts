@@ -12,6 +12,7 @@ import { ModulesRepositories } from "../repositories/ModulesRepositories";
 import { TrackedEntityInstance } from "./TrackedEntityInstance";
 import { Geometry } from "./DhisDataPackage";
 import { TemplateFilter } from "./TemplateFilter";
+import { DataElementDisaggregationsMappingRepository } from "../repositories/DataElementDisaggregationsMappingRepository";
 
 export interface DataFormTemplate extends DataForm {
     templateId: string;
@@ -93,14 +94,11 @@ export interface CustomTemplateWithUrl extends BaseTemplate {
     showLanguage?: boolean;
     showPeriod?: boolean;
     downloadCustomization?: (
-        excelRepository: ExcelRepository,
-        instanceRepository: InstanceRepository,
-        modulesRepositories: ModulesRepositories,
+        respositories: DownloadCustomizationRepositories,
         options: DownloadCustomizationOptions
     ) => Promise<void>;
     importCustomization?: (
-        excelRepository: ExcelRepository,
-        instanceRepository: InstanceRepository,
+        repositories: ImportCustomizationRepositories,
         options: ImportCustomizationOptions
     ) => Promise<Maybe<TemplateDataPackage>>;
     filters?: {
@@ -108,6 +106,19 @@ export interface CustomTemplateWithUrl extends BaseTemplate {
         dataEntryFilters?: TemplateFilter;
     };
 }
+
+export type DownloadCustomizationRepositories = {
+    excelRepository: ExcelRepository;
+    instanceRepository: InstanceRepository;
+    modulesRepositories: ModulesRepositories;
+    dataElementDisaggregationsMappingRepository: DataElementDisaggregationsMappingRepository;
+};
+
+export type ImportCustomizationRepositories = {
+    excelRepository: ExcelRepository;
+    instanceRepository: InstanceRepository;
+    dataElementDisaggregationsMappingRepository: DataElementDisaggregationsMappingRepository;
+};
 
 export interface GenericSheetRef {
     type: RefType;

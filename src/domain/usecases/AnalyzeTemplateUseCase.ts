@@ -5,12 +5,14 @@ import { ExcelReader } from "../helpers/ExcelReader";
 import { ExcelRepository } from "../repositories/ExcelRepository";
 import { InstanceRepository } from "../repositories/InstanceRepository";
 import { TemplateRepository } from "../repositories/TemplateRepository";
+import { DataElementDisaggregationsMappingRepository } from "../repositories/DataElementDisaggregationsMappingRepository";
 
 export class AnalyzeTemplateUseCase implements UseCase {
     constructor(
         private instanceRepository: InstanceRepository,
         private templateRepository: TemplateRepository,
-        private excelRepository: ExcelRepository
+        private excelRepository: ExcelRepository,
+        private dataElementDisaggregationsMappingRepository: DataElementDisaggregationsMappingRepository
     ) {}
 
     public async execute(file: File) {
@@ -37,7 +39,11 @@ export class AnalyzeTemplateUseCase implements UseCase {
 
         const orgUnits = await this.instanceRepository.getDataFormOrgUnits(dataForm.type, dataForm.id);
 
-        const reader = new ExcelReader(this.excelRepository, this.instanceRepository);
+        const reader = new ExcelReader(
+            this.excelRepository,
+            this.instanceRepository,
+            this.dataElementDisaggregationsMappingRepository
+        );
         const excelDataValues = await reader.readTemplate(template, dataForm);
         if (!excelDataValues) return { custom: true, dataForm, dataValues: [], orgUnits };
 

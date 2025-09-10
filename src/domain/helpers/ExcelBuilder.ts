@@ -33,6 +33,7 @@ import { BuilderMetadata, emptyBuilderMetadata, InstanceRepository } from "../re
 import Settings from "../../webapp/logic/settings";
 import { ModulesRepositories } from "../repositories/ModulesRepositories";
 import { Maybe } from "../../types/utils";
+import { DataElementDisaggregationsMappingRepository } from "../repositories/DataElementDisaggregationsMappingRepository";
 
 const dateFormatPattern = "yyyy-MM-dd";
 
@@ -40,7 +41,8 @@ export class ExcelBuilder {
     constructor(
         private excelRepository: ExcelRepository,
         private instanceRepository: InstanceRepository,
-        private modulesRepositories: ModulesRepositories
+        private modulesRepositories: ModulesRepositories,
+        private dataElementDisaggregationsMappingRepository: DataElementDisaggregationsMappingRepository
     ) {}
 
     public async populateTemplate(template: Template, payload: DataPackage, settings: Settings): Promise<void> {
@@ -531,9 +533,12 @@ export class ExcelBuilder {
     public async templateCustomization(template: Template, options: DownloadCustomizationOptions): Promise<void> {
         if (template.type === "custom" && template.downloadCustomization) {
             await template.downloadCustomization(
-                this.excelRepository,
-                this.instanceRepository,
-                this.modulesRepositories,
+                {
+                    excelRepository: this.excelRepository,
+                    instanceRepository: this.instanceRepository,
+                    modulesRepositories: this.modulesRepositories,
+                    dataElementDisaggregationsMappingRepository: this.dataElementDisaggregationsMappingRepository,
+                },
                 options
             );
         }

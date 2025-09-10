@@ -6,19 +6,24 @@ import {
     CustomTemplateWithUrl,
     DataSource,
     DownloadCustomizationOptions,
+    DownloadCustomizationRepositories,
     ImportCustomizationOptions,
+    ImportCustomizationRepositories,
     StyleSource,
     TemplateDataPackage,
 } from "../../../domain/entities/Template";
 import { ThemeStyle } from "../../../domain/entities/Theme";
-import { ExcelRepository } from "../../../domain/repositories/ExcelRepository";
 import { InstanceRepository } from "../../../domain/repositories/InstanceRepository";
-import { ModulesRepositories } from "../../../domain/repositories/ModulesRepositories";
 import i18n from "../../../utils/i18n";
 import { cache } from "../../../utils/cache";
 import { GetSchemaType, Schema } from "../../../utils/codec";
 import { promiseMap } from "../../../utils/promises";
 import { isValidUid } from "../../dhis2-uid";
+import {
+    CategoryOptionCombo,
+    DataElementDisaggregationsMapping,
+} from "../../../domain/entities/DataElementDisaggregationsMapping";
+import { DataElementDisaggregationsMappingRepository } from "../../../domain/repositories/DataElementDisaggregationsMappingRepository";
 
 const MAX_DATA_ELEMENTS = 60;
 const MAX_PRODUCTS = 300;
@@ -83,11 +88,10 @@ export class SnakebiteAnnualReport implements CustomTemplateWithUrl {
     public readonly styleSources: StyleSource[] = [];
 
     public async downloadCustomization(
-        excelRepository: ExcelRepository,
-        instanceRepository: InstanceRepository,
-        modulesRepositories: ModulesRepositories,
+        repositories: DownloadCustomizationRepositories,
         options: DownloadCustomizationOptions
     ): Promise<void> {
+        const { excelRepository, instanceRepository } = repositories;
         const { populate, dataPackage, orgUnits } = options;
         const dataValues = _(dataPackage?.dataEntries)
             .filter(({ orgUnit }) => orgUnits[0] === orgUnit)
@@ -95,6 +99,8 @@ export class SnakebiteAnnualReport implements CustomTemplateWithUrl {
             .value();
 
         const dataSet = await this.getDataForms(instanceRepository);
+        const mapping = await this.getCategoryOptionCombosMapping(dataSet, repositories);
+        const allCategoryOptionCombos = this.getCategoryOptionCombosFromMapping(mapping);
         const { metadata, antivenomEntries, antivenomProducts } = await this.readDataStore(instanceRepository);
         const defaults = await instanceRepository.getDefaultIds();
 
@@ -102,9 +108,7 @@ export class SnakebiteAnnualReport implements CustomTemplateWithUrl {
             return _([
                 metadata?.optionCombos[id]?.name,
                 dataSet?.dataElements.find(de => de.id === id)?.name,
-                _.flatMap(dataSet?.dataElements, ({ categoryOptionCombos }) => categoryOptionCombos).find(
-                    coc => coc?.id === id
-                )?.name,
+                allCategoryOptionCombos.find(coc => coc.id === id)?.name,
             ])
                 .compact()
                 .first();
@@ -167,7 +171,8 @@ export class SnakebiteAnnualReport implements CustomTemplateWithUrl {
         const items = _(dataSet?.dataElements)
             .compact()
             .flatten()
-            .flatMap(({ id, name, categoryOptionCombos = [] }) => {
+            .flatMap(({ id, name }) => {
+                const categoryOptionCombos = mapping.get(id)?.categoryOptionCombos ?? [];
                 const { defaultCatOptionComboName } = metadata.dataElements[id] ?? {};
                 return [
                     { id, name, type: "dataElement" },
@@ -300,7 +305,7 @@ export class SnakebiteAnnualReport implements CustomTemplateWithUrl {
         await style("National", "F", 4, "F", 4, genericFieldValueStyle);
 
         await promiseMap(nationalDataElements, async (dataElement, index) => {
-            const { categoryOptionCombos = [] } = dataElement;
+            const categoryOptionCombos = mapping.get(dataElement.id)?.categoryOptionCombos ?? [];
             const {
                 showTotal = true,
                 totalName,
@@ -483,13 +488,32 @@ export class SnakebiteAnnualReport implements CustomTemplateWithUrl {
         await promiseMap(allSheets, sheet => excelRepository.protectSheet(this.id, sheet.name, "Snakebite"));
     }
 
+    private async getCategoryOptionCombosMapping(
+        dataSet: DataForm | undefined,
+        repositories: {
+            dataElementDisaggregationsMappingRepository: DataElementDisaggregationsMappingRepository;
+        }
+    ): Promise<DataElementDisaggregationsMapping> {
+        if (dataSet) {
+            return repositories.dataElementDisaggregationsMappingRepository.getByDataSet(dataSet);
+        } else {
+            return new Map();
+        }
+    }
+
+    private getCategoryOptionCombosFromMapping(mapping: DataElementDisaggregationsMapping): CategoryOptionCombo[] {
+        const categoryCombos = Array.from(mapping.values());
+        return categoryCombos.flatMap(categoryCombo => categoryCombo.categoryOptionCombos);
+    }
+
     public async importCustomization(
-        _excelRepository: ExcelRepository,
-        instanceRepository: InstanceRepository,
+        repositories: ImportCustomizationRepositories,
         options: ImportCustomizationOptions
     ): Promise<TemplateDataPackage | undefined> {
+        const { instanceRepository } = repositories;
         const { dataPackage } = options;
         const dataSet = await this.getDataForms(instanceRepository);
+        const categoryOptionCombosMapping = await this.getCategoryOptionCombosMapping(dataSet, repositories);
 
         const dataEntries = await promiseMap(dataPackage.dataEntries, async ({ dataValues, ...dataPackage }) => {
             const { antivenomEntries, antivenomProducts } = await this.readDataStore(instanceRepository);
@@ -525,13 +549,14 @@ export class SnakebiteAnnualReport implements CustomTemplateWithUrl {
             const freeCategories = _(getDataElementsByProp("productName"))
                 .map(id => dataSet?.dataElements.find(dataElement => dataElement.id === id))
                 .compact()
-                .groupBy("id")
+                .groupBy(dataElement => dataElement.id)
                 .mapValues(dataElements =>
                     _.flatMap(
                         dataElements,
-                        ({ categoryOptionCombos }) =>
-                            categoryOptionCombos
-                                ?.filter(
+                        dataElement =>
+                            categoryOptionCombosMapping
+                                .get(dataElement.id)
+                                ?.categoryOptionCombos?.filter(
                                     ({ id }) =>
                                         !antivenomProducts.find(
                                             ({ categoryOptionComboId }) => categoryOptionComboId === id
