@@ -16,6 +16,7 @@ import {
     DataSource,
     DataSourceValue,
     GenericSheetRef,
+    ImportCustomizationRepositories,
     RowDataSource,
     setDataEntrySheet,
     setSheet,
@@ -29,11 +30,16 @@ import {
 import { TrackedEntityInstance } from "../entities/TrackedEntityInstance";
 import { ExcelRepository, ExcelValue, ReadCellOptions } from "../repositories/ExcelRepository";
 import { InstanceRepository } from "../repositories/InstanceRepository";
+import { DataElementDisaggregationsMappingRepository } from "../repositories/DataElementDisaggregationsMappingRepository";
 
 const dateFormat = "YYYY-MM-DD";
 
 export class ExcelReader {
-    constructor(private excelRepository: ExcelRepository, private instanceRepository: InstanceRepository) {}
+    constructor(
+        private excelRepository: ExcelRepository,
+        private instanceRepository: InstanceRepository,
+        private dataElementDisaggregationsMappingRepository: DataElementDisaggregationsMappingRepository
+    ) {}
 
     public async readTemplate(template: Template, dataForm: DataForm): Promise<DataPackage | undefined> {
         const { dataSources = [] } = template;
@@ -490,7 +496,12 @@ export class ExcelReader {
 
     public async templateCustomization(template: Template, dataPackage: DataPackage): Promise<DataPackage | undefined> {
         if (template.type === "custom" && template.importCustomization) {
-            return template.importCustomization(this.excelRepository, this.instanceRepository, {
+            const repositories: ImportCustomizationRepositories = {
+                excelRepository: this.excelRepository,
+                instanceRepository: this.instanceRepository,
+                dataElementDisaggregationsMappingRepository: this.dataElementDisaggregationsMappingRepository,
+            };
+            return template.importCustomization(repositories, {
                 dataPackage,
             });
         }

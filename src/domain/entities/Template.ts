@@ -9,6 +9,7 @@ import { ImageSections, ThemeableSections } from "./Theme";
 import { User, UserTimestamp } from "./User";
 import { Sheet as SheetE } from "./Sheet";
 import { ModulesRepositories } from "../repositories/ModulesRepositories";
+import { DataElementDisaggregationsMappingRepository } from "../repositories/DataElementDisaggregationsMappingRepository";
 
 export interface DataFormTemplate extends DataForm {
     templateId: string;
@@ -90,17 +91,27 @@ export interface CustomTemplateWithUrl extends BaseTemplate {
     showLanguage?: boolean;
     showPeriod?: boolean;
     downloadCustomization?: (
-        excelRepository: ExcelRepository,
-        instanceRepository: InstanceRepository,
-        modulesRepositories: ModulesRepositories,
+        respositories: DownloadCustomizationRepositories,
         options: DownloadCustomizationOptions
     ) => Promise<void>;
     importCustomization?: (
-        excelRepository: ExcelRepository,
-        instanceRepository: InstanceRepository,
+        repositories: ImportCustomizationRepositories,
         options: ImportCustomizationOptions
     ) => Promise<DataPackage | undefined>;
 }
+
+export type DownloadCustomizationRepositories = {
+    excelRepository: ExcelRepository;
+    instanceRepository: InstanceRepository;
+    modulesRepositories: ModulesRepositories;
+    dataElementDisaggregationsMappingRepository: DataElementDisaggregationsMappingRepository;
+};
+
+export type ImportCustomizationRepositories = {
+    excelRepository: ExcelRepository;
+    instanceRepository: InstanceRepository;
+    dataElementDisaggregationsMappingRepository: DataElementDisaggregationsMappingRepository;
+};
 
 export interface GenericSheetRef {
     type: RefType;

@@ -7,6 +7,7 @@ import {
     DataElementDisaggregatedId,
     getDataElementDisaggregatedId,
 } from "../../../domain/entities/DataElementDisaggregated";
+import { DataElementDisaggregationsMapping } from "../../../domain/entities/DataElementDisaggregationsMapping";
 import { DataForm } from "../../../domain/entities/DataForm";
 import { NamedRef } from "../../../domain/entities/ReferenceObject";
 import i18n from "../../../locales";
@@ -43,13 +44,15 @@ export function DataSetDataElementsFilterDialog(props: DataSetDataElementsFilter
     );
 
     const dataSetsOptions = useMemo(() => getSelectOptionsFromNamedRefs(dataSets), [dataSets]);
-    const dataElementItems = useMemo(() => getDataElementItems(dataSet), [dataSet]);
+
+    const dataElementItems = useDataElementItems(dataSet);
+
     const dataElementsOptions = useMemo(() => getMultiSelectorDataElementOptions(dataElementItems), [dataElementItems]);
     const selectedIds = getSelectedIds(settings, dataSet, dataElementsOptions);
 
     const updateSelection = React.useCallback(
         (newSelectedIds: DataElementDisaggregatedId[]) => {
-            if (!dataSet) return;
+            if (!dataSet || !dataElementItems) return;
 
             onChange(
                 settings.setDataSetDataElementsFilterFromSelection({
@@ -82,15 +85,17 @@ export function DataSetDataElementsFilterDialog(props: DataSetDataElementsFilter
             </div>
 
             <div className={classes.row}>
-                <MultiSelector
-                    d2={d2 as object}
-                    searchFilterLabel={i18n.t("Search data elements")}
-                    height={300}
-                    onChange={updateSelection}
-                    options={dataElementsOptions}
-                    selected={selectedIds}
-                    ordered={false}
-                />
+                {dataElementsOptions && (
+                    <MultiSelector
+                        d2={d2 as object}
+                        searchFilterLabel={i18n.t("Search data elements")}
+                        height={300}
+                        onChange={updateSelection}
+                        options={dataElementsOptions}
+                        selected={selectedIds}
+                        ordered={false}
+                    />
+                )}
             </div>
         </ConfirmationDialog>
     );
@@ -100,8 +105,28 @@ const useStyles = makeStyles({
     row: { width: "100%", marginBottom: "2em" },
 });
 
-function getSelectedIds(settings: Settings, dataSet: DataForm | undefined, dataElementsOptions: DataElementOption[]) {
-    if (!dataSet) return [];
+function useDataElementItems(dataSet: DataForm | undefined) {
+    const [mapping, setMapping] = useState<DataElementDisaggregationsMapping>();
+    const { compositionRoot } = useAppContext();
+
+    useEffect(() => {
+        if (!dataSet) return;
+        compositionRoot.form.getDataElementMapping({ dataSetId: dataSet.id }).then(setMapping);
+    }, [compositionRoot, dataSet]);
+
+    const dataElementItems = useMemo(() => {
+        return mapping ? getDataElementItems(dataSet, mapping) : undefined;
+    }, [dataSet, mapping]);
+
+    return dataElementItems;
+}
+
+function getSelectedIds(
+    settings: Settings,
+    dataSet: DataForm | undefined,
+    dataElementsOptions: DataElementOption[] | undefined
+) {
+    if (!dataSet || !dataElementsOptions) return [];
 
     const allOptionIds = dataElementsOptions.map(option => option.value);
 
@@ -123,11 +148,14 @@ interface DataElementOption {
     text: string;
 }
 
-function getDataElementItems(dataSet: DataForm | undefined): DataElementItem[] {
+function getDataElementItems(
+    dataSet: DataForm | undefined,
+    mapping: DataElementDisaggregationsMapping
+): DataElementItem[] {
     const dataElements = dataSet ? dataSet.dataElements : [];
 
     return _.flatMap(dataElements, dataElement => {
-        const categoryOptionCombos = dataElement.categoryOptionCombos || [];
+        const categoryOptionCombos = mapping.get(dataElement.id)?.categoryOptionCombos || [];
         const mainDataElement: DataElementItem = dataElement;
         const disaggregatedDataElements: DataElementItem[] = _(categoryOptionCombos)
             .map(coc => ({ ...dataElement, categoryOptionCombo: coc }))
@@ -143,7 +171,11 @@ function getDataElementDisaggregatedFromItem(de: DataElementItem): DataElementDi
     return categoryOptionCombo ? { id: de.id, categoryOptionComboId: categoryOptionCombo.id } : { id: de.id };
 }
 
-function getMultiSelectorDataElementOptions(dataElements: DataElementItem[]): DataElementOption[] {
+function getMultiSelectorDataElementOptions(
+    dataElements: DataElementItem[] | undefined
+): DataElementOption[] | undefined {
+    if (!dataElements) return undefined;
+
     const sortedDataElements = _(dataElements)
         .orderBy([item => item.name, item => (item.categoryOptionCombo ? 1 : 0)], ["asc", "asc"])
         .value();
