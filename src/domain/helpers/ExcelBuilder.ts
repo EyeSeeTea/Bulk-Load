@@ -382,6 +382,7 @@ export class ExcelBuilder {
                 dataProcessingRules: coalesceDataProcessRules,
             });
 
+            //TODO extract "_<VALUE" as a helper since it's used multiple times in multiple files
             await Promise.all(
                 dataElementDetails.map(({ cell, optionId, value }) =>
                     this.excelRepository.writeCell(template.id, cell, optionId ? `_${optionId}` : value)
