@@ -34,7 +34,7 @@ import { BuilderMetadata, emptyBuilderMetadata, InstanceRepository } from "../re
 import Settings from "../../webapp/logic/settings";
 import { ModulesRepositories } from "../repositories/ModulesRepositories";
 import { Maybe } from "../../types/utils";
-import { DataProcessingService } from "./DataProcessingService";
+import { DataProcessingService, DataToProcess } from "./DataProcessingService";
 
 const dateFormatPattern = "yyyy-MM-dd";
 
@@ -356,8 +356,8 @@ export class ExcelBuilder {
             const dateCell = await this.excelRepository.findRelativeCell(template.id, dataSource.date, cells[0]);
             if (dateCell) await this.excelRepository.writeCell(template.id, dateCell, period);
 
-            const allDataElementDetails = _.compact(
-                _.zip(dataElementIds, cells).map(([dataElementId, cell]) => {
+            const dataElementsToProcess = _.compact(
+                _.zip(dataElementIds, cells).map(([dataElementId, cell]): Maybe<DataToProcess> => {
                     if (!dataElementId || !cell) return undefined;
                     const { value } = dataValues.find(dv => dv.dataElement === dataElementId) ?? {};
                     if (value) {
@@ -378,7 +378,7 @@ export class ExcelBuilder {
                 dataSource.dataElementProcessingRules?.filter(isDataProcessingRuleCoalesce);
 
             const dataElementDetails = DataProcessingService.coalesceValues({
-                dataDetails: allDataElementDetails,
+                dataDetails: dataElementsToProcess,
                 dataProcessingRules: coalesceDataProcessRules,
             });
 

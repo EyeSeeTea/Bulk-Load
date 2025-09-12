@@ -2,7 +2,7 @@ import { CellRef, DataProcessingRuleCoalesce, TemplateDataValue } from "../entit
 import { Id } from "../entities/ReferenceObject";
 import _ from "lodash";
 
-type DataToProcess = {
+export type DataToProcess = {
     cell: CellRef;
     id: Id; //data element or attribute id
     value: TemplateDataValue["value"];
@@ -30,13 +30,13 @@ export class DataProcessingService {
 
             const firstValidDetail = validDetails.find(detail => Boolean(detail.value) || Boolean(detail.optionId));
 
-            if (firstValidDetail) {
+            if (!firstValidDetail) return undefined;
+            else {
                 return {
                     ...firstValidDetail,
                     cell: this.replaceColumn(firstValidDetail.cell, rule.destination.ref),
                 };
             }
-            return undefined;
         });
 
         return [...otherDataElements, ..._.compact(coalescedEntries)];
