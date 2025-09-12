@@ -31,12 +31,10 @@ export class DataProcessingService {
             const firstValidDetail = validDetails.find(detail => Boolean(detail.value) || Boolean(detail.optionId));
 
             if (!firstValidDetail) return undefined;
-            else {
-                return {
-                    ...firstValidDetail,
-                    cell: this.replaceColumn(firstValidDetail.cell, rule.destination.ref),
-                };
-            }
+            return {
+                ...firstValidDetail,
+                cell: this.replaceColumn(firstValidDetail.cell, rule.destination.ref),
+            };
         });
 
         return [...otherDataElements, ..._.compact(coalescedEntries)];
