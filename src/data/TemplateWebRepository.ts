@@ -4,6 +4,7 @@ import { CustomTemplateWithUrl, Template } from "../domain/entities/Template";
 import { Theme } from "../domain/entities/Theme";
 import { StorageRepository } from "../domain/repositories/StorageRepository";
 import { TemplateRepository } from "../domain/repositories/TemplateRepository";
+import { undefinedIfEmpty } from "../types/utils";
 import * as templates from "./templates";
 import * as customTemplates from "./templates/custom-templates";
 
@@ -26,13 +27,19 @@ export class TemplateWebRepository implements TemplateRepository {
             const customTemplate = customTemplatesById[template.id];
             if (!customTemplate) return template;
             const { downloadCustomization, importCustomization } = customTemplate;
+            const dataSourcesFromTemplate = _.compact(template.dataSources);
+            const dataSourcesFromClassTemplate = customTemplate.dataSources;
 
+            // Use from the custom template (custom class instance) the logic for downloadCustomization and importCustomization, if present. Also, use dataSources from the custom template if present, otherwise use from the stored template.
             return customTemplate && customTemplate.downloadCustomization
                 ? {
                       ...template,
+                      dataSources: undefinedIfEmpty(dataSourcesFromTemplate) || dataSourcesFromClassTemplate,
                       dataFormId: customTemplate.dataFormId,
-                      ...(downloadCustomization ? { downloadCustomization } : {}),
-                      ...(importCustomization ? { importCustomization } : {}),
+                      ...(downloadCustomization
+                          ? { downloadCustomization: downloadCustomization.bind(customTemplate) }
+                          : {}),
+                      ...(importCustomization ? { importCustomization: importCustomization.bind(customTemplate) } : {}),
                       generateMetadata: customTemplate.generateMetadata ?? false,
                   }
                 : template;
