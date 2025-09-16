@@ -24,7 +24,7 @@ const teiSheetName = "TEI Instances";
 const maxRow = 1048576;
 
 // Excel shows all empty rows, limit the maximum number of TEIs
-export const defaultMaxTeiRows = 1024;
+const defaultMaxTeiRows = 1024;
 
 const dateFormats: Record<string, string> = {
     DATE: "YYYY-MM-DD",
@@ -62,17 +62,18 @@ export class SheetBuilder {
     private instancesSheetValuesRow = 0;
     private rowOffset;
     private metadataService: MetadataService;
-    private readonly maxTeiRows;
 
     constructor(private builder: SheetBuilderParams) {
         this.validations = new Map();
-        const { template, maxTeiRows = 0 } = this.builder;
+        const { template } = this.builder;
         this.rowOffset = template.type === "custom" ? 3 : template.rowOffset;
         this.metadataService = new MetadataService(builder.elementMetadata, (item: TranslatableItem) =>
             this.translate(item)
         );
+    }
 
-        this.maxTeiRows = Math.max(maxTeiRows, defaultMaxTeiRows);
+    get maxTeiRows(): number {
+        return Math.max((this.builder.maxTeiRows ?? 0) + this.instancesSheetValuesRow, defaultMaxTeiRows);
     }
 
     public async generate(): Promise<Workbook> {
@@ -268,7 +269,7 @@ export class SheetBuilder {
 
                 const colName = Excel.getExcelAlpha(columnId);
 
-                for (let row = itemRow + 1; row <= defaultMaxTeiRows; row++) {
+                for (let row = itemRow + 1; row <= this.maxTeiRows; row++) {
                     const bRef = `B${row}`;
                     const headerRef = `${colName}${itemRow}`;
 
@@ -302,9 +303,9 @@ export class SheetBuilder {
                 this.createColumn(sheet, itemRow, columnId, `_${dataElement.id}`);
 
                 const colName = Excel.getExcelAlpha(columnId);
-                const lookupFormula = `IFERROR(INDEX('${programStageSheet}'!$B$2:$ZZ$${defaultMaxTeiRows},MATCH(INDIRECT("B" & ROW()),'${programStageSheet}'!$B$2:$B$${defaultMaxTeiRows},0),MATCH(${colName}$${itemRow},'${programStageSheet}'!$B$2:$ZZ$2,0)),"")`;
+                const lookupFormula = `IFERROR(INDEX('${programStageSheet}'!$B$2:$ZZ$${this.maxTeiRows},MATCH(INDIRECT("B" & ROW()),'${programStageSheet}'!$B$2:$B$${this.maxTeiRows},0),MATCH(${colName}$${itemRow},'${programStageSheet}'!$B$2:$ZZ$2,0)),"")`;
 
-                sheet.cell(itemRow + 1, columnId, defaultMaxTeiRows, columnId).formula(lookupFormula);
+                sheet.cell(itemRow + 1, columnId, this.maxTeiRows, columnId).formula(lookupFormula);
 
                 sheet.addDataValidation({
                     type: "textLength",
@@ -388,8 +389,8 @@ export class SheetBuilder {
         const { sheetName, bRef, headerRef } = options;
         return `IFERROR(
             INDEX(
-                '${sheetName}'!$A$5:$ZZ$${defaultMaxTeiRows},
-                MATCH(${bRef},'${sheetName}'!$A$5:$A$${defaultMaxTeiRows},0),
+                '${sheetName}'!$A$5:$ZZ$${this.maxTeiRows},
+                MATCH(${bRef},'${sheetName}'!$A$5:$A$${this.maxTeiRows},0),
                 MATCH(${headerRef},'${sheetName}'!$A$5:$ZZ$5,0)
             ), 
             "")
@@ -1290,9 +1291,7 @@ export class SheetBuilder {
     }
 
     private getTeiIdValidation() {
-        return `='${teiSheetName}'!$A$${this.instancesSheetValuesRow}:$A$${
-            this.maxTeiRows + this.instancesSheetValuesRow
-        }`;
+        return `='${teiSheetName}'!$A$${this.instancesSheetValuesRow}:$A$${this.maxTeiRows}`;
     }
 
     private createFeatureTypeColumn(options: { program: any; sheet: Sheet; itemRow: number; columnId: number }) {
