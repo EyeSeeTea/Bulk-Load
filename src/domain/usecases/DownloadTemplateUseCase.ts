@@ -155,7 +155,9 @@ export class DownloadTemplateUseCase implements UseCase {
         }
 
         const maxTeiRows =
-            dataPackage?.type === "trackerPrograms" ? dataPackage.trackedEntityInstances.length : undefined;
+            dataPackage?.type === "trackerPrograms" && enablePopulate
+                ? dataPackage.trackedEntityInstances.length
+                : undefined;
 
         if (template.type === "custom") {
             if (template.generateMetadata) {
