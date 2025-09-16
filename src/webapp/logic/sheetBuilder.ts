@@ -66,13 +66,13 @@ export class SheetBuilder {
 
     constructor(private builder: SheetBuilderParams) {
         this.validations = new Map();
-        const { template } = this.builder;
+        const { template, maxTeiRows = 0 } = this.builder;
         this.rowOffset = template.type === "custom" ? 3 : template.rowOffset;
         this.metadataService = new MetadataService(builder.elementMetadata, (item: TranslatableItem) =>
             this.translate(item)
         );
 
-        this.maxTeiRows = builder.maxTeiRows ?? defaultMaxTeiRows;
+        this.maxTeiRows = Math.max(maxTeiRows, defaultMaxTeiRows);
     }
 
     public async generate(): Promise<Workbook> {
