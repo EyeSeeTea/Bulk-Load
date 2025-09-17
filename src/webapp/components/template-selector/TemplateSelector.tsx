@@ -3,12 +3,12 @@ import { DatePicker, OrgUnitsSelector } from "@eyeseetea/d2-ui-components";
 import { Checkbox, FormControlLabel, Icon, makeStyles, Tooltip, Typography } from "@material-ui/core";
 import _ from "lodash";
 import moment from "moment";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { RelationshipOrgUnitFilter } from "../../../data/Dhis2RelationshipTypes";
 import { CustomTemplate, DataFormTemplate, TemplateType } from "../../../domain/entities/Template";
 import { Theme } from "../../../domain/entities/Theme";
 import { DownloadTemplateProps } from "../../../domain/usecases/DownloadTemplateUseCase";
-import i18n from "../../../locales";
+import i18n from "../../../utils/i18n";
 import { PartialBy } from "../../../types/utils";
 import { cleanOrgUnitPaths } from "../../../utils/dhis";
 import { useAppContext } from "../../contexts/app-context";
@@ -29,6 +29,12 @@ interface PickerFormat {
 export interface TemplateSelectorState extends DownloadTemplateProps {
     templateId: string;
     templateType: TemplateType;
+    dataFilterOptions: {
+        teiFilter?: {
+            label: string;
+            filters: SelectOption[];
+        };
+    };
 }
 
 export interface DataModelProps {
@@ -80,6 +86,8 @@ export const TemplateSelector = ({
             useCodesForMetadata: false,
             showPeriod: false,
             showLanguage: false,
+            dataFilter: {},
+            dataFilterOptions: {},
         }
     );
     const [showAdvancedOptions, setShowAdvancedOptions] = useState(true);
@@ -203,6 +211,9 @@ export const TemplateSelector = ({
             const customTemplate = customTemplates.find(t => t.id === templateId);
             const templateType: TemplateType = customTemplate ? "custom" : "generated";
 
+            const teiFilter =
+                templateType === "custom" && type === "trackerPrograms" && customTemplate?.filters?.teiFilters;
+
             setState(state => ({
                 ...state,
                 id: dataFormId,
@@ -212,12 +223,31 @@ export const TemplateSelector = ({
                 populate: false,
                 showLanguage: customTemplate?.showLanguage || false,
                 showPeriod: customTemplate?.showPeriod || false,
+                dataFilter: {},
+                dataFilterOptions: {
+                    teiFilter: teiFilter
+                        ? {
+                              label: teiFilter.label || "TEI Data Filter",
+                              filters: teiFilter.filters.map(filter => ({ label: filter.name, value: filter.id })),
+                          }
+                        : undefined,
+                },
             }));
 
             clearPopulateDates();
             setSelectedOrgUnits([]);
         }
     };
+
+    const onDataFilterChange = useCallback((value: SelectOption) => {
+        setState(state => ({
+            ...state,
+            dataFilter: {
+                ...state.dataFilter,
+                teiFilterId: value.value,
+            },
+        }));
+    }, []);
 
     const onThemeChange = ({ value }: SelectOption) => {
         setState(state => ({ ...state, theme: value }));
@@ -284,6 +314,7 @@ export const TemplateSelector = ({
     const isMultipleSelection = !isCustomDataSet;
     const showPopulate = !(state.templateType === "custom" && !settings.showPopulateInCustomForms);
     const selected = state.id && state.templateId ? getOptionValue({ id: state.id, templateId: state.templateId }) : "";
+    const hasDataFilter = Boolean(state.dataFilterOptions.teiFilter?.filters.length);
 
     const subSectionClasses = useMemo(() => {
         return { sectionHeader: classes.subSectionHeader, sectionPaper: classes.subSection };
@@ -312,6 +343,19 @@ export const TemplateSelector = ({
                         />
                     </div>
                 </div>
+
+                {hasDataFilter && state.dataFilterOptions.teiFilter && (
+                    <div className={classes.select}>
+                        <Select
+                            placeholder={state.dataFilterOptions.teiFilter.label}
+                            onChange={onDataFilterChange}
+                            options={state.dataFilterOptions.teiFilter.filters}
+                            value={state.dataFilter.teiFilterId}
+                            allowEmpty={true}
+                            emptyLabel={i18n.t("<No value>")}
+                        />
+                    </div>
+                )}
 
                 {state.type === "dataSets" && <h4 className={classes.subSectionTitle}>Periods</h4>}
 

@@ -77,7 +77,7 @@ export function initializeMockServer() {
     mock.onGet("/dataSets", {
         params: {
             paging: false,
-            fields: "access,attributeValues[attribute[code],value],dataSetElements[dataElement[categoryCombo[categoryOptionCombos[id,name]],formName,id,name,optionSet[id,options[code,id]],valueType]],displayName,id,name,periodType,sections[dataElements[categoryCombo[categoryOptionCombos[id,name]],formName,id,name,optionSet[id,options[code,id]],valueType],id,name]",
+            fields: "access,attributeValues[attribute[code],value],dataSetElements[dataElement[categoryCombo[categoryOptionCombos[id,name]],formName,id,name,optionSet[id,options[code,id,name]],valueType]],displayName,id,name,periodType,sections[dataElements[categoryCombo[categoryOptionCombos[id,name]],formName,id,name,optionSet[id,options[code,id,name]],valueType],id,name]",
             filter: [],
         },
     }).reply(200, {
@@ -111,7 +111,7 @@ export function initializeMockServer() {
     mock.onGet("/programs", {
         params: {
             paging: false,
-            fields: "access,attributeValues[attribute[code],value],displayName,id,name,programStages[id,name,programStageDataElements[dataElement[categoryCombo[categoryOptionCombos[id,name]],formName,id,name,optionSet[id,options[code,id]],valueType]],repeatable],programTrackedEntityAttributes[trackedEntityAttribute[id,name,valueType]],programType,trackedEntityType[featureType,id]",
+            fields: "access,attributeValues[attribute[code],value],displayName,id,name,programStages[id,name,programStageDataElements[dataElement[categoryCombo[categoryOptionCombos[id,name]],formName,id,name,optionSet[id,options[code,id,name]],valueType]],repeatable],programTrackedEntityAttributes[trackedEntityAttribute[id,name,optionSet[id,options[code,id,name]],valueType]],programType,trackedEntityType[featureType,id]",
             filter: [],
         },
     }).reply(200, {

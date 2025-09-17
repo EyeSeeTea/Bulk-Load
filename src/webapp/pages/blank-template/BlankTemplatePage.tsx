@@ -1,4 +1,4 @@
-import i18n from "../../../locales";
+import i18n from "../../../utils/i18n";
 import { DialogContentText } from "@material-ui/core";
 import React from "react";
 

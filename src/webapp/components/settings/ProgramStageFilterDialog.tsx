@@ -4,7 +4,7 @@ import _ from "lodash";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { DataForm } from "../../../domain/entities/DataForm";
 import { NamedRef, Ref } from "../../../domain/entities/ReferenceObject";
-import i18n from "../../../locales";
+import i18n from "../../../utils/i18n";
 import { useAppContext } from "../../contexts/app-context";
 import Settings from "../../logic/settings";
 import { getMultiSelectorOptionsFromNamedRefs, getSelectOptionsFromNamedRefs } from "../../utils/refs";

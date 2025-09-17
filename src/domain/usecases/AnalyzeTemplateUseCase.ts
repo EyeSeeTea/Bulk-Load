@@ -1,5 +1,5 @@
 import { UseCase } from "../../CompositionRoot";
-import i18n from "../../locales";
+import i18n from "../../utils/i18n";
 import { getExcelOrThrow } from "../../utils/files";
 import { ExcelReader } from "../helpers/ExcelReader";
 import { ExcelRepository } from "../repositories/ExcelRepository";

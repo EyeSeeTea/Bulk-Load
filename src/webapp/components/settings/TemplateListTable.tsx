@@ -15,7 +15,7 @@ import { Button, Icon, makeStyles } from "@material-ui/core";
 import _ from "lodash";
 import moment from "moment";
 
-import i18n from "../../../locales";
+import i18n from "../../../utils/i18n";
 import { RouteComponentProps } from "../../pages/Router";
 import { promiseMap } from "../../../utils/promises";
 import { CustomTemplate } from "../../../domain/entities/Template";
@@ -153,6 +153,7 @@ export default function TemplateListTable(props: TemplateListTableProps) {
                     useCodesForMetadata: false,
                     showLanguage: false,
                     showPeriod: false,
+                    dataFilter: {},
                 });
             } else {
                 snackbar.error(i18n.t("Cannot download spreadsheet for template"));

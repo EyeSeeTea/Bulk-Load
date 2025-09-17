@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2025-01-27T03:20:13.064Z\n"
+"POT-Creation-Date: 2025-08-07T13:59:56.557Z\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -400,6 +400,18 @@ msgstr ""
 msgid "File"
 msgstr ""
 
+msgid "Data Filter"
+msgstr "Фильтр данных"
+
+msgid ""
+"Select an attribute to create a data filter. This filter will appear on the "
+"downloads page and can be applied to limit the data included in the exported "
+"template."
+msgstr ""
+
+msgid "Tei Attribute"
+msgstr "Атрибут TEI"
+
 #, fuzzy
 msgid "Download"
 msgstr "Скачать шаблон"
@@ -771,6 +783,9 @@ msgid "Show Language"
 msgstr ""
 
 msgid "Show Period"
+msgstr ""
+
+msgid "Tei Data Filter - Label"
 msgstr ""
 
 msgid "Value for field '{{field}}' is invalid - {{value}}"

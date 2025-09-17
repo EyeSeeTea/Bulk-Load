@@ -5,7 +5,7 @@ import { makeStyles, Paper } from "@material-ui/core";
 import React, { useEffect, useMemo, useState } from "react";
 import { HashRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Theme } from "../../domain/entities/Theme";
-import i18n from "../../locales";
+import i18n from "../../utils/i18n";
 import { AppDrawer, AppDrawerToggle } from "../components/drawer/Drawer";
 import { useAppContext } from "../contexts/app-context";
 import Settings from "../logic/settings";

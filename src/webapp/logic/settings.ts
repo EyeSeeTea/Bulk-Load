@@ -22,7 +22,7 @@ import {
     getDataElementDisaggregatedId,
 } from "../../domain/entities/DataElementDisaggregated";
 import { Id, NamedRef } from "../../domain/entities/ReferenceObject";
-import i18n from "../../locales";
+import i18n from "../../utils/i18n";
 import { D2Api, Ref } from "../../types/d2-api";
 import { GetArrayInnerType, Maybe, OkOrError } from "../../types/utils";
 import { User } from "../../domain/entities/User";

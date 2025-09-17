@@ -1,4 +1,4 @@
-import i18n from "../locales";
+import i18n from "../utils/i18n";
 
 export function addExtraTranslations() {
     i18n.t("Case Registration Date");

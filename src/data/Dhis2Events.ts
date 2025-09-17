@@ -2,12 +2,13 @@ import _ from "lodash";
 import { D2Api } from "../types/d2-api";
 import { Event } from "../domain/entities/DhisDataPackage";
 import { SynchronizationResult } from "../domain/entities/SynchronizationResult";
-import i18n from "../locales";
+import i18n from "../utils/i18n";
 import { promiseMap } from "../utils/promises";
 import { ImportPostResponse, postImport } from "./Dhis2Import";
 import { Program, TrackedEntityInstance } from "../domain/entities/TrackedEntityInstance";
 import { getApiTeiToUpload, Metadata } from "./Dhis2TrackedEntityInstances";
 import { Maybe } from "../types/utils";
+import { ImportDataPackageOptions } from "../domain/repositories/InstanceRepository";
 
 export async function postEvents(
     api: D2Api,
@@ -33,7 +34,7 @@ export async function postEvents(
 
 function setEnrollmentToEvent(events: Event[], options: OptionEvents): Event[] {
     const { existingTeis, teis, program, metadata } = options;
-    const apiTeis = teis.map(tei => getApiTeiToUpload(program, metadata, tei, existingTeis));
+    const apiTeis = teis.map(tei => getApiTeiToUpload(program, metadata, tei, existingTeis, options.importOptions));
     const teisByIds = _.keyBy(apiTeis, tei => tei.trackedEntity);
     return events.map(event => {
         const eventTeiId = event.trackedEntity ?? "";
@@ -51,4 +52,5 @@ type OptionEvents = {
     teis: TrackedEntityInstance[];
     program: Program;
     metadata: Metadata;
+    importOptions: ImportDataPackageOptions;
 };
