@@ -1,6 +1,7 @@
 import { Id } from "@eyeseetea/d2-api";
 import { DatePicker, OrgUnitsSelector } from "@eyeseetea/d2-ui-components";
-import { Checkbox, FormControlLabel, Icon, makeStyles, Tooltip, Typography } from "@material-ui/core";
+import { Checkbox, FormControlLabel, makeStyles, Tooltip, Typography } from "@material-ui/core";
+import HelpOutlineIcon from "@material-ui/icons/HelpOutline";
 import _ from "lodash";
 import moment from "moment";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -430,7 +431,7 @@ export const TemplateSelector = ({
                                                   )
                                         }
                                     >
-                                        <Icon className={classes.tooltip}>help</Icon>
+                                        <HelpOutlineIcon className={classes.tooltip}></HelpOutlineIcon>
                                     </Tooltip>
                                 </h4>
                             </div>
@@ -675,7 +676,7 @@ const useStyles = makeStyles({
         alignItems: "center",
         justifyContent: "center",
     },
-    tooltip: { fontSize: 15, marginLeft: 10 },
+    tooltip: { fontSize: 20, marginLeft: 10, color: "#000000DE" },
 });
 
 function modelToSelectOption<T extends { id: string; name: string }>(array: T[]) {
