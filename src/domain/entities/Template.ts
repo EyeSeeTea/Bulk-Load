@@ -161,6 +161,21 @@ export interface Range {
     columnEnd?: string;
 }
 
+type BaseDataProcessingRule = {
+    type: "coalesce";
+    condition: "onExport";
+    description?: string;
+};
+
+export type DataProcessingRuleCoalesce = BaseDataProcessingRule & {
+    type: "coalesce";
+    condition: "onExport";
+    destination: ColumnRef;
+    targetIds: Id[]; // attribute or data element id
+};
+
+type DataProcessingRule = DataProcessingRuleCoalesce;
+
 interface BaseDataSource {
     type: DataSourceType;
     skipPopulate?: boolean;
@@ -201,6 +216,7 @@ export interface TrackerEventRowDataSource {
     dataElements: Range;
     sortBy?: string;
     onlyLastEvent?: boolean;
+    dataElementProcessingRules?: DataProcessingRule[];
 }
 
 export interface RowDataSource extends BaseDataSource {
@@ -233,6 +249,7 @@ export interface TeiRowDataSource {
     multiTextDelimiter?: string;
     sortBy?: string;
     skipTeisWithoutEvents?: boolean;
+    attributeDataProcessingRules?: DataProcessingRule[];
 }
 
 export interface ColumnDataSource extends BaseDataSource {
@@ -399,6 +416,14 @@ export type TemplateTrackerProgramPackage = BaseTemplateDataPackage & {
     trackedEntityInstances: TrackedEntityInstance[];
 };
 
+export type TemplateDataValue = {
+    dataElement: string;
+    category: Maybe<string>;
+    value: string | number | boolean;
+    optionId: Maybe<string>;
+    contentType: Maybe<ContentType>;
+    comment?: string;
+};
 export type TemplateDataPackageData = {
     group: number | Maybe<string>;
     dataForm: string;
@@ -412,14 +437,7 @@ export type TemplateDataPackageData = {
     }>;
     trackedEntityInstance: Maybe<string>;
     programStage: Maybe<string>;
-    dataValues: {
-        dataElement: string;
-        category: Maybe<string>;
-        value: string | number | boolean;
-        optionId: Maybe<string>;
-        contentType: Maybe<ContentType>;
-        comment?: string;
-    }[];
+    dataValues: TemplateDataValue[];
 };
 
 export function templateToDataPackage(template: TemplateDataPackage): DataPackage {
@@ -584,4 +602,8 @@ function geometryToCoordinate(geometry?: Geometry): Maybe<TemplateDataPackageDat
         default:
             return undefined;
     }
+}
+
+export function isDataProcessingRuleCoalesce(rule: DataProcessingRule): rule is DataProcessingRuleCoalesce {
+    return rule.type === "coalesce";
 }
