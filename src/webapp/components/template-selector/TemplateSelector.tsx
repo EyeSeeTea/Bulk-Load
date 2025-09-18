@@ -71,13 +71,13 @@ export const TemplateSelector = ({
     const [selectedOrgUnits, setSelectedOrgUnits] = useState<string[]>([]);
     const [datePickerFormat, setDatePickerFormat] = useState<PickerFormat>();
     const [userHasReadAccess, setUserHasReadAccess] = useState<boolean>(false);
-    const [filterOrgUnits, setFilterOrgUnits] = useState<boolean>(false);
+    const [filterOrgUnits, setFilterOrgUnits] = useState<boolean>(true);
     const [selectedModel, setSelectedModel] = useState<string>("");
     const [state, setState] = useState<PartialBy<TemplateSelectorState, "type" | "id" | "templateId" | "templateType">>(
         {
             startDate: moment().add("-1", "year").startOf("year"),
             endDate: moment().add("-1", "year").endOf("year"),
-            relationshipsOuFilter: "CAPTURE",
+            relationshipsOuFilter: "SELECTED",
             populate: false,
             downloadRelationships: true,
             filterTEIEnrollmentDate: false,
@@ -91,7 +91,7 @@ export const TemplateSelector = ({
             dataFilterOptions: {},
         }
     );
-    const [showAdvancedOptions, setShowAdvancedOptions] = useState(true);
+    const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
     const dataSets = dataSource?.dataSets;
     const { templateId, id } = state;

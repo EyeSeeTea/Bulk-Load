@@ -5,8 +5,8 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2025-09-17T09:53:40.735Z\n"
-"PO-Revision-Date: 2025-09-17T09:53:40.735Z\n"
+"POT-Creation-Date: 2025-09-18T05:58:00.550Z\n"
+"PO-Revision-Date: 2025-09-18T05:58:00.550Z\n"
 
 msgid "Events - Create/update"
 msgstr ""
@@ -740,6 +740,12 @@ msgstr ""
 msgid "JSON Response"
 msgstr ""
 
+msgid "Select organisation unit to populate data"
+msgstr ""
+
+msgid "Select available organisation units to include in the template"
+msgstr ""
+
 msgid "Template"
 msgstr ""
 
@@ -759,12 +765,6 @@ msgid "End period"
 msgstr ""
 
 msgid "Organisation units"
-msgstr ""
-
-msgid "Select organisation unit to populate data"
-msgstr ""
-
-msgid "Select available organisation units to include in the template"
 msgstr ""
 
 msgid "User does not have any capture organisations units"
@@ -792,6 +792,11 @@ msgid "Only selected organisation units"
 msgstr ""
 
 msgid "Include relationships"
+msgstr ""
+
+msgid ""
+"Creates a tab for each available TEI relationship type, showing their "
+"contents. Click here to learn more about the relationship model."
 msgstr ""
 
 msgid "Advanced template properties"
