@@ -53,7 +53,7 @@ export function initializeMockServer() {
     // Organisation unit Global
     mock.onGet("/organisationUnits", {
         params: {
-            fields: "children,displayName,id,level,path",
+            fields: "children,displayName,id,level,path,shortName",
             paging: false,
             filter: ["id:in:[H8RixfF8ugH]"],
         },
