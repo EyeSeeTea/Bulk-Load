@@ -1,7 +1,6 @@
 import { Id } from "@eyeseetea/d2-api";
 import { DatePicker, OrgUnitsSelector } from "@eyeseetea/d2-ui-components";
-import { Checkbox, FormControlLabel, makeStyles, Tooltip, Typography } from "@material-ui/core";
-import HelpOutlineIcon from "@material-ui/icons/HelpOutline";
+import { Checkbox, FormControlLabel, makeStyles, Typography } from "@material-ui/core";
 import _ from "lodash";
 import moment from "moment";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -17,6 +16,7 @@ import Settings from "../../logic/settings";
 import { orgUnitListParams } from "../../utils/template";
 import { Select, SelectOption } from "../select/Select";
 import { Section } from "../collapsible-section/Section";
+import { LabelHelp } from "./LabelHelp";
 
 type DataSource = Record<string, DataFormTemplate[]>;
 
@@ -311,6 +311,18 @@ export const TemplateSelector = ({
         setState(state => ({ ...state, language: value }));
     };
 
+    const openTeiRelationshipHelp = () => {
+        window.open(
+            "https://docs.dhis2.org/en/use/user-guides/dhis-core-version-master/understanding-the-data-model/relationship-model.html",
+            "_blank"
+        );
+    };
+
+    const orgUnitHelpText =
+        state.templateType === "custom"
+            ? i18n.t("Select organisation unit to populate data")
+            : i18n.t("Select available organisation units to include in the template");
+
     const isCustomDataSet = state.templateType === "custom" && state.type === "dataSets";
     const isMultipleSelection = !isCustomDataSet;
     const showPopulate = !(state.templateType === "custom" && !settings.showPopulateInCustomForms);
@@ -415,24 +427,18 @@ export const TemplateSelector = ({
                             <div>
                                 <h4 className={classes.title}>
                                     {i18n.t("Organisation units")}
-                                    <Typography
-                                        variant="body2"
-                                        color="textSecondary"
-                                        style={{ fontSize: "0.7em", marginLeft: 3 }}
-                                    >
-                                        ({selectedOrgUnits.length})
-                                    </Typography>
-                                    <Tooltip
-                                        title={
-                                            state.templateType === "custom"
-                                                ? i18n.t("Select organisation unit to populate data")
-                                                : i18n.t(
-                                                      "Select available organisation units to include in the template"
-                                                  )
+                                    <LabelHelp
+                                        label={
+                                            <Typography
+                                                variant="caption"
+                                                color="textSecondary"
+                                                className={classes.orgUnitCount}
+                                            >
+                                                ({selectedOrgUnits.length})
+                                            </Typography>
                                         }
-                                    >
-                                        <HelpOutlineIcon className={classes.tooltip}></HelpOutlineIcon>
-                                    </Tooltip>
+                                        helpText={orgUnitHelpText}
+                                    />
                                 </h4>
                             </div>
                         }
@@ -583,7 +589,15 @@ export const TemplateSelector = ({
                                             onChange={onDownloadRelationshipsChange}
                                         />
                                     }
-                                    label={i18n.t("Include relationships")}
+                                    label={
+                                        <LabelHelp
+                                            label={i18n.t("Include relationships")}
+                                            helpText={i18n.t(
+                                                "Creates a tab for each available TEI relationship type, showing their contents. Click here to learn more about the relationship model."
+                                            )}
+                                            onClick={openTeiRelationshipHelp}
+                                        />
+                                    }
                                 />
                             </div>
                         </div>
@@ -676,7 +690,7 @@ const useStyles = makeStyles({
         alignItems: "center",
         justifyContent: "center",
     },
-    tooltip: { fontSize: 20, marginLeft: 10, color: "#000000DE" },
+    orgUnitCount: { marginLeft: "3px" },
 });
 
 function modelToSelectOption<T extends { id: string; name: string }>(array: T[]) {
