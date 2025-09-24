@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2025-08-07T13:59:56.557Z\n"
+"POT-Creation-Date: 2025-09-18T05:58:00.550Z\n"
 "Language: pt\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -828,6 +828,12 @@ msgstr "Mensagens"
 msgid "JSON Response"
 msgstr "Resposta do JSON"
 
+msgid "Select organisation unit to populate data"
+msgstr "Selecione a unidade da organização para preencher os dados"
+
+msgid "Select available organisation units to include in the template"
+msgstr "Selecione as unidades organizacionais para incluir na planilha"
+
 msgid "Template"
 msgstr "Modelo"
 
@@ -836,6 +842,9 @@ msgstr "Modelo de dados"
 
 msgid "Select template to export..."
 msgstr "Selecione o planilha para exportar ..."
+
+msgid "<No value>"
+msgstr "<Sem valor>"
 
 msgid "Start period"
 msgstr "Período inicial"
@@ -846,29 +855,12 @@ msgstr "Período final"
 msgid "Organisation units"
 msgstr "Unidades organizacionais"
 
-msgid "Select organisation unit to populate data"
-msgstr "Selecione a unidade da organização para preencher os dados"
-
-msgid "Select available organisation units to include in the template"
-msgstr "Selecione as unidades organizacionais para incluir na planilha"
-
 msgid "User does not have any capture organisations units"
 msgstr "O usuário não tem accesso a nenhuma unidade organizacional"
 
-msgid "Advanced template properties"
-msgstr "Propriedades avançadas da planilha"
-
-msgid "Language"
-msgstr "Língua"
-
-msgid "Split data entry tabs by section"
-msgstr ""
-
-msgid "Theme"
-msgstr "Tema"
-
-msgid "<No value>"
-msgstr "<Sem valor>"
+#, fuzzy
+msgid "Populate"
+msgstr "Modelo"
 
 msgid "Populate template with data"
 msgstr "Preencher a planilha com dados"
@@ -889,6 +881,23 @@ msgid "Only selected organisation units"
 msgstr ""
 
 msgid "Include relationships"
+msgstr ""
+
+msgid ""
+"Creates a tab for each available TEI relationship type, showing their "
+"contents. Click here to learn more about the relationship model."
+msgstr ""
+
+msgid "Advanced template properties"
+msgstr "Propriedades avançadas da planilha"
+
+msgid "Language"
+msgstr "Língua"
+
+msgid "Theme"
+msgstr "Tema"
+
+msgid "Split data entry tabs by section"
 msgstr ""
 
 msgid "Use metadata codes (organisation units, data elements and options)"
