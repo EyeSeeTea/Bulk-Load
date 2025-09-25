@@ -128,7 +128,8 @@ export function HistoryDetailsDialog({ isOpen, entry, onClose }: HistoryDetailsD
     return (
         <ConfirmationDialog
             isOpen={isOpen}
-            title={i18n.t("Import Details: {{name}}", { name: entry.name || entry.fileName, nsSeparator: false })}
+            // @ts-ignore
+            title={i18n.t("Import Details: {{-name}}", { name: entry.name || entry.fileName, nsSeparator: false })}
             onCancel={onClose}
             cancelText={i18n.t("Close")}
             maxWidth="lg"
