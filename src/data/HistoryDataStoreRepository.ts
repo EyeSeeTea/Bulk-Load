@@ -85,4 +85,27 @@ export class HistoryDataStoreRepository implements HistoryRepository {
     private async saveDetails(id: Id, details: HistoryEntryDetails): Promise<void> {
         await this.dataStore.save(`history-${id}`, details).getData();
     }
+
+    public async delete(params: { until: Date }): Promise<Id[]> {
+        const summaries = await this.getSummaries();
+        const toDeleteIds = summaries.filter(summary => new Date(summary.timestamp) < params.until).map(s => s.id);
+        if (toDeleteIds.length === 0) {
+            return [];
+        }
+        await Promise.all(toDeleteIds.map(id => this.deleteDetails(id)));
+        const remainingSummaries = summaries.filter(summary => !toDeleteIds.includes(summary.id));
+        await this.saveSummaries(remainingSummaries);
+        return toDeleteIds;
+    }
+
+    private async deleteDetails(entryId: Id): Promise<void> {
+        try {
+            await this.dataStore.delete(`history-${entryId}`).getData();
+        } catch (error: any) {
+            // Ignore 404 errors if the detail doesn't exist
+            if (error.response?.status !== 404) {
+                throw error;
+            }
+        }
+    }
 }

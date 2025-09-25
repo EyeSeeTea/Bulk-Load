@@ -9,4 +9,5 @@ export interface HistoryRepository {
         condition: (summary: HistoryEntrySummary) => boolean,
         update: (summary: HistoryEntrySummary) => HistoryEntrySummary
     ): Promise<Id[]>;
+    delete(params: { until: Date }): Promise<Id[]>;
 }

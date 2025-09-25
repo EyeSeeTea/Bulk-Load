@@ -3,13 +3,13 @@ import { DhisInstance } from "../domain/entities/DhisInstance";
 import { D2ApiDefault, DataStore } from "../types/d2-api";
 import { dataStoreNamespace } from "./StorageDataStoreRepository";
 import { Id } from "../domain/entities/ReferenceObject";
-import { DocumentRepository } from "../domain/repositories/DocumentRepository";
+import { DocumentDeleteOptions, DocumentRepository } from "../domain/repositories/DocumentRepository";
 import { Document } from "../domain/entities/Document";
 
 export class DocumentD2Repository implements DocumentRepository {
     private api: D2Api;
     private dataStore: DataStore;
-    private readonly dataStoreHistoryKey = "documents";
+    private readonly dataStoreKey = "documents";
 
     constructor(localInstance: DhisInstance) {
         this.api = new D2ApiDefault({ baseUrl: localInstance.url });
@@ -33,17 +33,19 @@ export class DocumentD2Repository implements DocumentRepository {
         return document;
     }
 
-    async delete(params: { until: Date }): Promise<Id[]> {
-        const list = await this.dataStore.get<Document[]>(this.dataStoreHistoryKey).getData();
+    async delete({ until, keepReference = true }: DocumentDeleteOptions): Promise<Id[]> {
+        const list = await this.dataStore.get<Document[]>(this.dataStoreKey).getData();
         if (!list) return [];
-        const toDelete = list.filter(item => {
-            if (!item.createdAt || item.deletedAt) return false;
-            return new Date(item.createdAt) < params.until;
-        });
+        const toDeleteIds = list
+            .filter(item => {
+                if (!item.createdAt || item.deletedAt) return false;
+                return new Date(item.createdAt) < until;
+            })
+            .map(item => item.id);
         const result = await this.api.metadata
             .post(
                 {
-                    documents: toDelete.map(item => ({ id: item.id })),
+                    documents: toDeleteIds.map(id => ({ id })),
                 },
                 { importStrategy: "DELETE" }
             )
@@ -51,11 +53,13 @@ export class DocumentD2Repository implements DocumentRepository {
         if (result.status !== "OK") {
             throw new Error("Failed to delete documents");
         }
-        const updatedList = list.map(item =>
-            toDelete.find(d => d.id === item.id) ? { ...item, deletedAt: new Date().toISOString() } : item
-        );
-        await this.dataStore.save(this.dataStoreHistoryKey, updatedList).getData();
-        return toDelete.map(d => d.id);
+        const updatedList = keepReference
+            ? list.map(item =>
+                  toDeleteIds.includes(item.id) ? { ...item, deletedAt: new Date().toISOString() } : item
+              )
+            : list.filter(item => !toDeleteIds.includes(item.id));
+        await this.dataStore.save(this.dataStoreKey, updatedList).getData();
+        return toDeleteIds;
     }
 
     async download(fileResourceId: Id): Promise<Blob> {
@@ -63,7 +67,7 @@ export class DocumentD2Repository implements DocumentRepository {
     }
 
     private async addToHistory(doc: Document): Promise<void> {
-        const list = await this.dataStore.get<Document[]>(this.dataStoreHistoryKey).getData();
-        await this.dataStore.save(this.dataStoreHistoryKey, [...(list ?? []), doc]).getData();
+        const list = await this.dataStore.get<Document[]>(this.dataStoreKey).getData();
+        await this.dataStore.save(this.dataStoreKey, [...(list ?? []), doc]).getData();
     }
 }

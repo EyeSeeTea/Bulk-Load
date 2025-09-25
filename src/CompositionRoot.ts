@@ -41,6 +41,7 @@ import { SaveThemeUseCase } from "./domain/usecases/SaveThemeUseCase";
 import { SearchUsersUseCase } from "./domain/usecases/SearchUsersUseCase";
 import { WriteSettingsUseCase } from "./domain/usecases/WriteSettingsUseCase";
 import { DocumentsCleanupUseCase } from "./domain/usecases/DocumentsCleanupUseCase";
+import { HistoryCleanupUseCase } from "./domain/usecases/HistoryCleanupUseCase";
 import { GetHistoryEntriesUseCase } from "./domain/usecases/GetHistoryEntriesUseCase";
 import { GetHistoryEntryDetailsUseCase } from "./domain/usecases/GetHistoryEntryDetailsUseCase";
 import { DownloadDocumentUseCase } from "./domain/usecases/DownloadDocumentUseCase";
@@ -145,6 +146,7 @@ export function getCompositionRoot({ appConfig, dhisInstance, mockApi, importSou
             getDetails: new GetHistoryEntryDetailsUseCase(historyRepository),
             downloadDocument: new DownloadDocumentUseCase(documentRepository),
             cleanupDocuments: new DocumentsCleanupUseCase(documentRepository, historyRepository),
+            cleanup: new HistoryCleanupUseCase(historyRepository, documentRepository),
         }),
     };
 }

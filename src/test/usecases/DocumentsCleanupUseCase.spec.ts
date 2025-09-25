@@ -18,6 +18,7 @@ describe("DocumentsCleanupUseCase", () => {
             getDetails: jest.fn(),
             save: jest.fn(),
             updateSummaries: jest.fn(),
+            delete: jest.fn(),
         };
         useCase = new DocumentsCleanupUseCase(fileRepository, historyRepository);
     });
