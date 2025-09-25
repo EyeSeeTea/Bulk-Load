@@ -19,6 +19,7 @@ import { ModulesRepositories } from "../repositories/ModulesRepositories";
 import { TemplateRepository } from "../repositories/TemplateRepository";
 import { UsersRepository } from "../repositories/UsersRepository";
 import { buildAllPossiblePeriods } from "../../webapp/utils/periods";
+import { applyFilter } from "../entities/TemplateFilter";
 
 export interface DownloadTemplateProps {
     type: DataFormType;
@@ -43,6 +44,9 @@ export interface DownloadTemplateProps {
     showLanguage: boolean;
     showPeriod: boolean;
     orgUnitShortName?: boolean;
+    dataFilter: {
+        teiFilterId?: string;
+    };
 }
 
 export class DownloadTemplateUseCase implements UseCase {
@@ -77,6 +81,7 @@ export class DownloadTemplateUseCase implements UseCase {
             useCodesForMetadata,
             showLanguage,
             orgUnitShortName,
+            dataFilter,
         } = options;
 
         const useShortNameInOrgUnit = orgUnitShortName || false;
@@ -88,7 +93,7 @@ export class DownloadTemplateUseCase implements UseCase {
         const element = await getElement(api, type, id);
         const name = element.displayName ?? element.name;
 
-        async function getGenerateFile() {
+        async function getGenerateFile(maxTeiRows?: number) {
             const result = await getElementMetadata({
                 api,
                 element,
@@ -115,31 +120,16 @@ export class DownloadTemplateUseCase implements UseCase {
                 splitDataEntryTabsBySection,
                 useCodesForMetadata,
                 orgUnitShortName: useShortNameInOrgUnit,
+                maxTeiRows,
             });
 
             const workbook = await sheetBuilder.generate();
             return workbook.writeToBuffer();
         }
 
-        if (template.type === "custom") {
-            if (template.generateMetadata) {
-                const file = await getGenerateFile();
-                await this.excelRepository.loadTemplate({ type: "file", file: file });
-            } else {
-                await this.excelRepository.loadTemplate({
-                    type: "file-base64",
-                    contents: template.file.contents,
-                    templateId: template.id,
-                });
-            }
-        } else {
-            const file = await getGenerateFile();
-            await this.excelRepository.loadTemplate({ type: "file", file });
-        }
-
         const enablePopulate = populate && !!populateStartDate && !!populateEndDate;
 
-        const dataPackage = enablePopulate
+        let dataPackage = enablePopulate
             ? await this.instanceRepository.getDataPackage({
                   type,
                   id,
@@ -150,6 +140,40 @@ export class DownloadTemplateUseCase implements UseCase {
                   relationshipsOuFilter,
               })
             : undefined;
+
+        if (dataPackage && template.type === "custom" && template.filters) {
+            const teiFilter = dataFilter?.teiFilterId
+                ? template.filters.teiFilters?.filters.find(filter => filter.id === dataFilter.teiFilterId)
+                : undefined;
+
+            if (teiFilter) {
+                dataPackage = applyFilter({
+                    dataPackage,
+                    teiFilter: teiFilter,
+                });
+            }
+        }
+
+        const maxTeiRows =
+            dataPackage?.type === "trackerPrograms" && enablePopulate
+                ? dataPackage.trackedEntityInstances.length
+                : undefined;
+
+        if (template.type === "custom") {
+            if (template.generateMetadata) {
+                const file = await getGenerateFile(maxTeiRows);
+                await this.excelRepository.loadTemplate({ type: "file", file: file });
+            } else {
+                await this.excelRepository.loadTemplate({
+                    type: "file-base64",
+                    contents: template.file.contents,
+                    templateId: template.id,
+                });
+            }
+        } else {
+            const file = await getGenerateFile(maxTeiRows);
+            await this.excelRepository.loadTemplate({ type: "file", file });
+        }
 
         const builder = new ExcelBuilder(this.excelRepository, this.instanceRepository, this.modulesRepositories);
 

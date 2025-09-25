@@ -363,6 +363,18 @@ msgstr ""
 msgid "File"
 msgstr ""
 
+msgid "Data Filter"
+msgstr ""
+
+msgid ""
+"Select an attribute to create a data filter. This filter will appear on the "
+"downloads page and can be applied to limit the data included in the "
+"exported template."
+msgstr ""
+
+msgid "Tei Attribute"
+msgstr ""
+
 msgid "Download"
 msgstr ""
 
@@ -683,6 +695,9 @@ msgstr ""
 msgid "Show Period"
 msgstr ""
 
+msgid "Tei Data Filter - Label"
+msgstr ""
+
 msgid "Value for field '{{field}}' is invalid - {{value}}"
 msgstr ""
 
@@ -725,6 +740,12 @@ msgstr ""
 msgid "JSON Response"
 msgstr ""
 
+msgid "Select organisation unit to populate data"
+msgstr ""
+
+msgid "Select available organisation units to include in the template"
+msgstr ""
+
 msgid "Template"
 msgstr ""
 
@@ -732,6 +753,9 @@ msgid "Data Model"
 msgstr ""
 
 msgid "Select template to export..."
+msgstr ""
+
+msgid "<No value>"
 msgstr ""
 
 msgid "Start period"
@@ -743,28 +767,10 @@ msgstr ""
 msgid "Organisation units"
 msgstr ""
 
-msgid "Select organisation unit to populate data"
-msgstr ""
-
-msgid "Select available organisation units to include in the template"
-msgstr ""
-
 msgid "User does not have any capture organisations units"
 msgstr ""
 
-msgid "Advanced template properties"
-msgstr ""
-
-msgid "Language"
-msgstr ""
-
-msgid "Split data entry tabs by section"
-msgstr ""
-
-msgid "Theme"
-msgstr ""
-
-msgid "<No value>"
+msgid "Populate"
 msgstr ""
 
 msgid "Populate template with data"
@@ -786,6 +792,23 @@ msgid "Only selected organisation units"
 msgstr ""
 
 msgid "Include relationships"
+msgstr ""
+
+msgid ""
+"Creates a tab for each available TEI relationship type, showing their "
+"contents. Click here to learn more about the relationship model."
+msgstr ""
+
+msgid "Advanced template properties"
+msgstr ""
+
+msgid "Language"
+msgstr ""
+
+msgid "Theme"
+msgstr ""
+
+msgid "Split data entry tabs by section"
 msgstr ""
 
 msgid "Use metadata codes (organisation units, data elements and options)"

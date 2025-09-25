@@ -11,6 +11,7 @@ import { Sheet as SheetE } from "./Sheet";
 import { ModulesRepositories } from "../repositories/ModulesRepositories";
 import { TrackedEntityInstance } from "./TrackedEntityInstance";
 import { Geometry } from "./DhisDataPackage";
+import { TemplateFilter } from "./TemplateFilter";
 
 export interface DataFormTemplate extends DataForm {
     templateId: string;
@@ -102,6 +103,10 @@ export interface CustomTemplateWithUrl extends BaseTemplate {
         instanceRepository: InstanceRepository,
         options: ImportCustomizationOptions
     ) => Promise<Maybe<TemplateDataPackage>>;
+    filters?: {
+        teiFilters?: TemplateFilter;
+        dataEntryFilters?: TemplateFilter;
+    };
 }
 
 export interface GenericSheetRef {
@@ -145,6 +150,21 @@ export interface Range {
     columnEnd?: string;
 }
 
+type BaseDataProcessingRule = {
+    type: "coalesce";
+    condition: "onExport";
+    description?: string;
+};
+
+export type DataProcessingRuleCoalesce = BaseDataProcessingRule & {
+    type: "coalesce";
+    condition: "onExport";
+    destination: ColumnRef;
+    targetIds: Id[]; // attribute or data element id
+};
+
+type DataProcessingRule = DataProcessingRuleCoalesce;
+
 interface BaseDataSource {
     type: DataSourceType;
     skipPopulate?: boolean;
@@ -185,6 +205,7 @@ export interface TrackerEventRowDataSource {
     dataElements: Range;
     sortBy?: string;
     onlyLastEvent?: boolean;
+    dataElementProcessingRules?: DataProcessingRule[];
 }
 
 export interface RowDataSource extends BaseDataSource {
@@ -218,6 +239,7 @@ export interface TeiRowDataSource {
     multiTextDelimiter?: string;
     sortBy?: string;
     skipTeisWithoutEvents?: boolean;
+    attributeDataProcessingRules?: DataProcessingRule[];
 }
 
 export interface ColumnDataSource extends BaseDataSource {
@@ -386,6 +408,14 @@ export type TemplateTrackerProgramPackage = BaseTemplateDataPackage & {
     trackedEntityInstances: TrackedEntityInstance[];
 };
 
+export type TemplateDataValue = {
+    dataElement: string;
+    category: Maybe<string>;
+    value: string | number | boolean;
+    optionId: Maybe<string>;
+    contentType: Maybe<ContentType>;
+    comment?: string;
+};
 export type TemplateDataPackageData = {
     group: number | Maybe<string>;
     dataForm: string;
@@ -399,15 +429,8 @@ export type TemplateDataPackageData = {
     }>;
     trackedEntityInstance: Maybe<string>;
     programStage: Maybe<string>;
-    dataValues: {
-        dataElement: string;
-        category: Maybe<string>;
-        value: string | number | boolean;
-        optionId: Maybe<string>;
-        contentType: Maybe<ContentType>;
-        comment?: string;
-    }[];
     geometry: Maybe<Geometry>;
+    dataValues: TemplateDataValue[];
 };
 
 export function templateToDataPackage(template: TemplateDataPackage): DataPackage {
@@ -541,3 +564,40 @@ function mapFromProgramData(entry: ProgramPackageData): TemplateDataPackageData 
         })),
     };
 }
+
+function coordinateToGeometry(entry: TemplateDataPackageData): Maybe<Geometry> {
+    const { coordinate } = entry;
+    if (!coordinate) return undefined;
+
+    const longitude = parseInt(coordinate.longitude);
+    const latitude = parseInt(coordinate.latitude);
+
+    if (longitude === undefined || latitude === undefined) return undefined;
+
+    return {
+        type: "Point",
+        coordinates: [longitude, latitude],
+    };
+}
+
+function geometryToCoordinate(geometry?: Geometry): Maybe<TemplateDataPackageData["coordinate"]> {
+    //currenly, coordinate prop is only being used for point
+    switch (geometry?.type) {
+        case "Point": {
+            if (!geometry || !Array.isArray(geometry.coordinates) || geometry.type !== "Point") return undefined;
+
+            const [longitude, latitude] = geometry.coordinates;
+
+            return {
+                latitude: latitude.toString(),
+                longitude: longitude.toString(),
+            };
+        }
+        case "Polygon":
+        default:
+            return undefined;
+    }
+}
+
+export function isDataProcessingRuleCoalesce(rule: DataProcessingRule): rule is DataProcessingRuleCoalesce {
+    return rule.type === "coalesce";

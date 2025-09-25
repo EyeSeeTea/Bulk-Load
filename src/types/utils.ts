@@ -55,3 +55,38 @@ export type RecursivePartial<T> = {
         ? RecursivePartial<T[P]>
         : T[P];
 };
+
+/*
+Example usage of UnwrapMaybe:
+Given: Maybe<string> which is (string | undefined)
+UnwrapMaybe<Maybe<string>> = Exclude<string | undefined, undefined> = string
+ */
+type UnwrapMaybe<T> = Exclude<T, undefined>;
+
+/*
+Example usage of NestedKeyOf with Maybe types:
+Given this type:
+type User = {
+  id: Maybe<string>;
+  profile: Maybe<{ name: string; age: number; }>;
+  tags: string[];
+}
+Checking "Maybe<string> extends object" would be true, and therefor will attempt to get NestedKeyOf again essentially excluding "id".
+With UnwrapMaybe:
+- UnwrapMaybe<Maybe<string>> = string → not an object → include "id"
+- UnwrapMaybe<Maybe<{name: string, age: number}>> = {name: string, age: number} → is an object → recurse to get "profile.name", "profile.age"
+- tags is an array → excluded (by design)
+Result: NestedKeyOf<User> = "id" | "profile.name" | "profile.age"
+ */
+type PrevDepth = [never, 0, 1, 2, 3, 4, 5];
+export type NestedKeyOf<T, Prefix extends string = "", Depth extends number = 5> = Depth extends 0
+    ? never
+    : T extends object
+    ? {
+          [K in keyof T & string]: UnwrapMaybe<T[K]> extends readonly any[] // ignore arrays. Add specific handling if needed
+              ? never
+              : UnwrapMaybe<T[K]> extends object
+              ? NestedKeyOf<UnwrapMaybe<T[K]>, `${Prefix}${K}.`, PrevDepth[Depth]>
+              : `${Prefix}${K}`;
+      }[keyof T & string]
+    : never;
