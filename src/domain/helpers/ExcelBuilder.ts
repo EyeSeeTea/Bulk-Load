@@ -12,6 +12,7 @@ import {
     DataSource,
     DataSourceValue,
     DownloadCustomizationOptions,
+    isDataProcessingRuleCoalesce,
     RowDataSource,
     setDataEntrySheet,
     setSheet,
@@ -33,6 +34,7 @@ import { BuilderMetadata, emptyBuilderMetadata, InstanceRepository } from "../re
 import Settings from "../../webapp/logic/settings";
 import { ModulesRepositories } from "../repositories/ModulesRepositories";
 import { Maybe } from "../../types/utils";
+import { DataProcessingService, DataToProcess } from "./DataProcessingService";
 
 const dateFormatPattern = "yyyy-MM-dd";
 
@@ -182,34 +184,51 @@ export class ExcelBuilder {
                     format(new Date(enrollment.occurredAt), dateFormatPattern)
                 );
 
-            for (const cell of cells) {
-                const attributeIdCell = await this.excelRepository.findRelativeCell(
-                    template.id,
-                    dataSource.attributeId,
-                    cell
-                );
+            const allAttributeDetails = await Promise.all(
+                cells.map(async cell => {
+                    const attributeIdCell = await this.excelRepository.findRelativeCell(
+                        template.id,
+                        dataSource.attributeId,
+                        cell
+                    );
 
-                const attributeId = attributeIdCell
-                    ? removeCharacters(
-                          await this.excelRepository.readCell(template.id, attributeIdCell, {
-                              formula: true,
-                          })
-                      )
-                    : undefined;
+                    const attributeId = attributeIdCell
+                        ? removeCharacters(
+                              await this.excelRepository.readCell(template.id, attributeIdCell, {
+                                  formula: true,
+                              })
+                          )
+                        : undefined;
+                    if (!attributeId || !cell) return undefined;
 
-                const attributeValue = tei.attributeValues.find(av => av.attribute.id === attributeId);
+                    const attributeValue = tei.attributeValues.find(av => av.attribute.id === attributeId);
+                    const isMultiText = attributeValue?.attribute.valueType === "MULTI_TEXT";
+                    const value =
+                        isMultiText && dataSource.multiTextDelimiter
+                            ? this.getMultiTextValue(attributeValue, dataSource.multiTextDelimiter)
+                            : this.getValueFromAttribute(attributeValue);
 
-                const isMultiText = attributeValue?.attribute.valueType === "MULTI_TEXT";
+                    return value
+                        ? {
+                              id: attributeId,
+                              cell,
+                              value,
+                          }
+                        : undefined;
+                })
+            );
 
-                const value =
-                    isMultiText && dataSource.multiTextDelimiter
-                        ? this.getMultiTextValue(attributeValue, dataSource.multiTextDelimiter)
-                        : this.getValueFromAttribute(attributeValue);
+            const coalesceDataProcessRules =
+                dataSource.attributeDataProcessingRules?.filter(isDataProcessingRuleCoalesce);
 
-                if (value) {
-                    this.excelRepository.writeCell(template.id, cell, value);
-                }
-            }
+            const attributeDetails = DataProcessingService.coalesceValues({
+                dataDetails: _.compact(allAttributeDetails),
+                dataProcessingRules: coalesceDataProcessRules,
+            });
+
+            await Promise.all(
+                attributeDetails.map(({ cell, value }) => this.excelRepository.writeCell(template.id, cell, value))
+            );
 
             rowStart += 1;
         }
@@ -337,14 +356,39 @@ export class ExcelBuilder {
             const dateCell = await this.excelRepository.findRelativeCell(template.id, dataSource.date, cells[0]);
             if (dateCell) await this.excelRepository.writeCell(template.id, dateCell, period);
 
-            for (const [dataElementId, cell] of _.zip(dataElementIds, cells)) {
-                if (!dataElementId || !cell) continue;
-                const { value } = dataValues.find(dv => dv.dataElement === dataElementId) ?? {};
-                if (value) {
-                    const optionId = metadata.options[value.toString()]?.id;
-                    await this.excelRepository.writeCell(template.id, cell, optionId ? `_${optionId}` : value);
-                }
-            }
+            const dataElementsToProcess = _.compact(
+                _.zip(dataElementIds, cells).map(([dataElementId, cell]): Maybe<DataToProcess> => {
+                    if (!dataElementId || !cell) return undefined;
+                    const { value } = dataValues.find(dv => dv.dataElement === dataElementId) ?? {};
+                    if (value) {
+                        const optionId = metadata.options[value.toString()]?.id;
+                        return {
+                            id: dataElementId,
+                            cell,
+                            value,
+                            optionId,
+                        };
+                    } else {
+                        return undefined;
+                    }
+                })
+            );
+
+            const coalesceDataProcessRules =
+                dataSource.dataElementProcessingRules?.filter(isDataProcessingRuleCoalesce);
+
+            const dataElementDetails = DataProcessingService.coalesceValues({
+                dataDetails: dataElementsToProcess,
+                dataProcessingRules: coalesceDataProcessRules,
+            });
+
+            //TODO extract "_<VALUE" as a helper since it's used multiple times in multiple files
+            await Promise.all(
+                dataElementDetails.map(({ cell, optionId, value }) =>
+                    this.excelRepository.writeCell(template.id, cell, optionId ? `_${optionId}` : value)
+                )
+            );
+
             rowStart += 1;
         }
 
@@ -438,8 +482,7 @@ export class ExcelBuilder {
 
     private async fillRows(template: Template, dataSource: RowDataSource, payload: TemplateDataPackage) {
         let { rowStart } = dataSource.range;
-
-        for (const { id, orgUnit, period, attribute, dataValues, coordinate } of payload.dataEntries) {
+        for (const { id, orgUnit, period, attribute, dataValues, coordinate, geometry } of payload.dataEntries) {
             const cells = await this.excelRepository.getCellsInRange(template.id, {
                 ...dataSource.range,
                 rowStart,
@@ -464,14 +507,28 @@ export class ExcelBuilder {
                 await this.excelRepository.writeCell(template.id, attributeCell, attribute);
             }
 
-            const longitudeCell = await this.findRelative(template, dataSource.coordinates?.longitude, cells[0]);
-            if (longitudeCell && coordinate) {
-                await this.excelRepository.writeCell(template.id, longitudeCell, coordinate.longitude);
-            }
+            if (payload.type === "programs" && geometry?.type === "Polygon") {
+                const geometryCell = await this.findRelative(template, dataSource.geometry, cells[0]);
+                if (geometryCell && geometry.coordinates?.[0]) {
+                    const coordinatesPairs = geometry.coordinates[0] || [];
+                    const coordinatesList = coordinatesPairs.map(([longitude, latitude]) => ({ latitude, longitude }));
 
-            const latitudeCell = await this.findRelative(template, dataSource.coordinates?.latitude, cells[0]);
-            if (latitudeCell && coordinate) {
-                await this.excelRepository.writeCell(template.id, latitudeCell, coordinate.latitude);
+                    await this.excelRepository.writeCell(
+                        template.id,
+                        geometryCell,
+                        getGeometryAsString({ type: "polygon", coordinatesList })
+                    );
+                }
+            } else {
+                const longitudeCell = await this.findRelative(template, dataSource.coordinates?.longitude, cells[0]);
+                if (longitudeCell && coordinate) {
+                    await this.excelRepository.writeCell(template.id, longitudeCell, coordinate.longitude);
+                }
+
+                const latitudeCell = await this.findRelative(template, dataSource.coordinates?.latitude, cells[0]);
+                if (latitudeCell && coordinate) {
+                    await this.excelRepository.writeCell(template.id, latitudeCell, coordinate.latitude);
+                }
             }
 
             for (const cell of cells) {

@@ -5,8 +5,8 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2025-09-25T16:09:13.724Z\n"
-"PO-Revision-Date: 2025-09-25T16:09:13.724Z\n"
+"POT-Creation-Date: 2025-09-25T16:22:01.598Z\n"
+"PO-Revision-Date: 2025-09-25T16:22:01.598Z\n"
 
 msgid "Events - Create/update"
 msgstr ""
@@ -888,6 +888,12 @@ msgstr ""
 msgid "Synchronization Results"
 msgstr ""
 
+msgid "Select organisation unit to populate data"
+msgstr ""
+
+msgid "Select available organisation units to include in the template"
+msgstr ""
+
 msgid "Template"
 msgstr ""
 
@@ -909,25 +915,10 @@ msgstr ""
 msgid "Organisation units"
 msgstr ""
 
-msgid "Select organisation unit to populate data"
-msgstr ""
-
-msgid "Select available organisation units to include in the template"
-msgstr ""
-
 msgid "User does not have any capture organisations units"
 msgstr ""
 
-msgid "Advanced template properties"
-msgstr ""
-
-msgid "Language"
-msgstr ""
-
-msgid "Split data entry tabs by section"
-msgstr ""
-
-msgid "Theme"
+msgid "Populate"
 msgstr ""
 
 msgid "Populate template with data"
@@ -949,6 +940,23 @@ msgid "Only selected organisation units"
 msgstr ""
 
 msgid "Include relationships"
+msgstr ""
+
+msgid ""
+"Creates a tab for each available TEI relationship type, showing their "
+"contents. Click here to learn more about the relationship model."
+msgstr ""
+
+msgid "Advanced template properties"
+msgstr ""
+
+msgid "Language"
+msgstr ""
+
+msgid "Theme"
+msgstr ""
+
+msgid "Split data entry tabs by section"
 msgstr ""
 
 msgid "Use metadata codes (organisation units, data elements and options)"
@@ -1121,6 +1129,11 @@ msgid "True only"
 msgstr ""
 
 msgid "Metadata version"
+msgstr ""
+
+msgid ""
+"Polygon in map\n"
+"([[LON1, LAT1], [LON2, LAT2], ...])"
 msgstr ""
 
 msgid "Latitude"

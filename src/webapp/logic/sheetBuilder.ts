@@ -24,7 +24,7 @@ const teiSheetName = "TEI Instances";
 const maxRow = 1048576;
 
 // Excel shows all empty rows, limit the maximum number of TEIs
-const maxTeiRows = 1024;
+const defaultMaxTeiRows = 1024;
 
 const dateFormats: Record<string, string> = {
     DATE: "YYYY-MM-DD",
@@ -54,6 +54,7 @@ export interface SheetBuilderParams {
     splitDataEntryTabsBySection: boolean;
     useCodesForMetadata: boolean;
     orgUnitShortName: boolean;
+    maxTeiRows?: number;
 }
 
 export class SheetBuilder {
@@ -69,6 +70,10 @@ export class SheetBuilder {
         this.metadataService = new MetadataService(builder.elementMetadata, (item: TranslatableItem) =>
             this.translate(item)
         );
+    }
+
+    get maxTeiRows(): number {
+        return Math.max((this.builder.maxTeiRows ?? 0) + this.instancesSheetValuesRow, defaultMaxTeiRows);
     }
 
     public async generate(): Promise<Workbook> {
@@ -264,7 +269,7 @@ export class SheetBuilder {
 
                 const colName = Excel.getExcelAlpha(columnId);
 
-                for (let row = itemRow + 1; row <= maxTeiRows; row++) {
+                for (let row = itemRow + 1; row <= this.maxTeiRows; row++) {
                     const bRef = `B${row}`;
                     const headerRef = `${colName}${itemRow}`;
 
@@ -298,9 +303,9 @@ export class SheetBuilder {
                 this.createColumn(sheet, itemRow, columnId, `_${dataElement.id}`);
 
                 const colName = Excel.getExcelAlpha(columnId);
-                const lookupFormula = `IFERROR(INDEX('${programStageSheet}'!$B$2:$ZZ$${maxTeiRows},MATCH(INDIRECT("B" & ROW()),'${programStageSheet}'!$B$2:$B$${maxTeiRows},0),MATCH(${colName}$${itemRow},'${programStageSheet}'!$B$2:$ZZ$2,0)),"")`;
+                const lookupFormula = `IFERROR(INDEX('${programStageSheet}'!$B$2:$ZZ$${this.maxTeiRows},MATCH(INDIRECT("B" & ROW()),'${programStageSheet}'!$B$2:$B$${this.maxTeiRows},0),MATCH(${colName}$${itemRow},'${programStageSheet}'!$B$2:$ZZ$2,0)),"")`;
 
-                sheet.cell(itemRow + 1, columnId, maxTeiRows, columnId).formula(lookupFormula);
+                sheet.cell(itemRow + 1, columnId, this.maxTeiRows, columnId).formula(lookupFormula);
 
                 sheet.addDataValidation({
                     type: "textLength",
@@ -384,8 +389,8 @@ export class SheetBuilder {
         const { sheetName, bRef, headerRef } = options;
         return `IFERROR(
             INDEX(
-                '${sheetName}'!$A$5:$ZZ$${maxTeiRows},
-                MATCH(${bRef},'${sheetName}'!$A$5:$A$${maxTeiRows},0),
+                '${sheetName}'!$A$5:$ZZ$${this.maxTeiRows},
+                MATCH(${bRef},'${sheetName}'!$A$5:$A$${this.maxTeiRows},0),
                 MATCH(${headerRef},'${sheetName}'!$A$5:$ZZ$5,0)
             ), 
             "")
@@ -884,8 +889,37 @@ export class SheetBuilder {
         );
 
         if (element.type === "programs") {
-            this.createColumn(dataEntrySheet, itemRow, columnId++, i18n.t("Latitude", { lng: this.builder.language }));
-            this.createColumn(dataEntrySheet, itemRow, columnId++, i18n.t("Longitude", { lng: this.builder.language }));
+            const { element: program } = this.builder;
+
+            //NOTE: This prop is currently only being used IF the program is an event program
+            //      This assumes event programs always have exactly one programStage,
+            //      which is why we retrieve featureType from the first one.
+            const featureType = _(program.programStages)
+                .map(ps => ps.featureType)
+                .first();
+
+            if (featureType === "POLYGON") {
+                this.createColumn(
+                    dataEntrySheet,
+                    itemRow,
+                    columnId++,
+                    i18n.t("Polygon in map\n([[LON1, LAT1], [LON2, LAT2], ...])", { lng: this.builder.language })
+                );
+                dataEntrySheet.column(columnId++).hide();
+            } else {
+                this.createColumn(
+                    dataEntrySheet,
+                    itemRow,
+                    columnId++,
+                    i18n.t("Latitude", { lng: this.builder.language })
+                );
+                this.createColumn(
+                    dataEntrySheet,
+                    itemRow,
+                    columnId++,
+                    i18n.t("Longitude", { lng: this.builder.language })
+                );
+            }
         } else if (element.type === "dataSets") {
             this.createColumn(
                 dataEntrySheet,
@@ -1286,7 +1320,7 @@ export class SheetBuilder {
     }
 
     private getTeiIdValidation() {
-        return `='${teiSheetName}'!$A$${this.instancesSheetValuesRow}:$A$${maxTeiRows}`;
+        return `='${teiSheetName}'!$A$${this.instancesSheetValuesRow}:$A$${this.maxTeiRows}`;
     }
 
     private createFeatureTypeColumn(options: { program: any; sheet: Sheet; itemRow: number; columnId: number }) {
