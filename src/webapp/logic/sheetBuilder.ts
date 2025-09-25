@@ -889,8 +889,37 @@ export class SheetBuilder {
         );
 
         if (element.type === "programs") {
-            this.createColumn(dataEntrySheet, itemRow, columnId++, i18n.t("Latitude", { lng: this.builder.language }));
-            this.createColumn(dataEntrySheet, itemRow, columnId++, i18n.t("Longitude", { lng: this.builder.language }));
+            const { element: program } = this.builder;
+
+            //NOTE: This prop is currently only being used IF the program is an event program
+            //      This assumes event programs always have exactly one programStage,
+            //      which is why we retrieve featureType from the first one.
+            const featureType = _(program.programStages)
+                .map(ps => ps.featureType)
+                .first();
+
+            if (featureType === "POLYGON") {
+                this.createColumn(
+                    dataEntrySheet,
+                    itemRow,
+                    columnId++,
+                    i18n.t("Polygon in map\n([[LON1, LAT1], [LON2, LAT2], ...])", { lng: this.builder.language })
+                );
+                dataEntrySheet.column(columnId++).hide();
+            } else {
+                this.createColumn(
+                    dataEntrySheet,
+                    itemRow,
+                    columnId++,
+                    i18n.t("Latitude", { lng: this.builder.language })
+                );
+                this.createColumn(
+                    dataEntrySheet,
+                    itemRow,
+                    columnId++,
+                    i18n.t("Longitude", { lng: this.builder.language })
+                );
+            }
         } else if (element.type === "dataSets") {
             this.createColumn(
                 dataEntrySheet,

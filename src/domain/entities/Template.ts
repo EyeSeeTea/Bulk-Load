@@ -221,6 +221,7 @@ export interface RowDataSource extends BaseDataSource {
         latitude: ColumnRef | CellRef | ValueRef;
         longitude: ColumnRef | CellRef | ValueRef;
     };
+    geometry?: ColumnRef | CellRef | ValueRef;
 }
 
 export interface TeiRowDataSource {
@@ -303,6 +304,7 @@ export function setDataEntrySheet(dataSource: RowDataSource, sheets: SheetE[]): 
         get(dataSource.eventId),
         get(dataSource.coordinates?.latitude),
         get(dataSource.coordinates?.longitude),
+        get(dataSource.geometry),
     ]);
 
     const sheetsFromDataSource = _.uniq(sheetsFromDataSourceAll);
@@ -343,6 +345,7 @@ export function setDataEntrySheet(dataSource: RowDataSource, sheets: SheetE[]): 
                       longitude: set(dataSource.coordinates.longitude),
                   }
                 : undefined,
+            geometry: dataSource.geometry,
         };
     });
 }
@@ -426,6 +429,7 @@ export type TemplateDataPackageData = {
     }>;
     trackedEntityInstance: Maybe<string>;
     programStage: Maybe<string>;
+    geometry: Maybe<Geometry>;
     dataValues: TemplateDataValue[];
 };
 
@@ -485,6 +489,7 @@ export function templateFromDataPackage(dataPackage: DataPackage): TemplateDataP
                     period: entry.period,
                     attribute: entry.attribute,
                     coordinate: undefined,
+                    geometry: undefined,
                     trackedEntityInstance: undefined,
                     programStage: undefined,
                     dataValues: entry.dataValues.map((dv: DataSetPackageDataValue) => ({
@@ -526,7 +531,7 @@ function mapToProgramData(entry: TemplateDataPackageData): ProgramPackageData {
         trackedEntityInstance: entry.trackedEntityInstance,
         programStage: entry.programStage,
         coordinate: entry.coordinate,
-        geometry: coordinateToGeometry(entry),
+        geometry: entry.geometry,
         dataValues: entry.dataValues.map(dv => ({
             dataElement: dv.dataElement,
             value: dv.value,
@@ -545,7 +550,8 @@ function mapFromProgramData(entry: ProgramPackageData): TemplateDataPackageData 
         orgUnit: entry.orgUnit,
         period: entry.period,
         attribute: entry.attribute,
-        coordinate: entry.coordinate ?? geometryToCoordinate(entry.geometry ?? undefined),
+        coordinate: entry.coordinate,
+        geometry: entry.geometry,
         trackedEntityInstance: entry.trackedEntityInstance,
         programStage: entry.programStage,
         dataValues: entry.dataValues.map(dv => ({
@@ -595,4 +601,3 @@ function geometryToCoordinate(geometry?: Geometry): Maybe<TemplateDataPackageDat
 
 export function isDataProcessingRuleCoalesce(rule: DataProcessingRule): rule is DataProcessingRuleCoalesce {
     return rule.type === "coalesce";
-}

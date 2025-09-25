@@ -1051,6 +1051,11 @@ msgstr "Verdadeiro apenas"
 msgid "Metadata version"
 msgstr ""
 
+msgid ""
+"Polygon in map\n"
+"([[LON1, LAT1], [LON2, LAT2], ...])"
+msgstr ""
+
 msgid "Latitude"
 msgstr "Latitude"
 
