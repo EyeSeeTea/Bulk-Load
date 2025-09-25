@@ -601,3 +601,4 @@ function geometryToCoordinate(geometry?: Geometry): Maybe<TemplateDataPackageDat
 
 export function isDataProcessingRuleCoalesce(rule: DataProcessingRule): rule is DataProcessingRuleCoalesce {
     return rule.type === "coalesce";
+}
