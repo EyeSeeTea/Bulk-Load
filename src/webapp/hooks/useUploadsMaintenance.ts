@@ -17,18 +17,21 @@ export function useUploadsMaintenance() {
         setConfirmationVisible(false);
     }, []);
 
-    const executeCleanup = useCallback(async () => {
-        setIsLoading(true);
-        try {
-            await compositionRoot.history.cleanupDocuments();
-            snackbar.success(i18n.t("File cleanup completed successfully"));
-            setConfirmationVisible(false);
-        } catch (error: any) {
-            snackbar.error(error.message || i18n.t("An error occurred during file cleanup"));
-        } finally {
-            setIsLoading(false);
-        }
-    }, [compositionRoot, snackbar]);
+    const executeCleanup = useCallback(
+        async (cutoffDate: Date) => {
+            setIsLoading(true);
+            try {
+                await compositionRoot.history.cleanupDocuments(cutoffDate);
+                snackbar.success(i18n.t("File cleanup completed successfully"));
+                setConfirmationVisible(false);
+            } catch (error: any) {
+                snackbar.error(error.message || i18n.t("An error occurred during file cleanup"));
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [compositionRoot, snackbar]
+    );
 
     return {
         isConfirmationVisible,

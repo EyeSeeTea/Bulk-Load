@@ -10,7 +10,6 @@ import {
     makeStyles,
     TextField,
 } from "@material-ui/core";
-import { ConfirmationDialog } from "@eyeseetea/d2-ui-components";
 import React, { ChangeEvent, useCallback, useMemo, useState } from "react";
 import { DuplicateToleranceUnit, Model, OrgUnitSelectionSetting } from "../../../domain/entities/AppSettings";
 import i18n from "../../../utils/i18n";
@@ -22,6 +21,7 @@ import { DataFormTemplateAssignDialog } from "./DataFormTemplateAssignDialog";
 import { PermissionsDialog } from "./PermissionsDialog";
 import { ProgramStageFilterDialog } from "./ProgramStageFilterDialog";
 import { TemplatesDialog } from "./TemplatesDialog";
+import { ConfirmationDialogWithPeriodSelection } from "./ConfirmationDialogWithPeriodSelection";
 import { RouteComponentProps } from "../../pages/Router";
 import { useUploadsMaintenance } from "../../hooks/useUploadsMaintenance";
 
@@ -423,17 +423,18 @@ export default function SettingsFields(props: SettingsFieldsProps & CustomTempla
             </ListItem>
 
             {uploadsMaintenance.isConfirmationVisible && (
-                <ConfirmationDialog
+                <ConfirmationDialogWithPeriodSelection
                     isOpen={true}
                     title={i18n.t("Confirm File Cleanup")}
                     description={i18n.t(
-                        "Are you sure you want to remove all files older than 1 year? This action cannot be undone. History entries will be kept but the files will be inaccessible."
+                        "Are you sure you want to remove all files older than the selected period? This action cannot be undone. History entries will be kept but the files will be inaccessible."
                     )}
                     onSave={uploadsMaintenance.executeCleanup}
                     onCancel={uploadsMaintenance.hideConfirmation}
                     saveText={i18n.t("Clean up files")}
                     cancelText={i18n.t("Cancel")}
                     disableSave={uploadsMaintenance.isLoading}
+                    periodInputLabel={i18n.t("Remove files older than")}
                 />
             )}
         </React.Fragment>
