@@ -67,7 +67,7 @@ export function getCompositionRoot({ appConfig, dhisInstance, mockApi, importSou
     const templateManager: TemplateRepository = new TemplateWebRepository(storage);
     const excelReader: ExcelRepository = new ExcelPopulateRepository();
     const migrations: MigrationsRepository = new MigrationsAppRepository(storage, dhisInstance);
-    const usersRepository = new D2UsersRepository(dhisInstance);
+    const usersRepository = new D2UsersRepository(dhisInstance, mockApi);
     const modulesRepository: ModulesRepositories = {
         nrc: new NRCModuleMetadataD2Repository(api),
         msf: new MSFModuleMetadataD2Repository(api),
