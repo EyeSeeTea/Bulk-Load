@@ -514,10 +514,11 @@ export class SnakebiteAnnualReport implements CustomTemplateWithUrl {
         const { dataPackage } = options;
         const dataSet = await this.getDataForms(instanceRepository);
         const categoryOptionCombosMapping = await this.getCategoryOptionCombosMapping(dataSet, repositories);
+        const antivenomData = await this.readDataStore(instanceRepository);
+        const { antivenomEntries, antivenomProducts: antivenomProductsInitial } = antivenomData;
+        let antivenomProducts = antivenomProductsInitial;
 
         const dataEntries = await promiseMap(dataPackage.dataEntries, async ({ dataValues, ...dataPackage }) => {
-            const { antivenomEntries, antivenomProducts } = await this.readDataStore(instanceRepository);
-
             const antivenomDataElements = _.flatMap(antivenomEntries.groups, ({ dataElements }) => dataElements);
 
             const antivenomDataElementIds = antivenomDataElements.map(({ id }) => id);
@@ -678,14 +679,14 @@ export class SnakebiteAnnualReport implements CustomTemplateWithUrl {
                 .value();
 
             try {
-                const products = AntivenomProductsModel.decode([...antivenomProducts, ...newAntivenomProducts])
+                const newProducts = AntivenomProductsModel.decode(newAntivenomProducts)
                     .ifLeft(error => {
                         console.error(error);
                         throw new Error(error);
                     })
                     .orDefault([]);
 
-                await this.saveAntivenomProducts(instanceRepository, products);
+                antivenomProducts = _(antivenomProducts).concat(newProducts).uniqWith(_.isEqual).value();
             } catch (error) {
                 console.error(error);
                 throw new Error(
@@ -698,6 +699,8 @@ export class SnakebiteAnnualReport implements CustomTemplateWithUrl {
                 dataValues: [...nationalDataValues, ...cleanExistingProducts, ...cleanNewProducts],
             };
         });
+
+        await this.saveAntivenomProducts(instanceRepository, antivenomProducts);
 
         return { type: "dataSets", dataEntries };
     }
