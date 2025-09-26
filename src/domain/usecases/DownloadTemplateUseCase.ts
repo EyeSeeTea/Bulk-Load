@@ -95,7 +95,7 @@ export class DownloadTemplateUseCase implements UseCase {
         const element = await getElement(api, type, id);
         const name = element.displayName ?? element.name;
 
-        async function getGenerateFile() {
+        async function getGenerateFile(maxTeiRows?: number) {
             const result = await getElementMetadata({
                 api,
                 element,
@@ -122,26 +122,11 @@ export class DownloadTemplateUseCase implements UseCase {
                 splitDataEntryTabsBySection,
                 useCodesForMetadata,
                 orgUnitShortName: useShortNameInOrgUnit,
+                maxTeiRows,
             });
 
             const workbook = await sheetBuilder.generate();
             return workbook.writeToBuffer();
-        }
-
-        if (template.type === "custom") {
-            if (template.generateMetadata) {
-                const file = await getGenerateFile();
-                await this.excelRepository.loadTemplate({ type: "file", file: file });
-            } else {
-                await this.excelRepository.loadTemplate({
-                    type: "file-base64",
-                    contents: template.file.contents,
-                    templateId: template.id,
-                });
-            }
-        } else {
-            const file = await getGenerateFile();
-            await this.excelRepository.loadTemplate({ type: "file", file });
         }
 
         const enablePopulate = populate && !!populateStartDate && !!populateEndDate;
@@ -169,6 +154,27 @@ export class DownloadTemplateUseCase implements UseCase {
                     teiFilter: teiFilter,
                 });
             }
+        }
+
+        const maxTeiRows =
+            dataPackage?.type === "trackerPrograms" && enablePopulate
+                ? dataPackage.trackedEntityInstances.length
+                : undefined;
+
+        if (template.type === "custom") {
+            if (template.generateMetadata) {
+                const file = await getGenerateFile(maxTeiRows);
+                await this.excelRepository.loadTemplate({ type: "file", file: file });
+            } else {
+                await this.excelRepository.loadTemplate({
+                    type: "file-base64",
+                    contents: template.file.contents,
+                    templateId: template.id,
+                });
+            }
+        } else {
+            const file = await getGenerateFile(maxTeiRows);
+            await this.excelRepository.loadTemplate({ type: "file", file });
         }
 
         const builder = new ExcelBuilder(
@@ -242,7 +248,7 @@ async function getElement(api: D2Api, type: DataFormType, id: string) {
         "formType",
         "sections[id,sortOrder,dataElements[id]]",
         "periodType",
-        "programStages[id,access]",
+        "programStages[id,access,featureType]",
         "programType",
         "enrollmentDateLabel",
         "incidentDateLabel",

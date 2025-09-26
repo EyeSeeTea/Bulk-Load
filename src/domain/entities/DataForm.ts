@@ -41,6 +41,7 @@ export interface DataForm {
     trackedEntityType?: TrackedEntityType;
     readAccess: boolean;
     writeAccess: boolean;
+    featureType?: DataFormFeatureType;
 }
 
 export interface TrackedEntityAttributeType extends NamedRef {
@@ -50,10 +51,10 @@ export interface TrackedEntityAttributeType extends NamedRef {
 
 export interface TrackedEntityType {
     id: Id;
-    featureType: TrackedEntityTypeFeatureType;
+    featureType: DataFormFeatureType;
 }
 
-export type TrackedEntityTypeFeatureType = "none" | "point" | "polygon";
+export type DataFormFeatureType = "none" | "point" | "polygon";
 
 export interface DataElement {
     id: Id;

@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2025-09-10T08:24:13.953Z\n"
+"POT-Creation-Date: 2025-09-18T05:58:00.550Z\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -773,6 +773,12 @@ msgstr "Mensajes"
 msgid "JSON Response"
 msgstr "Respuesta JSON"
 
+msgid "Select organisation unit to populate data"
+msgstr "Seleccione la unidad de organización para rellenar los datos"
+
+msgid "Select available organisation units to include in the template"
+msgstr "Seleccione las unidades organizativas para añadir a la plantilla"
+
 msgid "Template"
 msgstr "Plantilla"
 
@@ -794,26 +800,12 @@ msgstr "Periodo final"
 msgid "Organisation units"
 msgstr "Unidades Organizativas"
 
-msgid "Select organisation unit to populate data"
-msgstr "Seleccione la unidad de organización para rellenar los datos"
-
-msgid "Select available organisation units to include in the template"
-msgstr "Seleccione las unidades organizativas para añadir a la plantilla"
-
 msgid "User does not have any capture organisations units"
 msgstr "El usuario no tiene unidades organizativas asociadas"
 
-msgid "Advanced template properties"
-msgstr "Propiedades avanzadas de la plantilla"
-
-msgid "Language"
-msgstr "Idioma"
-
-msgid "Split data entry tabs by section"
-msgstr ""
-
-msgid "Theme"
-msgstr "Tema"
+#, fuzzy
+msgid "Populate"
+msgstr "Plantilla"
 
 msgid "Populate template with data"
 msgstr "Rellenar la plantilla con datos"
@@ -834,6 +826,23 @@ msgid "Only selected organisation units"
 msgstr ""
 
 msgid "Include relationships"
+msgstr ""
+
+msgid ""
+"Creates a tab for each available TEI relationship type, showing their "
+"contents. Click here to learn more about the relationship model."
+msgstr ""
+
+msgid "Advanced template properties"
+msgstr "Propiedades avanzadas de la plantilla"
+
+msgid "Language"
+msgstr "Idioma"
+
+msgid "Theme"
+msgstr "Tema"
+
+msgid "Split data entry tabs by section"
 msgstr ""
 
 msgid "Use metadata codes (organisation units, data elements and options)"
@@ -987,6 +996,11 @@ msgstr "Sólo es cierto"
 msgid "Metadata version"
 msgstr ""
 
+msgid ""
+"Polygon in map\n"
+"([[LON1, LAT1], [LON2, LAT2], ...])"
+msgstr ""
+
 msgid "Latitude"
 msgstr "Latitud"
 
@@ -1041,9 +1055,9 @@ msgid ""
 "Samaritan’s Purse, Medecins Sans Frontières (MSF), the the Norwegian Refugee "
 "Council (NRC) and the Clinton Health Access Initiative (CHAI) to support "
 "countries in strengthening the collection and use of health data by using "
-"DHIS2. The application has been developed by [EyeSeeTea SL](http://"
-"eyeseetea.com). Source code, documentation and release notes can be found at "
-"the [EyeSeetea GitHub Project Page](https://eyeseetea.github.io/Bulk-Load-"
+"DHIS2. The application has been developed by [EyeSeeTea SL](http://eyeseetea."
+"com). Source code, documentation and release notes can be found at the "
+"[EyeSeetea GitHub Project Page](https://eyeseetea.github.io/Bulk-Load-"
 "blessed/)."
 msgstr ""
 
