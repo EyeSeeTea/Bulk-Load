@@ -576,39 +576,6 @@ function mapFromProgramData(entry: ProgramPackageData): TemplateDataPackageData 
     };
 }
 
-function coordinateToGeometry(entry: TemplateDataPackageData): Maybe<Geometry> {
-    const { coordinate } = entry;
-    if (!coordinate) return undefined;
-
-    const longitude = parseInt(coordinate.longitude);
-    const latitude = parseInt(coordinate.latitude);
-
-    if (longitude === undefined || latitude === undefined) return undefined;
-
-    return {
-        type: "Point",
-        coordinates: [longitude, latitude],
-    };
-}
-
-function geometryToCoordinate(geometry?: Geometry): Maybe<TemplateDataPackageData["coordinate"]> {
-    //currenly, coordinate prop is only being used for point
-    switch (geometry?.type) {
-        case "Point": {
-            if (!geometry || !Array.isArray(geometry.coordinates) || geometry.type !== "Point") return undefined;
-
-            const [longitude, latitude] = geometry.coordinates;
-
-            return {
-                latitude: latitude.toString(),
-                longitude: longitude.toString(),
-            };
-        }
-        case "Polygon":
-        default:
-            return undefined;
-    }
-}
-
 export function isDataProcessingRuleCoalesce(rule: DataProcessingRule): rule is DataProcessingRuleCoalesce {
     return rule.type === "coalesce";
+}
