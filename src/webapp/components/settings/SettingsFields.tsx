@@ -21,7 +21,10 @@ import { DataFormTemplateAssignDialog } from "./DataFormTemplateAssignDialog";
 import { PermissionsDialog } from "./PermissionsDialog";
 import { ProgramStageFilterDialog } from "./ProgramStageFilterDialog";
 import { TemplatesDialog } from "./TemplatesDialog";
+import { ConfirmationDialogWithPeriodSelection } from "./ConfirmationDialogWithPeriodSelection";
 import { RouteComponentProps } from "../../pages/Router";
+import { useUploadsMaintenance } from "../../hooks/useUploadsMaintenance";
+import { useHistoryMaintenance } from "../../hooks/useHistoryMaintenance";
 
 type CustomTemplatesProps = Pick<RouteComponentProps, "customTemplates" | "setCustomTemplates">;
 
@@ -33,6 +36,8 @@ export interface SettingsFieldsProps {
 export default function SettingsFields(props: SettingsFieldsProps & CustomTemplatesProps) {
     const { settings, onChange, customTemplates, setCustomTemplates } = props;
     const classes = useStyles();
+    const uploadsMaintenance = useUploadsMaintenance();
+    const historyMaintenance = useHistoryMaintenance();
 
     const [permissionsType, setPermissionsType] = useState<PermissionSetting | null>(null);
     const [isExclusionDialogVisible, showExclusionDialog] = useState<boolean>(false);
@@ -405,6 +410,65 @@ export default function SettingsFields(props: SettingsFieldsProps & CustomTempla
                     />
                 </ListItem>
             </FormGroup>
+
+            <h3 className={classes.title}>{i18n.t("Maintenance")}</h3>
+            <ListItem button onClick={uploadsMaintenance.showConfirmation} disabled={uploadsMaintenance.isLoading}>
+                <ListItemIcon>
+                    <Icon>description</Icon>
+                </ListItemIcon>
+                <ListItemText
+                    primary={uploadsMaintenance.isLoading ? i18n.t("Cleaning up files...") : i18n.t("File cleanup")}
+                    secondary={i18n.t(
+                        "Remove files older than the selected period. History entries will be kept but the files will be unaccessible"
+                    )}
+                />
+            </ListItem>
+
+            <ListItem button onClick={historyMaintenance.showConfirmation} disabled={historyMaintenance.isLoading}>
+                <ListItemIcon>
+                    <Icon>history</Icon>
+                </ListItemIcon>
+                <ListItemText
+                    primary={
+                        historyMaintenance.isLoading ? i18n.t("Cleaning up history...") : i18n.t("History cleanup")
+                    }
+                    secondary={i18n.t(
+                        "Remove history entries and their documents older than the selected period. This action cannot be undone"
+                    )}
+                />
+            </ListItem>
+
+            {uploadsMaintenance.isConfirmationVisible && (
+                <ConfirmationDialogWithPeriodSelection
+                    isOpen={true}
+                    title={i18n.t("Confirm File Cleanup")}
+                    description={i18n.t(
+                        "Are you sure you want to remove all files older than the selected period? This action cannot be undone. History entries will be kept but the files will be inaccessible."
+                    )}
+                    onSave={uploadsMaintenance.executeCleanup}
+                    onCancel={uploadsMaintenance.hideConfirmation}
+                    saveText={i18n.t("Clean up files")}
+                    cancelText={i18n.t("Cancel")}
+                    disableSave={uploadsMaintenance.isLoading}
+                    periodInputLabel={i18n.t("Remove files older than")}
+                />
+            )}
+
+            {historyMaintenance.isConfirmationVisible && (
+                <ConfirmationDialogWithPeriodSelection
+                    isOpen={true}
+                    title={i18n.t("Confirm History Cleanup")}
+                    description={i18n.t(
+                        "Are you sure you want to remove all history entries and their documents older than the selected period? This action cannot be undone."
+                    )}
+                    onSave={historyMaintenance.executeCleanup}
+                    onCancel={historyMaintenance.hideConfirmation}
+                    saveText={i18n.t("Clean up history")}
+                    cancelText={i18n.t("Cancel")}
+                    disableSave={historyMaintenance.isLoading}
+                    periodInputLabel={i18n.t("Remove history entries older than")}
+                />
+            )}
         </React.Fragment>
     );
 }

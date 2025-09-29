@@ -26,8 +26,11 @@ import { TemplateRepository } from "../repositories/TemplateRepository";
 import { FileRepository } from "../repositories/FileRepository";
 import { FileResource } from "../entities/FileResource";
 import { ImportSourceRepository } from "../repositories/ImportSourceRepository";
+import { HistoryRepository } from "../repositories/HistoryRepository";
 import { AttributeValue, TrackedEntityInstance } from "../entities/TrackedEntityInstance";
 import { Maybe } from "../../types/utils";
+import { HistoryEntry } from "../entities/HistoryEntry";
+import { DocumentRepository } from "../repositories/DocumentRepository";
 
 export type ImportTemplateError =
     | {
@@ -80,21 +83,69 @@ export class ImportTemplateUseCase implements UseCase {
         private templateRepository: TemplateRepository,
         private excelRepository: ExcelRepository,
         private fileRepository: FileRepository,
-        private importSourceRepository: ImportSourceRepository
+        private importSourceRepository: ImportSourceRepository,
+        private historyRepository: HistoryRepository,
+        private documentRepository: DocumentRepository
     ) {}
 
-    public async execute({
+    /**
+     * Imports a template file into DHIS2
+     * Uploads the file as a upload, runs the import, and stores the history entry
+     */
+    public async execute(
+        params: ImportTemplateUseCaseParams
+    ): Promise<Either<ImportTemplateError, SynchronizationResult[]>> {
+        const uploadedDocument = await this.documentRepository.upload({
+            data: params.file,
+            name: params.file.name,
+        });
+        try {
+            const { dataForm, result } = await this.run(params);
+            const historyEntry = HistoryEntry.fromImportResult({
+                user: params.settings.currentUser,
+                document: uploadedDocument,
+                dataForm,
+                result,
+            });
+            await this.historyRepository.save(historyEntry);
+            return result;
+        } catch (error) {
+            // In case of unhandled error, save a history entry with the error message
+            // an example for this is a user without access to some org unit
+            const historyEntry = HistoryEntry.create({
+                user: params.settings.currentUser,
+                document: uploadedDocument,
+                errorDetails: { type: "UNHANDLED_EXCEPTION", message: (error as Error).message },
+                dataForm: undefined,
+                syncResults: undefined,
+            });
+            await this.historyRepository.save(historyEntry);
+            throw error;
+        }
+    }
+
+    private async run({
         file,
         useBuilderOrgUnits = false,
         selectedOrgUnits = [],
         duplicateStrategy = "ERROR",
         organisationUnitStrategy = "ERROR",
         settings,
-    }: ImportTemplateUseCaseParams): Promise<Either<ImportTemplateError, SynchronizationResult[]>> {
+    }: ImportTemplateUseCaseParams): Promise<{
+        dataForm?: DataForm;
+        result: Either<ImportTemplateError, SynchronizationResult[]>;
+    }> {
+        let dataForm: DataForm | undefined = undefined;
+        // closure to wrap the results with context
+        const result = (either: Either<ImportTemplateError, SynchronizationResult[]>) => ({
+            dataForm,
+            result: either,
+        });
+
         const { spreadSheet, images } = await this.importSourceRepository.import(file);
 
         if (useBuilderOrgUnits && selectedOrgUnits.length !== 1) {
-            return Either.error({ type: "INVALID_OVERRIDE_ORG_UNIT" });
+            return result(Either.error({ type: "INVALID_OVERRIDE_ORG_UNIT" }));
         }
 
         const templateId = await this.excelRepository.loadTemplate({ type: "file", file: spreadSheet });
@@ -106,17 +157,20 @@ export class ImportTemplateUseCase implements UseCase {
             })
         );
         if (!dataFormId || typeof dataFormId !== "string") {
-            return Either.error({ type: "INVALID_DATA_FORM_ID" });
+            return result(Either.error({ type: "INVALID_DATA_FORM_ID" }));
         }
 
-        const [dataForm] = await this.instanceRepository.getDataForms({ ids: [dataFormId] });
-        if (!dataForm) {
-            return Either.error({ type: "DATA_FORM_NOT_FOUND" });
+        const [retrievedDataForm] = await this.instanceRepository.getDataForms({ ids: [dataFormId] });
+        if (!retrievedDataForm) {
+            return result(Either.error({ type: "DATA_FORM_NOT_FOUND" }));
         }
+
+        // From this point onwards, we have the dataForm available
+        dataForm = retrievedDataForm;
 
         const dataPackage = await this.readTemplate(template, dataForm);
         if (!dataPackage) {
-            return Either.error({ type: "MALFORMED_TEMPLATE" });
+            return result(Either.error({ type: "MALFORMED_TEMPLATE" }));
         }
 
         const orgUnits = await this.instanceRepository.getDataFormOrgUnits(dataForm.type, dataFormId);
@@ -138,16 +192,18 @@ export class ImportTemplateUseCase implements UseCase {
         );
 
         if (organisationUnitStrategy === "ERROR" && invalidDataValues.dataEntries.length > 0) {
-            return Either.error({ type: "INVALID_ORG_UNITS", dataValues, invalidDataValues });
+            return result(Either.error({ type: "INVALID_ORG_UNITS", dataValues, invalidDataValues }));
         }
 
         if (duplicateStrategy === "ERROR" && existingDataValues.dataEntries.length > 0) {
-            return Either.error({
-                type: "DUPLICATE_VALUES",
-                dataValues,
-                existingDataValues,
-                instanceDataValues,
-            });
+            return result(
+                Either.error({
+                    type: "DUPLICATE_VALUES",
+                    dataValues,
+                    existingDataValues,
+                    instanceDataValues,
+                })
+            );
         }
 
         const shouldDeleteExistingData =
@@ -173,9 +229,9 @@ export class ImportTemplateUseCase implements UseCase {
                   }
                 : undefined;
 
-            return Either.success(_.compact([deleteResultWithErrorsDetails, ...importResultWithErrorsDetails]));
+            return result(Either.success(_.compact([deleteResultWithErrorsDetails, ...importResultWithErrorsDetails])));
         } else {
-            return Either.success(_.compact([deleteResult, ...importResult]));
+            return result(Either.success(_.compact([deleteResult, ...importResult])));
         }
     }
 

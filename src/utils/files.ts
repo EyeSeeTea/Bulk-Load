@@ -16,9 +16,16 @@ export const MIME_TYPES_BY_EXTENSION: Record<ExtensionName, string> = {
     png: "image/png",
     svg: "image/svg+xml",
     json: "application/json",
-    XLSX_EXTENSION: xlsxMimeType,
-    XLSX_EXTENSION_WITH_MACRO: xlsxMacroMimeType,
+    zip: "application/zip",
+    xlsx: xlsxMimeType,
+    xlsm: xlsxMacroMimeType,
 };
+
+export function getMimeTypeFromExtension(extension: string): string {
+    const normalizedExtension = extension.toLowerCase();
+    const DEFAULT = "application/octet-stream";
+    return MIME_TYPES_BY_EXTENSION[normalizedExtension] ?? DEFAULT;
+}
 
 export const toBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {

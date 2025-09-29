@@ -483,6 +483,11 @@ export default class Settings {
         return this.hasPermissions(this.permissions.import);
     }
 
+    isHistoryVisibleForCurrentUser(): boolean {
+        // for now, history visibility is tied to settings visibility
+        return this.hasPermissions(this.permissions.settings);
+    }
+
     isDataFormVisibleForCurrentUser(dataFormId: Id): boolean {
         const permission = this.templatePermissions[dataFormId];
         return !permission || this.hasPermissions(permission);
