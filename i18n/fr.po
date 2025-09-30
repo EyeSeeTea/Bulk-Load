@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load App\n"
-"POT-Creation-Date: 2025-08-07T13:59:56.557Z\n"
+"POT-Creation-Date: 2025-09-18T05:58:00.550Z\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -793,6 +793,12 @@ msgstr ""
 msgid "JSON Response"
 msgstr ""
 
+msgid "Select organisation unit to populate data"
+msgstr ""
+
+msgid "Select available organisation units to include in the template"
+msgstr "Sélectionnez les unités d'organisation à inclure dans le modèle"
+
 msgid "Template"
 msgstr "Modèle"
 
@@ -801,6 +807,9 @@ msgstr "Modèle de données"
 
 msgid "Select template to export..."
 msgstr "Sélectionnez le modèle à exporter ..."
+
+msgid "<No value>"
+msgstr "<Aucune valeur>"
 
 msgid "Start period"
 msgstr "Période de début"
@@ -811,31 +820,14 @@ msgstr "Période de fin"
 msgid "Organisation units"
 msgstr "Unités d'organisation"
 
-msgid "Select organisation unit to populate data"
-msgstr ""
-
-msgid "Select available organisation units to include in the template"
-msgstr "Sélectionnez les unités d'organisation à inclure dans le modèle"
-
 msgid "User does not have any capture organisations units"
 msgstr ""
 "L'utilisateur n'a pas accès à aucune unité d'organisation por la saisie de "
 "données"
 
-msgid "Advanced template properties"
-msgstr "Propriétés avancées du modèle"
-
-msgid "Language"
-msgstr "Langue"
-
-msgid "Split data entry tabs by section"
-msgstr ""
-
-msgid "Theme"
-msgstr "Thème"
-
-msgid "<No value>"
-msgstr "<Aucune valeur>"
+#, fuzzy
+msgid "Populate"
+msgstr "Modèle"
 
 msgid "Populate template with data"
 msgstr "Remplir le modèle avec des données"
@@ -856,6 +848,23 @@ msgid "Only selected organisation units"
 msgstr ""
 
 msgid "Include relationships"
+msgstr ""
+
+msgid ""
+"Creates a tab for each available TEI relationship type, showing their "
+"contents. Click here to learn more about the relationship model."
+msgstr ""
+
+msgid "Advanced template properties"
+msgstr "Propriétés avancées du modèle"
+
+msgid "Language"
+msgstr "Langue"
+
+msgid "Theme"
+msgstr "Thème"
+
+msgid "Split data entry tabs by section"
 msgstr ""
 
 msgid "Use metadata codes (organisation units, data elements and options)"
@@ -1005,6 +1014,11 @@ msgid "True only"
 msgstr ""
 
 msgid "Metadata version"
+msgstr ""
+
+msgid ""
+"Polygon in map\n"
+"([[LON1, LAT1], [LON2, LAT2], ...])"
 msgstr ""
 
 msgid "Latitude"

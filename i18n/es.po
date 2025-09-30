@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2025-08-07T13:59:56.557Z\n"
+"POT-Creation-Date: 2025-09-18T05:58:00.550Z\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -773,6 +773,12 @@ msgstr "Mensajes"
 msgid "JSON Response"
 msgstr "Respuesta JSON"
 
+msgid "Select organisation unit to populate data"
+msgstr "Seleccione la unidad de organización para rellenar los datos"
+
+msgid "Select available organisation units to include in the template"
+msgstr "Seleccione las unidades organizativas para añadir a la plantilla"
+
 msgid "Template"
 msgstr "Plantilla"
 
@@ -781,6 +787,9 @@ msgstr "Modelo de Datos"
 
 msgid "Select template to export..."
 msgstr "Seleccione plantilla para exportar..."
+
+msgid "<No value>"
+msgstr "<Sin valor>"
 
 msgid "Start period"
 msgstr "Periodo inicial"
@@ -791,29 +800,12 @@ msgstr "Periodo final"
 msgid "Organisation units"
 msgstr "Unidades Organizativas"
 
-msgid "Select organisation unit to populate data"
-msgstr "Seleccione la unidad de organización para rellenar los datos"
-
-msgid "Select available organisation units to include in the template"
-msgstr "Seleccione las unidades organizativas para añadir a la plantilla"
-
 msgid "User does not have any capture organisations units"
 msgstr "El usuario no tiene unidades organizativas asociadas"
 
-msgid "Advanced template properties"
-msgstr "Propiedades avanzadas de la plantilla"
-
-msgid "Language"
-msgstr "Idioma"
-
-msgid "Split data entry tabs by section"
-msgstr ""
-
-msgid "Theme"
-msgstr "Tema"
-
-msgid "<No value>"
-msgstr "<Sin valor>"
+#, fuzzy
+msgid "Populate"
+msgstr "Plantilla"
 
 msgid "Populate template with data"
 msgstr "Rellenar la plantilla con datos"
@@ -834,6 +826,23 @@ msgid "Only selected organisation units"
 msgstr ""
 
 msgid "Include relationships"
+msgstr ""
+
+msgid ""
+"Creates a tab for each available TEI relationship type, showing their "
+"contents. Click here to learn more about the relationship model."
+msgstr ""
+
+msgid "Advanced template properties"
+msgstr "Propiedades avanzadas de la plantilla"
+
+msgid "Language"
+msgstr "Idioma"
+
+msgid "Theme"
+msgstr "Tema"
+
+msgid "Split data entry tabs by section"
 msgstr ""
 
 msgid "Use metadata codes (organisation units, data elements and options)"
@@ -985,6 +994,11 @@ msgid "True only"
 msgstr "Sólo es cierto"
 
 msgid "Metadata version"
+msgstr ""
+
+msgid ""
+"Polygon in map\n"
+"([[LON1, LAT1], [LON2, LAT2], ...])"
 msgstr ""
 
 msgid "Latitude"

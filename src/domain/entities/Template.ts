@@ -150,6 +150,21 @@ export interface Range {
     columnEnd?: string;
 }
 
+type BaseDataProcessingRule = {
+    type: "coalesce";
+    condition: "onExport";
+    description?: string;
+};
+
+export type DataProcessingRuleCoalesce = BaseDataProcessingRule & {
+    type: "coalesce";
+    condition: "onExport";
+    destination: ColumnRef;
+    targetIds: Id[]; // attribute or data element id
+};
+
+type DataProcessingRule = DataProcessingRuleCoalesce;
+
 interface BaseDataSource {
     type: DataSourceType;
     skipPopulate?: boolean;
@@ -190,6 +205,7 @@ export interface TrackerEventRowDataSource {
     dataElements: Range;
     sortBy?: string;
     onlyLastEvent?: boolean;
+    dataElementProcessingRules?: DataProcessingRule[];
 }
 
 export interface RowDataSource extends BaseDataSource {
@@ -205,6 +221,7 @@ export interface RowDataSource extends BaseDataSource {
         latitude: ColumnRef | CellRef | ValueRef;
         longitude: ColumnRef | CellRef | ValueRef;
     };
+    geometry?: ColumnRef | CellRef | ValueRef;
 }
 
 export interface TeiRowDataSource {
@@ -222,6 +239,7 @@ export interface TeiRowDataSource {
     multiTextDelimiter?: string;
     sortBy?: string;
     skipTeisWithoutEvents?: boolean;
+    attributeDataProcessingRules?: DataProcessingRule[];
 }
 
 export interface ColumnDataSource extends BaseDataSource {
@@ -286,6 +304,7 @@ export function setDataEntrySheet(dataSource: RowDataSource, sheets: SheetE[]): 
         get(dataSource.eventId),
         get(dataSource.coordinates?.latitude),
         get(dataSource.coordinates?.longitude),
+        get(dataSource.geometry),
     ]);
 
     const sheetsFromDataSource = _.uniq(sheetsFromDataSourceAll);
@@ -326,6 +345,7 @@ export function setDataEntrySheet(dataSource: RowDataSource, sheets: SheetE[]): 
                       longitude: set(dataSource.coordinates.longitude),
                   }
                 : undefined,
+            geometry: dataSource.geometry,
         };
     });
 }
@@ -388,6 +408,14 @@ export type TemplateTrackerProgramPackage = BaseTemplateDataPackage & {
     trackedEntityInstances: TrackedEntityInstance[];
 };
 
+export type TemplateDataValue = {
+    dataElement: string;
+    category: Maybe<string>;
+    value: string | number | boolean;
+    optionId: Maybe<string>;
+    contentType: Maybe<ContentType>;
+    comment?: string;
+};
 export type TemplateDataPackageData = {
     group: number | Maybe<string>;
     dataForm: string;
@@ -401,14 +429,8 @@ export type TemplateDataPackageData = {
     }>;
     trackedEntityInstance: Maybe<string>;
     programStage: Maybe<string>;
-    dataValues: {
-        dataElement: string;
-        category: Maybe<string>;
-        value: string | number | boolean;
-        optionId: Maybe<string>;
-        contentType: Maybe<ContentType>;
-        comment?: string;
-    }[];
+    geometry: Maybe<Geometry>;
+    dataValues: TemplateDataValue[];
 };
 
 export function templateToDataPackage(template: TemplateDataPackage): DataPackage {
@@ -467,6 +489,7 @@ export function templateFromDataPackage(dataPackage: DataPackage): TemplateDataP
                     period: entry.period,
                     attribute: entry.attribute,
                     coordinate: undefined,
+                    geometry: undefined,
                     trackedEntityInstance: undefined,
                     programStage: undefined,
                     dataValues: entry.dataValues.map((dv: DataSetPackageDataValue) => ({
@@ -508,7 +531,7 @@ function mapToProgramData(entry: TemplateDataPackageData): ProgramPackageData {
         trackedEntityInstance: entry.trackedEntityInstance,
         programStage: entry.programStage,
         coordinate: entry.coordinate,
-        geometry: coordinateToGeometry(entry),
+        geometry: entry.geometry,
         dataValues: entry.dataValues.map(dv => ({
             dataElement: dv.dataElement,
             value: dv.value,
@@ -527,7 +550,8 @@ function mapFromProgramData(entry: ProgramPackageData): TemplateDataPackageData 
         orgUnit: entry.orgUnit,
         period: entry.period,
         attribute: entry.attribute,
-        coordinate: entry.coordinate ?? geometryToCoordinate(entry.geometry ?? undefined),
+        coordinate: entry.coordinate,
+        geometry: entry.geometry,
         trackedEntityInstance: entry.trackedEntityInstance,
         programStage: entry.programStage,
         dataValues: entry.dataValues.map(dv => ({
@@ -541,36 +565,6 @@ function mapFromProgramData(entry: ProgramPackageData): TemplateDataPackageData 
     };
 }
 
-function coordinateToGeometry(entry: TemplateDataPackageData): Maybe<Geometry> {
-    const { coordinate } = entry;
-    if (!coordinate) return undefined;
-
-    const longitude = parseInt(coordinate.longitude);
-    const latitude = parseInt(coordinate.latitude);
-
-    if (longitude === undefined || latitude === undefined) return undefined;
-
-    return {
-        type: "Point",
-        coordinates: [longitude, latitude],
-    };
-}
-
-function geometryToCoordinate(geometry?: Geometry): Maybe<TemplateDataPackageData["coordinate"]> {
-    //currenly, coordinate prop is only being used for point
-    switch (geometry?.type) {
-        case "Point": {
-            if (!geometry || !Array.isArray(geometry.coordinates) || geometry.type !== "Point") return undefined;
-
-            const [longitude, latitude] = geometry.coordinates;
-
-            return {
-                latitude: latitude.toString(),
-                longitude: longitude.toString(),
-            };
-        }
-        case "Polygon":
-        default:
-            return undefined;
-    }
+export function isDataProcessingRuleCoalesce(rule: DataProcessingRule): rule is DataProcessingRuleCoalesce {
+    return rule.type === "coalesce";
 }
