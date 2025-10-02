@@ -129,7 +129,7 @@ export class InstanceDhisRepository implements InstanceRepository {
                 attributeValues,
                 programTrackedEntityAttributes,
                 trackedEntityType,
-            }) => ({
+            }): DataForm => ({
                 type: programType === "WITH_REGISTRATION" ? dataFormTypeMap.trackerPrograms : dataFormTypeMap.programs,
                 id,
                 attributeValues,
@@ -790,7 +790,7 @@ const dataElementFields = {
     formName: true,
     name: true,
     valueType: true,
-    categoryCombo: { categoryOptionCombos: { id: true, name: true } },
+    categoryCombo: { id: true },
     optionSet: { id: true, options: { id: true, code: true, name: true } },
 } as const;
 
@@ -834,7 +834,6 @@ const formatDataElement = (de: SelectedPick<D2DataElementSchema, typeof dataElem
     id: de.id,
     name: de.formName ?? de.name ?? "",
     valueType: de.valueType,
-    categoryOptionCombos: de.categoryCombo?.categoryOptionCombos ?? [],
     options: de.optionSet?.options,
 });
 

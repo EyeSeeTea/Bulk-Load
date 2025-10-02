@@ -6,8 +6,8 @@ import { D2ApiDefault, D2OrganisationUnit, D2Api } from "../types/d2-api";
 export class D2UsersRepository implements UsersRepository {
     private api: D2Api;
 
-    constructor(localInstance: DhisInstance) {
-        this.api = new D2ApiDefault({ baseUrl: localInstance.url });
+    constructor(localInstance: DhisInstance, mockApi?: D2Api) {
+        this.api = mockApi ?? new D2ApiDefault({ baseUrl: localInstance.url });
     }
 
     async getCurrentUser(): Promise<User> {
