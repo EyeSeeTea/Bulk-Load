@@ -408,10 +408,10 @@ export class ExcelBuilder {
                 .uniq()
                 .value();
 
-            const newTEIs = _.difference(allTEIs, existingTEIs).reverse(); // reverse the list
+            const newTEIs = _.difference(allTEIs, existingTEIs);
 
             return await promiseMap(newTEIs, async (id, index) => {
-                const teiRowStart = dataSource.dataValues.rowStart + newTEIs.length - index - 1; // reverse tei ids
+                const teiRowStart = rowStart + index;
                 const cells = await this.excelRepository.getCellsInRange(template.id, {
                     ...dataSource.dataValues,
                     rowStart: teiRowStart,
