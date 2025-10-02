@@ -20,6 +20,7 @@ import { TemplateRepository } from "../repositories/TemplateRepository";
 import { UsersRepository } from "../repositories/UsersRepository";
 import { buildAllPossiblePeriods } from "../../webapp/utils/periods";
 import { applyFilter } from "../entities/TemplateFilter";
+import { DataElementDisaggregationsMappingRepository } from "../repositories/DataElementDisaggregationsMappingRepository";
 
 export interface DownloadTemplateProps {
     type: DataFormType;
@@ -55,7 +56,8 @@ export class DownloadTemplateUseCase implements UseCase {
         private templateRepository: TemplateRepository,
         private excelRepository: ExcelRepository,
         private modulesRepositories: ModulesRepositories,
-        private usersRepository: UsersRepository
+        private usersRepository: UsersRepository,
+        private dataElementDisaggregationsMappingRepository: DataElementDisaggregationsMappingRepository
     ) {}
 
     public async execute(api: D2Api, options: DownloadTemplateProps): Promise<void> {
@@ -175,7 +177,12 @@ export class DownloadTemplateUseCase implements UseCase {
             await this.excelRepository.loadTemplate({ type: "file", file });
         }
 
-        const builder = new ExcelBuilder(this.excelRepository, this.instanceRepository, this.modulesRepositories);
+        const builder = new ExcelBuilder(
+            this.excelRepository,
+            this.instanceRepository,
+            this.modulesRepositories,
+            this.dataElementDisaggregationsMappingRepository
+        );
 
         await builder.templateCustomization(template, {
             currentUser,

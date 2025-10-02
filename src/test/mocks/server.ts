@@ -4,7 +4,15 @@ export function initializeMockServer() {
     const { api, mock } = getMockApi();
 
     // User settings
-    mock.onGet("/me").reply(200, { userCredentials: { username: "user" }, userGroups: [{ id: "BwyMfDBLih9" }] });
+    mock.onGet("me").reply(200, {
+        id: "user1",
+        name: "Name",
+        userCredentials: { username: "user" },
+        userGroups: [{ id: "BwyMfDBLih9" }],
+        authorities: [],
+        dataViewOrganisationUnits: [],
+        organisationUnits: [],
+    });
     mock.onGet("/me/authorization").reply(200, ["USER_GROUP_TEST"]);
     mock.onGet("/metadata", { params: { "userGroups:fields": "displayName,id,name" } }).reply(200, {
         userGroups: [{ name: "USER_GROUP_TEST", id: "BwyMfDBLih9", displayName: "USER_GROUP_TEST" }],
@@ -77,7 +85,7 @@ export function initializeMockServer() {
     mock.onGet("/dataSets", {
         params: {
             paging: false,
-            fields: "access,attributeValues[attribute[code],value],dataSetElements[dataElement[categoryCombo[categoryOptionCombos[id,name]],formName,id,name,optionSet[id,options[code,id,name]],valueType]],displayName,id,name,periodType,sections[dataElements[categoryCombo[categoryOptionCombos[id,name]],formName,id,name,optionSet[id,options[code,id,name]],valueType],id,name]",
+            fields: "access,attributeValues[attribute[code],value],dataSetElements[dataElement[categoryCombo[id],formName,id,name,optionSet[id,options[code,id,name]],valueType]],displayName,id,name,periodType,sections[dataElements[categoryCombo[id],formName,id,name,optionSet[id,options[code,id,name]],valueType],id,name]",
             filter: [],
         },
     }).reply(200, {
@@ -111,7 +119,7 @@ export function initializeMockServer() {
     mock.onGet("/programs", {
         params: {
             paging: false,
-            fields: "access,attributeValues[attribute[code],value],displayName,id,name,programStages[featureType,id,name,programStageDataElements[dataElement[categoryCombo[categoryOptionCombos[id,name]],formName,id,name,optionSet[id,options[code,id,name]],valueType]],repeatable],programTrackedEntityAttributes[trackedEntityAttribute[id,name,optionSet[id,options[code,id,name]],valueType]],programType,trackedEntityType[featureType,id]",
+            fields: "access,attributeValues[attribute[code],value],displayName,id,name,programStages[featureType,id,name,programStageDataElements[dataElement[categoryCombo[id],formName,id,name,optionSet[id,options[code,id,name]],valueType]],repeatable],programTrackedEntityAttributes[trackedEntityAttribute[id,name,optionSet[id,options[code,id,name]],valueType]],programType,trackedEntityType[featureType,id]",
             filter: [],
         },
     }).reply(200, {
