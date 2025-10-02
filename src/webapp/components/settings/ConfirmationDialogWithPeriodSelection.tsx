@@ -4,12 +4,13 @@ import { Select, SelectOption } from "../select/Select";
 import { makeStyles } from "@material-ui/core";
 import moment from "moment";
 import i18n from "../../../utils/i18n";
+import { Maybe } from "../../../types/utils";
 
 type ConfirmationDialogProps = React.ComponentProps<typeof ConfirmationDialog>;
 
 export interface ConfirmationDialogWithPeriodSelectionProps
     extends Omit<ConfirmationDialogProps, "onSave" | "children"> {
-    onSave: (selectedDate: Date) => void;
+    onSave: (selectedDate: Date, periodLabel: string) => void;
     defaultPeriod?: string;
     periodInputLabel: string;
     /**
@@ -33,7 +34,11 @@ export const ConfirmationDialogWithPeriodSelection: React.FC<ConfirmationDialogW
     ...dialogProps
 }) => {
     const classes = useStyles();
-    const [selectedPeriod, setSelectedPeriod] = useState(defaultPeriod);
+    const getDefaultOption = () => {
+        const foundOption = periodOptions.find(option => option.value === defaultPeriod);
+        return foundOption || periodOptions[0];
+    };
+    const [selectedPeriod, setSelectedPeriod] = useState<Maybe<SelectOption>>(getDefaultOption());
 
     const calculateDateFromPeriod = (period: string): Date => {
         const [amount, unit] = period.split("|");
@@ -46,12 +51,13 @@ export const ConfirmationDialogWithPeriodSelection: React.FC<ConfirmationDialogW
     };
 
     const handleSave = () => {
-        const selectedDate = calculateDateFromPeriod(selectedPeriod);
-        onSave(selectedDate);
+        if (!selectedPeriod) return;
+        const selectedDate = calculateDateFromPeriod(selectedPeriod.value);
+        onSave(selectedDate, selectedPeriod.label);
     };
 
-    const handlePeriodChange = ({ value }: SelectOption) => {
-        setSelectedPeriod(value);
+    const handlePeriodChange = (option: SelectOption) => {
+        setSelectedPeriod(option);
     };
 
     return (
@@ -61,9 +67,10 @@ export const ConfirmationDialogWithPeriodSelection: React.FC<ConfirmationDialogW
                     <label className={classes.label}>{periodInputLabel}</label>
                     <Select
                         options={periodOptions}
-                        value={selectedPeriod}
+                        value={selectedPeriod?.value}
                         onChange={handlePeriodChange}
                         className={classes.select}
+                        required
                     />
                 </div>
             </div>
