@@ -101,17 +101,20 @@ export class ImportTemplateUseCase implements UseCase {
         });
         try {
             const { dataForm, result } = await this.run(params);
-            const historyEntry = HistoryEntry.fromImportResult({
-                user: params.settings.currentUser,
-                document: uploadedDocument,
-                dataForm,
-                result,
-            });
-            await this.historyRepository.save(historyEntry);
+
+            if (HistoryEntry.shouldSaveImportResult(result)) {
+                const historyEntry = HistoryEntry.fromImportResult({
+                    user: params.settings.currentUser,
+                    document: uploadedDocument,
+                    dataForm,
+                    result,
+                });
+                await this.historyRepository.save(historyEntry);
+            }
+
             return result;
         } catch (error) {
-            // In case of unhandled error, save a history entry with the error message
-            // an example for this is a user without access to some org unit
+            // In case of unhandled exception, save a history entry with the error message
             const historyEntry = HistoryEntry.create({
                 user: params.settings.currentUser,
                 document: uploadedDocument,

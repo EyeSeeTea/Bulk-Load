@@ -122,6 +122,15 @@ export class HistoryEntry {
             errorDetails: this.errorDetails,
         };
     }
+
+    static shouldSaveImportResult(result: Either<ImportTemplateError, SynchronizationResult[]>): boolean {
+        // errors used for user conflict resolution that are handled in the UI
+        const ERROR_TYPES_EXCLUDED_FROM_SAVE: ImportTemplateError["type"][] = ["DUPLICATE_VALUES", "INVALID_ORG_UNITS"];
+        return result.match({
+            error: error => !ERROR_TYPES_EXCLUDED_FROM_SAVE.includes(error.type),
+            success: () => true,
+        });
+    }
 }
 
 export type HistoryEntryStatus = "SUCCESS" | "ERROR" | "WARNING";
