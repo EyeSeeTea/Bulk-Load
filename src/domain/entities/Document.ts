@@ -6,4 +6,5 @@ export interface Document {
     name: string;
     createdAt: string;
     deletedAt?: string;
+    deletedBy?: string;
 }

@@ -50,11 +50,12 @@ export const OperationConfirmationDialog: React.FC<OperationConfirmationDialogPr
                     <Typography variant="body1" className={classes.operationText}>
                         <strong>Operation:</strong> {operation}
                     </Typography>
-                    {parameters && parameters.map(([label, value], index) => (
-                        <Typography key={index} variant="body1" className={classes.parameterText}>
-                            <strong>{label}:</strong> {value}
-                        </Typography>
-                    ))}
+                    {parameters &&
+                        parameters.map(([label, value], index) => (
+                            <Typography key={index} variant="body1" className={classes.parameterText}>
+                                <strong>{label}:</strong> {value}
+                            </Typography>
+                        ))}
                     <Typography variant="body2" className={classes.confirmText}>
                         Are you sure you want to proceed with this operation?
                     </Typography>

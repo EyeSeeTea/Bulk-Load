@@ -3,7 +3,7 @@ import { Id } from "../entities/ReferenceObject";
 
 export type DocumentDeleteOptions = {
     until: Date;
-    keepReference?: boolean;
+    deletedBy?: string;
 };
 export interface DocumentRepository {
     upload(file: { name: string; data: File }): Promise<Document>;

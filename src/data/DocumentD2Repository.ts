@@ -33,7 +33,7 @@ export class DocumentD2Repository implements DocumentRepository {
         return document;
     }
 
-    async delete({ until, keepReference = true }: DocumentDeleteOptions): Promise<Id[]> {
+    async delete({ until, deletedBy }: DocumentDeleteOptions): Promise<Id[]> {
         const list = await this.dataStore.get<Document[]>(this.dataStoreKey).getData();
         if (!list) return [];
         const toDeleteIds = list
@@ -53,11 +53,11 @@ export class DocumentD2Repository implements DocumentRepository {
         if (result.status !== "OK") {
             throw new Error("Failed to delete documents");
         }
-        const updatedList = keepReference
-            ? list.map(item =>
-                  toDeleteIds.includes(item.id) ? { ...item, deletedAt: new Date().toISOString() } : item
-              )
-            : list.filter(item => !toDeleteIds.includes(item.id));
+        const updatedList = list.map(item =>
+            toDeleteIds.includes(item.id)
+                ? { ...item, deletedAt: new Date().toISOString(), deletedBy: deletedBy }
+                : item
+        );
         await this.dataStore.save(this.dataStoreKey, updatedList).getData();
         return toDeleteIds;
     }

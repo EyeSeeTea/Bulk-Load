@@ -40,7 +40,7 @@ export default function SettingsFields(props: SettingsFieldsProps & CustomTempla
 
     const uploadsMaintenance = useMaintenanceCleanup({
         cleanupAction: async (cutoffDate: Date) => {
-            await compositionRoot.history.cleanupDocuments(cutoffDate);
+            await compositionRoot.history.cleanupDocuments(cutoffDate, settings.currentUser);
         },
         successMessage: i18n.t("File cleanup completed successfully"),
         errorMessage: i18n.t("An error occurred during file cleanup"),
@@ -48,7 +48,7 @@ export default function SettingsFields(props: SettingsFieldsProps & CustomTempla
 
     const historyMaintenance = useMaintenanceCleanup({
         cleanupAction: async (cutoffDate: Date) => {
-            await compositionRoot.history.cleanup(cutoffDate);
+            await compositionRoot.history.cleanup(cutoffDate, settings.currentUser);
         },
         successMessage: i18n.t("History cleanup completed successfully"),
         errorMessage: i18n.t("An error occurred during history cleanup"),

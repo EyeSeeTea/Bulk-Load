@@ -135,6 +135,8 @@ export interface HistoryEntrySummary {
     documentId: Id;
     fileName: string;
     documentDeleted?: boolean;
+    deletedAt?: string;
+    deletedBy?: string;
 }
 
 export interface HistoryEntryDetails {

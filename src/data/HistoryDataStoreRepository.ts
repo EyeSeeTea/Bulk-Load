@@ -33,7 +33,8 @@ export class HistoryDataStoreRepository implements HistoryRepository {
     }
 
     public async get(): Promise<HistoryEntrySummary[]> {
-        return this.getSummaries();
+        const summaries = await this.getSummaries();
+        return summaries.filter(summary => !summary.deletedAt);
     }
 
     public async getDetails(id: Id): Promise<HistoryEntryDetails | null> {
@@ -86,15 +87,19 @@ export class HistoryDataStoreRepository implements HistoryRepository {
         await this.dataStore.save(`history-${id}`, details).getData();
     }
 
-    public async delete(params: { until: Date }): Promise<Id[]> {
+    public async delete(params: { until: Date; deletedBy: string }): Promise<Id[]> {
         const summaries = await this.getSummaries();
         const toDeleteIds = summaries.filter(summary => new Date(summary.timestamp) < params.until).map(s => s.id);
         if (toDeleteIds.length === 0) {
             return [];
         }
         await Promise.all(toDeleteIds.map(id => this.deleteDetails(id)));
-        const remainingSummaries = summaries.filter(summary => !toDeleteIds.includes(summary.id));
-        await this.saveSummaries(remainingSummaries);
+        const updatedSummaries = summaries.map(summary =>
+            toDeleteIds.includes(summary.id)
+                ? { ...summary, deletedAt: new Date().toISOString(), deletedBy: params.deletedBy }
+                : summary
+        );
+        await this.saveSummaries(updatedSummaries);
         return toDeleteIds;
     }
 
