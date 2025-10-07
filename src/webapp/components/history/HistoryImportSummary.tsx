@@ -84,9 +84,13 @@ export function HistoryImportSummary({ entry }: HistoryImportSummaryProps) {
             </div>
             <div className={classes.infoRow}>
                 <Typography className={classes.infoLabel}>{i18n.t("File")}:</Typography>
-                {entry.documentDeleted ? (
+                {!entry.documentId || entry.documentDeleted ? (
                     <Tooltip
-                        title={i18n.t("The original file has been deleted and is no longer available for download")}
+                        title={
+                            entry.documentDeleted
+                                ? i18n.t("The original file has been deleted and is no longer available for download")
+                                : i18n.t("The original file is not available for download")
+                        }
                         arrow
                         placement="top"
                     >

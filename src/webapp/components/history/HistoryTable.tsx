@@ -54,7 +54,10 @@ export function HistoryTable() {
             name: "fileName",
             text: i18n.t("File Name"),
             getValue: entry => (
-                <Typography variant="body2" className={entry.documentDeleted ? classes.deletedFileName : undefined}>
+                <Typography
+                    variant="body2"
+                    className={!entry.documentId || entry.documentDeleted ? classes.deletedFileName : undefined}
+                >
                     {entry.fileName}
                 </Typography>
             ),
@@ -92,7 +95,7 @@ export function HistoryTable() {
                     return false;
                 }
                 const entry = firstOrFail(rows);
-                return !entry.documentDeleted;
+                return !!entry.documentId && !entry.documentDeleted;
             },
         },
     ];
