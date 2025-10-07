@@ -29,7 +29,7 @@ import { ImportSourceRepository } from "../repositories/ImportSourceRepository";
 import { HistoryRepository } from "../repositories/HistoryRepository";
 import { AttributeValue, TrackedEntityInstance } from "../entities/TrackedEntityInstance";
 import { Maybe } from "../../types/utils";
-import { HistoryEntry } from "../entities/HistoryEntry";
+import { HistoryEntry, HistoryEntryDocument } from "../entities/HistoryEntry";
 import { DocumentRepository } from "../repositories/DocumentRepository";
 
 export type ImportTemplateError =
@@ -95,17 +95,14 @@ export class ImportTemplateUseCase implements UseCase {
     public async execute(
         params: ImportTemplateUseCaseParams
     ): Promise<Either<ImportTemplateError, SynchronizationResult[]>> {
-        const uploadedDocument = await this.documentRepository.upload({
-            data: params.file,
-            name: params.file.name,
-        });
+        const document = await this.uploadDocument(params);
         try {
             const { dataForm, result } = await this.run(params);
 
             if (HistoryEntry.shouldSaveImportResult(result)) {
                 const historyEntry = HistoryEntry.fromImportResult({
                     user: params.settings.currentUser,
-                    document: uploadedDocument,
+                    document,
                     dataForm,
                     result,
                 });
@@ -117,7 +114,7 @@ export class ImportTemplateUseCase implements UseCase {
             // In case of unhandled exception, save a history entry with the error message
             const historyEntry = HistoryEntry.create({
                 user: params.settings.currentUser,
-                document: uploadedDocument,
+                document,
                 errorDetails: { type: "UNHANDLED_EXCEPTION", message: (error as Error).message },
                 dataForm: undefined,
                 syncResults: undefined,
@@ -235,6 +232,30 @@ export class ImportTemplateUseCase implements UseCase {
             return result(Either.success(_.compact([deleteResultWithErrorsDetails, ...importResultWithErrorsDetails])));
         } else {
             return result(Either.success(_.compact([deleteResult, ...importResult])));
+        }
+    }
+
+    /**
+     * Uploads the document if the user has permissions, otherwise returns an unsaved document
+     * In case of any other error also returns an unsaved document
+     */
+    private async uploadDocument({
+        file,
+        settings,
+    }: Pick<ImportTemplateUseCaseParams, "file" | "settings">): Promise<HistoryEntryDocument> {
+        const unsavedDocument = { name: file.name };
+        if (!settings.canUploadDocument()) {
+            return unsavedDocument;
+        }
+        try {
+            const uploadedDocument = await this.documentRepository.upload({
+                data: file,
+                name: file.name,
+            });
+            return uploadedDocument;
+        } catch (error) {
+            console.error("Error uploading document", error);
+            return unsavedDocument;
         }
     }
 

@@ -8,3 +8,7 @@ export interface Document {
     deletedAt?: string;
     deletedBy?: string;
 }
+
+export interface UnsavedDocument {
+    name: string;
+}

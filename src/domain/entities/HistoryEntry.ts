@@ -6,14 +6,14 @@ import { ImportTemplateError } from "../usecases/ImportTemplateUseCase";
 import { User } from "./User";
 import { DataForm } from "./DataForm";
 import { Either } from "./Either";
-import { Document } from "./Document";
+import { Document, UnsavedDocument } from "./Document";
 
 export class HistoryEntry {
     public readonly id: Id;
     public readonly dataForm: Maybe<DataForm>;
     public readonly timestamp: Date;
     public readonly user: User;
-    public readonly document: Document;
+    public readonly document: HistoryEntryDocument;
     public readonly syncResults: Maybe<SynchronizationResult[]>;
     public readonly errorDetails: Maybe<ErrorDetails>;
 
@@ -28,7 +28,7 @@ export class HistoryEntry {
     }: Partial<HistoryEntry> & {
         dataForm: Maybe<DataForm>;
         user: User;
-        document: Document;
+        document: HistoryEntryDocument;
         syncResults: Maybe<SynchronizationResult[]>;
         errorDetails: Maybe<ErrorDetails>;
     }) {
@@ -46,7 +46,7 @@ export class HistoryEntry {
 
     static create(data: {
         user: User;
-        document: Document;
+        document: HistoryEntryDocument;
         dataForm: Maybe<DataForm>;
         syncResults: Maybe<SynchronizationResult[]>;
         errorDetails: Maybe<ErrorDetails>;
@@ -56,7 +56,7 @@ export class HistoryEntry {
 
     static fromImportResult(data: {
         user: User;
-        document: Document;
+        document: HistoryEntryDocument;
         dataForm: Maybe<DataForm>;
         result: Either<ImportTemplateError, SynchronizationResult[]>;
     }): HistoryEntry {
@@ -79,20 +79,21 @@ export class HistoryEntry {
         }
     }
 
-    private update(partialUpdate: Partial<HistoryEntry>): HistoryEntry {
-        return new HistoryEntry({ ...this, ...partialUpdate });
-    }
-
     public toSummary(): HistoryEntrySummary {
+        const documentInformation =
+            "id" in this.document // is it a saved document?
+                ? { documentId: this.document.id, ...(this.document.deletedAt ? { documentDeleted: true } : {}) }
+                : {
+                      documentId: undefined,
+                  };
         return {
             id: this.id,
             name: this.dataForm?.name || "",
             timestamp: this.timestamp.toISOString(),
             status: this.computeStatus(),
             username: this.user.username,
-            documentId: this.document.id,
             fileName: this.document.name,
-            ...(this.document.deletedAt ? { documentDeleted: true } : {}),
+            ...documentInformation,
         };
     }
 
@@ -141,7 +142,7 @@ export interface HistoryEntrySummary {
     timestamp: string;
     status: HistoryEntryStatus;
     username: string;
-    documentId: Id;
+    documentId: Maybe<Id>;
     fileName: string;
     documentDeleted?: boolean;
     deletedAt?: string;
@@ -159,3 +160,5 @@ interface UnhandledException {
 }
 
 type ErrorDetails = ImportTemplateError | UnhandledException;
+
+export type HistoryEntryDocument = Document | UnsavedDocument;

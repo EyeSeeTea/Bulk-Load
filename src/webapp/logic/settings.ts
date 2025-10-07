@@ -493,6 +493,11 @@ export default class Settings {
         return !permission || this.hasPermissions(permission);
     }
 
+    canUploadDocument(): boolean {
+        const DOCUMENT_AUTHORITIES = ["ALL", "F_DOCUMENT_PRIVATE_ADD"];
+        return DOCUMENT_AUTHORITIES.some(auth => this.currentUser.authorities.has(auth));
+    }
+
     getModelsInfo(): Array<{ key: Model; name: string; value: boolean }> {
         return [
             { key: "dataSet", name: i18n.t("Data set"), value: this.models.dataSet },

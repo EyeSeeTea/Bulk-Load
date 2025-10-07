@@ -12,7 +12,7 @@ export class DocumentsCleanupUseCase implements UseCase {
             deletedBy: currentUser.username,
         });
         await this.historyRepository.updateSummaries(
-            summary => deletedDocumentIds.includes(summary.documentId),
+            summary => summary.documentId !== undefined && deletedDocumentIds.includes(summary.documentId),
             summary => ({ ...summary, documentDeleted: true })
         );
     }
