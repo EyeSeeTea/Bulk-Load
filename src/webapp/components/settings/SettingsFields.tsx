@@ -279,19 +279,19 @@ export default function SettingsFields(props: SettingsFieldsProps & CustomTempla
                 </ListItem>
             </div>
 
-            <h3 className={classes.title}>{i18n.t("Duplicate exclusion")}</h3>
+            <h3 className={classes.title}>{i18n.t("Duplicate")}</h3>
 
             <FormGroup className={classes.content} row={true}>
                 <div className={classes.fullWidth}>
                     <Select
+                        placeholder={i18n.t("Duplicate detection")}
                         onChange={setDuplicateEnabled}
                         options={duplicateEnabledOptions}
                         value={String(settings.duplicateEnabled)}
                     />
                 </div>
                 {settings.duplicateEnabled && (
-                    <div>
-                        <h4>{i18n.t("Program duplicate detection")}</h4>
+                    <>
                         <FormGroup className={classes.eventDateTime} row={true}>
                             <p className={classes.duplicateToleranceLabel}>
                                 {i18n.t("Event date time difference for events (programs)")}
@@ -318,7 +318,7 @@ export default function SettingsFields(props: SettingsFieldsProps & CustomTempla
                                 secondary={i18n.t("Data elements used for duplicates identification")}
                             />
                         </ListItem>
-                    </div>
+                    </>
                 )}
             </FormGroup>
 
@@ -416,7 +416,7 @@ const useStyles = makeStyles({
     content: { margin: "1rem", marginBottom: 35, marginLeft: 0 },
     checkbox: { padding: 9 },
     title: { marginTop: 0 },
-    eventDateTime: { marginBottom: 15 },
+    eventDateTime: { marginBottom: 15, alignItems: "center" },
     duplicateTolerance: { margin: 0, marginRight: 15, width: 35 },
     duplicateToleranceLabel: { margin: 0, marginRight: 15, alignSelf: "center" },
 });

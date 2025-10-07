@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2025-09-18T05:58:00.550Z\n"
+"POT-Creation-Date: 2025-10-07T12:54:44.507Z\n"
 "Language: pt\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -330,8 +330,22 @@ msgstr "Filtrar colunas para programas"
 msgid "Data elements and attributes to include/exclude for programs"
 msgstr "Elementos de dados e atributos a incluir/excluir para programas"
 
+#, fuzzy
+msgid "Duplicate"
+msgstr "Detecção duplicada"
+
+#, fuzzy
 msgid "Duplicate detection"
 msgstr "Detecção duplicada"
+
+msgid "Event date time difference for events (programs)"
+msgstr "Diferença de data e hora do evento de eventos (programas)"
+
+msgid "Duplicate detection filter for events (programs)"
+msgstr "Filtro de detecção duplicado para eventos (programas)"
+
+msgid "Data elements used for duplicates identification"
+msgstr "Elementos de dados usados para identificação de duplicatas"
 
 #, fuzzy
 msgid "Template configuration"
@@ -351,15 +365,6 @@ msgstr ""
 
 msgid "Show populate in custom forms"
 msgstr ""
-
-msgid "Event date time difference for events (programs)"
-msgstr "Diferença de data e hora do evento de eventos (programas)"
-
-msgid "Duplicate detection filter for events (programs)"
-msgstr "Filtro de detecção duplicado para eventos (programas)"
-
-msgid "Data elements used for duplicates identification"
-msgstr "Elementos de dados usados para identificação de duplicatas"
 
 msgid "Permissions"
 msgstr "Permissões"
@@ -1300,6 +1305,10 @@ msgstr ""
 
 msgid "Settings saved"
 msgstr "Configurações salvas"
+
+#, fuzzy
+#~ msgid "Program duplicate detection"
+#~ msgstr "Detecção duplicada"
 
 #, fuzzy
 #~ msgid "Template Code"

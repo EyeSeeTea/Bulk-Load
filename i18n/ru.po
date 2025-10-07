@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2025-09-18T05:58:00.550Z\n"
+"POT-Creation-Date: 2025-10-07T12:54:44.507Z\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -330,8 +330,22 @@ msgstr "Фильтр столбцов для программ"
 msgid "Data elements and attributes to include/exclude for programs"
 msgstr "Элементы данных и атрибуты для включения/исключения для программ"
 
+#, fuzzy
+msgid "Duplicate"
+msgstr "Обнаружение дубликатов"
+
+#, fuzzy
 msgid "Duplicate detection"
 msgstr "Обнаружение дубликатов"
+
+msgid "Event date time difference for events (programs)"
+msgstr "Разница во времени даты события для событий (программ)"
+
+msgid "Duplicate detection filter for events (programs)"
+msgstr "Фильтр обнаружения дубликатов для событий (программ)"
+
+msgid "Data elements used for duplicates identification"
+msgstr "Элементы данных, используемые для выявления дубликатов"
 
 #, fuzzy
 msgid "Template configuration"
@@ -351,15 +365,6 @@ msgstr ""
 
 msgid "Show populate in custom forms"
 msgstr ""
-
-msgid "Event date time difference for events (programs)"
-msgstr "Разница во времени даты события для событий (программ)"
-
-msgid "Duplicate detection filter for events (programs)"
-msgstr "Фильтр обнаружения дубликатов для событий (программ)"
-
-msgid "Data elements used for duplicates identification"
-msgstr "Элементы данных, используемые для выявления дубликатов"
 
 msgid "Permissions"
 msgstr "Разрешения"
@@ -1302,6 +1307,10 @@ msgstr "Нет захвата орг единицы соответствие э�
 
 msgid "Settings saved"
 msgstr "Сохранение настроек"
+
+#, fuzzy
+#~ msgid "Program duplicate detection"
+#~ msgstr "Обнаружение дубликатов"
 
 #, fuzzy
 #~ msgid "Template Code"
