@@ -279,7 +279,7 @@ export default function SettingsFields(props: SettingsFieldsProps & CustomTempla
                 </ListItem>
             </div>
 
-            <h3 className={classes.title}>{i18n.t("Duplicate detection")}</h3>
+            <h3 className={classes.title}>{i18n.t("Duplicate exclusion")}</h3>
 
             <FormGroup className={classes.content} row={true}>
                 <div className={classes.fullWidth}>
@@ -289,6 +289,37 @@ export default function SettingsFields(props: SettingsFieldsProps & CustomTempla
                         value={String(settings.duplicateEnabled)}
                     />
                 </div>
+                {settings.duplicateEnabled && (
+                    <div>
+                        <h4>{i18n.t("Program duplicate detection")}</h4>
+                        <FormGroup className={classes.eventDateTime} row={true}>
+                            <p className={classes.duplicateToleranceLabel}>
+                                {i18n.t("Event date time difference for events (programs)")}
+                            </p>
+                            <TextField
+                                className={classes.duplicateTolerance}
+                                type="number"
+                                onChange={setDuplicateTolerance}
+                                value={settings.duplicateTolerance}
+                            />
+                            <Select
+                                onChange={setDuplicateToleranceUnit}
+                                options={duplicateToleranceUnits}
+                                value={settings.duplicateToleranceUnit}
+                            />
+                        </FormGroup>
+
+                        <ListItem button onClick={() => showExclusionDialog(true)}>
+                            <ListItemIcon>
+                                <Icon>filter_list</Icon>
+                            </ListItemIcon>
+                            <ListItemText
+                                primary={i18n.t("Duplicate detection filter for events (programs)")}
+                                secondary={i18n.t("Data elements used for duplicates identification")}
+                            />
+                        </ListItem>
+                    </div>
+                )}
             </FormGroup>
 
             <h3 className={classes.title}>{i18n.t("Template configuration")}</h3>
@@ -343,35 +374,6 @@ export default function SettingsFields(props: SettingsFieldsProps & CustomTempla
                         />
                     </div>
                 </div>
-            </div>
-
-            <div className={classes.content}>
-                <FormGroup className={classes.eventDateTime} row={true}>
-                    <p className={classes.duplicateToleranceLabel}>
-                        {i18n.t("Event date time difference for events (programs)")}
-                    </p>
-                    <TextField
-                        className={classes.duplicateTolerance}
-                        type="number"
-                        onChange={setDuplicateTolerance}
-                        value={settings.duplicateTolerance}
-                    />
-                    <Select
-                        onChange={setDuplicateToleranceUnit}
-                        options={duplicateToleranceUnits}
-                        value={settings.duplicateToleranceUnit}
-                    />
-                </FormGroup>
-
-                <ListItem button onClick={() => showExclusionDialog(true)}>
-                    <ListItemIcon>
-                        <Icon>filter_list</Icon>
-                    </ListItemIcon>
-                    <ListItemText
-                        primary={i18n.t("Duplicate detection filter for events (programs)")}
-                        secondary={i18n.t("Data elements used for duplicates identification")}
-                    />
-                </ListItem>
             </div>
 
             <h3 className={classes.title}>{i18n.t("Permissions")}</h3>
