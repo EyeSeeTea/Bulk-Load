@@ -309,11 +309,9 @@ msgstr ""
 msgid "Data elements and attributes to include/exclude for programs"
 msgstr ""
 
-#, fuzzy
 msgid "Duplicate"
-msgstr "Détection des doublons"
+msgstr "Doublon"
 
-#, fuzzy
 msgid "Duplicate detection"
 msgstr "Détection des doublons"
 
@@ -1271,15 +1269,3 @@ msgstr ""
 
 msgid "Settings saved"
 msgstr "Paramètres sauvegardés"
-
-#, fuzzy
-#~ msgid "Program duplicate detection"
-#~ msgstr "Détection des doublons"
-
-#, fuzzy
-#~ msgid "Template Code"
-#~ msgstr "Modèle"
-
-#, fuzzy
-#~ msgid "Template Description"
-#~ msgstr "Accès à la génération de modèles"

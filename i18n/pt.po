@@ -330,13 +330,11 @@ msgstr "Filtrar colunas para programas"
 msgid "Data elements and attributes to include/exclude for programs"
 msgstr "Elementos de dados e atributos a incluir/excluir para programas"
 
-#, fuzzy
 msgid "Duplicate"
-msgstr "Detecção duplicada"
+msgstr "Duplicado"
 
-#, fuzzy
 msgid "Duplicate detection"
-msgstr "Detecção duplicada"
+msgstr "Detecção de duplicados"
 
 msgid "Event date time difference for events (programs)"
 msgstr "Diferença de data e hora do evento de eventos (programas)"
@@ -1305,15 +1303,3 @@ msgstr ""
 
 msgid "Settings saved"
 msgstr "Configurações salvas"
-
-#, fuzzy
-#~ msgid "Program duplicate detection"
-#~ msgstr "Detecção duplicada"
-
-#, fuzzy
-#~ msgid "Template Code"
-#~ msgstr "Modelo"
-
-#, fuzzy
-#~ msgid "Template Description"
-#~ msgstr "Acesso à geração de planilhas"

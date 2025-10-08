@@ -330,11 +330,9 @@ msgstr "Фильтр столбцов для программ"
 msgid "Data elements and attributes to include/exclude for programs"
 msgstr "Элементы данных и атрибуты для включения/исключения для программ"
 
-#, fuzzy
 msgid "Duplicate"
-msgstr "Обнаружение дубликатов"
+msgstr "Дубликат"
 
-#, fuzzy
 msgid "Duplicate detection"
 msgstr "Обнаружение дубликатов"
 
@@ -1307,15 +1305,3 @@ msgstr "Нет захвата орг единицы соответствие э�
 
 msgid "Settings saved"
 msgstr "Сохранение настроек"
-
-#, fuzzy
-#~ msgid "Program duplicate detection"
-#~ msgstr "Обнаружение дубликатов"
-
-#, fuzzy
-#~ msgid "Template Code"
-#~ msgstr "Шаблон"
-
-#, fuzzy
-#~ msgid "Template Description"
-#~ msgstr "Доступ к генерации шаблонов"

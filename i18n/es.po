@@ -324,11 +324,9 @@ msgstr "Filtrar las columnas de los programas"
 msgid "Data elements and attributes to include/exclude for programs"
 msgstr "Elementos de datos y atributos a incluir/excluir para los programas"
 
-#, fuzzy
 msgid "Duplicate"
-msgstr "Detección de duplicados"
+msgstr "Duplicado"
 
-#, fuzzy
 msgid "Duplicate detection"
 msgstr "Detección de duplicados"
 
@@ -1248,7 +1246,3 @@ msgstr ""
 
 msgid "Settings saved"
 msgstr "Configuración guardada"
-
-#, fuzzy
-#~ msgid "Program duplicate detection"
-#~ msgstr "Detección de duplicados"
