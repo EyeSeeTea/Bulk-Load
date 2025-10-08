@@ -51,7 +51,7 @@ const allFields = [...privateFields, ...publicFields];
 type Options = Pick<Settings, GetArrayInnerType<typeof allFields>>;
 type PublicOption = Pick<Options, GetArrayInnerType<typeof publicFields>>;
 
-export type PermissionSetting = "generation" | "settings" | "import";
+export type PermissionSetting = "generation" | "settings" | "import" | "history";
 export type PermissionType = "user" | "userGroup";
 
 type PermissionValue =
@@ -186,6 +186,7 @@ export default class Settings {
             generation: await buildPermission("generation"),
             import: await buildPermission("import"),
             settings: await buildPermission("settings"),
+            history: await buildPermission("history"),
         };
 
         return new Settings({
@@ -261,9 +262,11 @@ export default class Settings {
             permissionsForGeneration: buildPermissions("generation"),
             permissionsForSettings: buildPermissions("settings"),
             permissionsForImport: buildPermissions("import"),
+            permissionsForHistory: buildPermissions("history"),
             allPermissionsForSettings: permissions.settings.type === "all",
             allPermissionsForGeneration: permissions.generation.type === "all",
             allPermissionsForImport: permissions.import.type === "all",
+            allPermissionsForHistory: permissions.history.type === "all",
             orgUnitSelection,
             duplicateEnabled,
             duplicateExclusion,
@@ -484,8 +487,7 @@ export default class Settings {
     }
 
     isHistoryVisibleForCurrentUser(): boolean {
-        // for now, history visibility is tied to settings visibility
-        return this.hasPermissions(this.permissions.settings);
+        return this.hasPermissions(this.permissions.history);
     }
 
     isDataFormVisibleForCurrentUser(dataFormId: Id): boolean {
@@ -563,6 +565,8 @@ function mapPermissionSettingToConfig(prop: PermissionSetting) {
             return "permissionsForImport";
         case "settings":
             return "permissionsForSettings";
+        case "history":
+            return "permissionsForHistory";
     }
 }
 
@@ -574,5 +578,7 @@ function mapPermissionSettingToAllConfig(prop: PermissionSetting) {
             return "allPermissionsForImport";
         case "settings":
             return "allPermissionsForSettings";
+        case "history":
+            return "allPermissionsForHistory";
     }
 }

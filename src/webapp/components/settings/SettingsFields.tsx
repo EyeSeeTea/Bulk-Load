@@ -424,6 +424,15 @@ export default function SettingsFields(props: SettingsFieldsProps & CustomTempla
                         secondary={buildSharingDescription("settings")}
                     />
                 </ListItem>
+                <ListItem button onClick={() => setPermissionsType("history")}>
+                    <ListItemIcon>
+                        <Icon>history</Icon>
+                    </ListItemIcon>
+                    <ListItemText
+                        primary={i18n.t("Access to History")}
+                        secondary={buildSharingDescription("history")}
+                    />
+                </ListItem>
             </FormGroup>
 
             <h3 className={classes.title}>{i18n.t("Maintenance")}</h3>
