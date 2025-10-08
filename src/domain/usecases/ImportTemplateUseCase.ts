@@ -31,6 +31,7 @@ import { AttributeValue, TrackedEntityInstance } from "../entities/TrackedEntity
 import { Maybe } from "../../types/utils";
 import { HistoryEntry, HistoryEntryDocument } from "../entities/HistoryEntry";
 import { DocumentRepository } from "../repositories/DocumentRepository";
+import { User } from "../entities/User";
 
 export type ImportTemplateError =
     | {
@@ -96,18 +97,36 @@ export class ImportTemplateUseCase implements UseCase {
         params: ImportTemplateUseCaseParams
     ): Promise<Either<ImportTemplateError, SynchronizationResult[]>> {
         const document = await this.uploadDocument(params);
-        try {
-            const { dataForm, result } = await this.run(params);
+        let dataForm: DataForm | undefined = undefined;
 
-            if (HistoryEntry.shouldSaveImportResult(result)) {
-                const historyEntry = HistoryEntry.fromImportResult({
-                    user: params.settings.currentUser,
-                    document,
-                    dataForm,
-                    result,
-                });
-                await this.historyRepository.save(historyEntry);
-            }
+        try {
+            const { spreadSheet, images } = await this.importSourceRepository.import(params.file);
+
+            const dataFormResult = await this.getDataForm(params, spreadSheet);
+
+            const result = await dataFormResult.match({
+                error: async error => {
+                    const errorResult = Either.error(error);
+                    await this.saveHistoryIfNeeded({
+                        user: params.settings.currentUser,
+                        document,
+                        dataForm: undefined,
+                        result: errorResult,
+                    });
+                    return errorResult;
+                },
+                success: async retrievedDataForm => {
+                    dataForm = retrievedDataForm;
+                    const importResult = await this.run(params, retrievedDataForm, spreadSheet, images);
+                    await this.saveHistoryIfNeeded({
+                        user: params.settings.currentUser,
+                        document,
+                        dataForm: retrievedDataForm,
+                        result: importResult,
+                    });
+                    return importResult;
+                },
+            });
 
             return result;
         } catch (error) {
@@ -116,7 +135,7 @@ export class ImportTemplateUseCase implements UseCase {
                 user: params.settings.currentUser,
                 document,
                 errorDetails: { type: "UNHANDLED_EXCEPTION", message: (error as Error).message },
-                dataForm: undefined,
+                dataForm,
                 syncResults: undefined,
             });
             await this.historyRepository.save(historyEntry);
@@ -124,28 +143,34 @@ export class ImportTemplateUseCase implements UseCase {
         }
     }
 
-    private async run({
-        file,
-        useBuilderOrgUnits = false,
-        selectedOrgUnits = [],
-        duplicateStrategy = "ERROR",
-        organisationUnitStrategy = "ERROR",
-        settings,
-    }: ImportTemplateUseCaseParams): Promise<{
-        dataForm?: DataForm;
+    private async saveHistoryIfNeeded({
+        user,
+        document,
+        dataForm,
+        result,
+    }: {
+        user: User;
+        document: HistoryEntryDocument;
+        dataForm: DataForm | undefined;
         result: Either<ImportTemplateError, SynchronizationResult[]>;
-    }> {
-        let dataForm: DataForm | undefined = undefined;
-        // closure to wrap the results with context
-        const result = (either: Either<ImportTemplateError, SynchronizationResult[]>) => ({
-            dataForm,
-            result: either,
-        });
+    }): Promise<void> {
+        if (HistoryEntry.shouldSaveImportResult(result)) {
+            const historyEntry = HistoryEntry.fromImportResult({
+                user,
+                document,
+                dataForm,
+                result,
+            });
+            await this.historyRepository.save(historyEntry);
+        }
+    }
 
-        const { spreadSheet, images } = await this.importSourceRepository.import(file);
-
+    private async getDataForm(
+        { useBuilderOrgUnits = false, selectedOrgUnits = [] }: ImportTemplateUseCaseParams,
+        spreadSheet: Blob
+    ): Promise<Either<ImportTemplateError, DataForm>> {
         if (useBuilderOrgUnits && selectedOrgUnits.length !== 1) {
-            return result(Either.error({ type: "INVALID_OVERRIDE_ORG_UNIT" }));
+            return Either.error({ type: "INVALID_OVERRIDE_ORG_UNIT" });
         }
 
         const templateId = await this.excelRepository.loadTemplate({ type: "file", file: spreadSheet });
@@ -157,20 +182,37 @@ export class ImportTemplateUseCase implements UseCase {
             })
         );
         if (!dataFormId || typeof dataFormId !== "string") {
-            return result(Either.error({ type: "INVALID_DATA_FORM_ID" }));
+            return Either.error({ type: "INVALID_DATA_FORM_ID" });
         }
 
         const [retrievedDataForm] = await this.instanceRepository.getDataForms({ ids: [dataFormId] });
         if (!retrievedDataForm) {
-            return result(Either.error({ type: "DATA_FORM_NOT_FOUND" }));
+            return Either.error({ type: "DATA_FORM_NOT_FOUND" });
         }
 
-        // From this point onwards, we have the dataForm available
-        dataForm = retrievedDataForm;
+        return Either.success(retrievedDataForm);
+    }
+
+    private async run(
+        {
+            useBuilderOrgUnits = false,
+            selectedOrgUnits = [],
+            duplicateStrategy = "ERROR",
+            organisationUnitStrategy = "ERROR",
+            settings,
+        }: ImportTemplateUseCaseParams,
+        dataForm: DataForm,
+        spreadSheet: Blob,
+        images: FileResource[]
+    ): Promise<Either<ImportTemplateError, SynchronizationResult[]>> {
+        const templateId = await this.excelRepository.loadTemplate({ type: "file", file: spreadSheet });
+        const template = await this.templateRepository.getTemplate(templateId);
+
+        const dataFormId = dataForm.id;
 
         const dataPackage = await this.readTemplate(template, dataForm);
         if (!dataPackage) {
-            return result(Either.error({ type: "MALFORMED_TEMPLATE" }));
+            return Either.error({ type: "MALFORMED_TEMPLATE" });
         }
 
         const orgUnits = await this.instanceRepository.getDataFormOrgUnits(dataForm.type, dataFormId);
@@ -192,18 +234,16 @@ export class ImportTemplateUseCase implements UseCase {
         );
 
         if (organisationUnitStrategy === "ERROR" && invalidDataValues.dataEntries.length > 0) {
-            return result(Either.error({ type: "INVALID_ORG_UNITS", dataValues, invalidDataValues }));
+            return Either.error({ type: "INVALID_ORG_UNITS", dataValues, invalidDataValues });
         }
 
         if (duplicateStrategy === "ERROR" && existingDataValues.dataEntries.length > 0) {
-            return result(
-                Either.error({
-                    type: "DUPLICATE_VALUES",
-                    dataValues,
-                    existingDataValues,
-                    instanceDataValues,
-                })
-            );
+            return Either.error({
+                type: "DUPLICATE_VALUES",
+                dataValues,
+                existingDataValues,
+                instanceDataValues,
+            });
         }
 
         const shouldDeleteExistingData =
@@ -229,9 +269,9 @@ export class ImportTemplateUseCase implements UseCase {
                   }
                 : undefined;
 
-            return result(Either.success(_.compact([deleteResultWithErrorsDetails, ...importResultWithErrorsDetails])));
+            return Either.success(_.compact([deleteResultWithErrorsDetails, ...importResultWithErrorsDetails]));
         } else {
-            return result(Either.success(_.compact([deleteResult, ...importResult])));
+            return Either.success(_.compact([deleteResult, ...importResult]));
         }
     }
 
