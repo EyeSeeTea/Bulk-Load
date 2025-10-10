@@ -31,6 +31,7 @@ import { AttributeValue, TrackedEntityInstance } from "../entities/TrackedEntity
 import { Maybe } from "../../types/utils";
 import { buildHistorySharing, HistoryEntry, HistoryEntryDocument } from "../entities/HistoryEntry";
 import { DocumentRepository } from "../repositories/DocumentRepository";
+import { DataElementDisaggregationsMappingRepository } from "../repositories/DataElementDisaggregationsMappingRepository";
 
 export type ImportTemplateError =
     | {
@@ -85,7 +86,8 @@ export class ImportTemplateUseCase implements UseCase {
         private fileRepository: FileRepository,
         private importSourceRepository: ImportSourceRepository,
         private historyRepository: HistoryRepository,
-        private documentRepository: DocumentRepository
+        private documentRepository: DocumentRepository,
+        private dataElementDisaggregationsMappingRepository: DataElementDisaggregationsMappingRepository
     ) {}
 
     /**
@@ -365,7 +367,11 @@ export class ImportTemplateUseCase implements UseCase {
     }
 
     private async readTemplate(template: Template, dataForm: DataForm): Promise<Maybe<TemplateDataPackage>> {
-        const reader = new ExcelReader(this.excelRepository, this.instanceRepository);
+        const reader = new ExcelReader(
+            this.excelRepository,
+            this.instanceRepository,
+            this.dataElementDisaggregationsMappingRepository
+        );
         const excelDataValues = await reader.readTemplate(template, dataForm);
         if (!excelDataValues) return undefined;
 

@@ -90,3 +90,19 @@ export type NestedKeyOf<T, Prefix extends string = "", Depth extends number = 5>
               : `${Prefix}${K}`;
       }[keyof T & string]
     : never;
+
+/**
+ * Returns `undefined` if the input array is empty; otherwise returns the array itself.
+ *
+ * Use on logical short-circuiting (`||`, `??`) to avoid the verbose pattern of checking
+ * for emptiness before using an array.
+ *
+ * @example
+ * const items =
+ *   undefinedIfEmpty(itemsFromDb) ??
+ *   undefinedIfEmpty(itemsFromFileSystem) ??
+ *   defaultItems;
+ */
+export function undefinedIfEmpty<T>(xs: T[]): T[] | undefined {
+    return xs.length === 0 ? undefined : xs;
+}

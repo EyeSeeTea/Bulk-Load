@@ -5,6 +5,7 @@ import {
     CustomTemplateWithUrl,
     DataSource,
     DownloadCustomizationOptions,
+    DownloadCustomizationRepositories,
     StyleSource,
 } from "../../../domain/entities/Template";
 import {
@@ -18,8 +19,6 @@ import {
 } from "../../../domain/entities/templates/MSFModuleMetadata";
 import { ThemeStyle } from "../../../domain/entities/Theme";
 import { ExcelRepository } from "../../../domain/repositories/ExcelRepository";
-import { InstanceRepository } from "../../../domain/repositories/InstanceRepository";
-import { ModulesRepositories } from "../../../domain/repositories/ModulesRepositories";
 import { MSFModuleMetadataRepository } from "../../../domain/repositories/templates/MSFModuleMetadataRepository";
 import { Maybe } from "../../../types/utils";
 import { getOptionsKey } from "../../../webapp/logic/sheetBuilder";
@@ -60,11 +59,10 @@ export class MSFModule101 implements CustomTemplateWithUrl {
     public readonly styleSources: StyleSource[] = [];
 
     public async downloadCustomization(
-        excelRepository: ExcelRepository,
-        _instanceRepository: InstanceRepository,
-        modulesRepositories: ModulesRepositories,
+        repositories: DownloadCustomizationRepositories,
         options: DownloadCustomizationOptions
     ): Promise<void> {
+        const { excelRepository, modulesRepositories } = repositories;
         await new DownloadCustomization(this.id, excelRepository, modulesRepositories.msf, options).execute();
     }
 }

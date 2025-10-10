@@ -12,6 +12,7 @@ import { ModulesRepositories } from "../repositories/ModulesRepositories";
 import { TrackedEntityInstance } from "./TrackedEntityInstance";
 import { Geometry } from "./DhisDataPackage";
 import { TemplateFilter } from "./TemplateFilter";
+import { DataElementDisaggregationsMappingRepository } from "../repositories/DataElementDisaggregationsMappingRepository";
 
 export interface DataFormTemplate extends DataForm {
     templateId: string;
@@ -93,14 +94,11 @@ export interface CustomTemplateWithUrl extends BaseTemplate {
     showLanguage?: boolean;
     showPeriod?: boolean;
     downloadCustomization?: (
-        excelRepository: ExcelRepository,
-        instanceRepository: InstanceRepository,
-        modulesRepositories: ModulesRepositories,
+        respositories: DownloadCustomizationRepositories,
         options: DownloadCustomizationOptions
     ) => Promise<void>;
     importCustomization?: (
-        excelRepository: ExcelRepository,
-        instanceRepository: InstanceRepository,
+        repositories: ImportCustomizationRepositories,
         options: ImportCustomizationOptions
     ) => Promise<Maybe<TemplateDataPackage>>;
     filters?: {
@@ -108,6 +106,19 @@ export interface CustomTemplateWithUrl extends BaseTemplate {
         dataEntryFilters?: TemplateFilter;
     };
 }
+
+export type DownloadCustomizationRepositories = {
+    excelRepository: ExcelRepository;
+    instanceRepository: InstanceRepository;
+    modulesRepositories: ModulesRepositories;
+    dataElementDisaggregationsMappingRepository: DataElementDisaggregationsMappingRepository;
+};
+
+export type ImportCustomizationRepositories = {
+    excelRepository: ExcelRepository;
+    instanceRepository: InstanceRepository;
+    dataElementDisaggregationsMappingRepository: DataElementDisaggregationsMappingRepository;
+};
 
 export interface GenericSheetRef {
     type: RefType;
@@ -563,40 +574,6 @@ function mapFromProgramData(entry: ProgramPackageData): TemplateDataPackageData 
             contentType: dv.contentType,
         })),
     };
-}
-
-function coordinateToGeometry(entry: TemplateDataPackageData): Maybe<Geometry> {
-    const { coordinate } = entry;
-    if (!coordinate) return undefined;
-
-    const longitude = parseInt(coordinate.longitude);
-    const latitude = parseInt(coordinate.latitude);
-
-    if (longitude === undefined || latitude === undefined) return undefined;
-
-    return {
-        type: "Point",
-        coordinates: [longitude, latitude],
-    };
-}
-
-function geometryToCoordinate(geometry?: Geometry): Maybe<TemplateDataPackageData["coordinate"]> {
-    //currenly, coordinate prop is only being used for point
-    switch (geometry?.type) {
-        case "Point": {
-            if (!geometry || !Array.isArray(geometry.coordinates) || geometry.type !== "Point") return undefined;
-
-            const [longitude, latitude] = geometry.coordinates;
-
-            return {
-                latitude: latitude.toString(),
-                longitude: longitude.toString(),
-            };
-        }
-        case "Polygon":
-        default:
-            return undefined;
-    }
 }
 
 export function isDataProcessingRuleCoalesce(rule: DataProcessingRule): rule is DataProcessingRuleCoalesce {

@@ -62,7 +62,6 @@ export interface DataElement {
     id: Id;
     name: string;
     valueType: DataElementType;
-    categoryOptionCombos?: Array<{ id: Id; name: string }>;
     options: Array<DataOption>;
 }
 
