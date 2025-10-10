@@ -5,6 +5,7 @@ import { dataStoreNamespace } from "./StorageDataStoreRepository";
 import { Id } from "../domain/entities/ReferenceObject";
 import { DocumentDeleteOptions, DocumentRepository } from "../domain/repositories/DocumentRepository";
 import { Document } from "../domain/entities/Document";
+import { Permissions, Sharing } from "../domain/entities/Sharing";
 
 export class DocumentD2Repository implements DocumentRepository {
     private api: D2Api;
@@ -16,20 +17,30 @@ export class DocumentD2Repository implements DocumentRepository {
         this.dataStore = this.api.dataStore(dataStoreNamespace);
     }
 
-    async upload(file: { name: string; data: File }): Promise<Document> {
+    async upload(file: { name: string; data: File; permissions?: Sharing }): Promise<Document> {
         const newDocument = await this.api.files
             .upload({
                 name: file.name,
                 data: file.data,
             })
             .getData();
+
+        if (file.permissions) {
+            try {
+                await this.updateDocumentSharing(newDocument.id, file.permissions);
+            } catch (error) {
+                console.error("Failed to update document sharing settings", error);
+                // in case of error continue, permissions will be default
+            }
+        }
+
         const document: Document = {
             id: newDocument.id,
             name: file.name,
             createdAt: new Date().toISOString(),
             fileResourceId: newDocument.fileResourceId,
         };
-        await this.addToHistory(document);
+        await this.addToDataStore(document);
         return document;
     }
 
@@ -66,8 +77,38 @@ export class DocumentD2Repository implements DocumentRepository {
         return this.api.files.get(fileResourceId).getData();
     }
 
-    private async addToHistory(doc: Document): Promise<void> {
+    private async updateDocumentSharing(documentId: Id, permissions: Sharing): Promise<void> {
+        const sharingSettings = this.buildSharingSettings(permissions);
+        await this.api.sharing
+            .post(
+                {
+                    id: documentId,
+                    type: "document",
+                },
+                {
+                    externalAccess: false,
+                    publicAccess: sharingSettings.publicAccess,
+                    userGroupAccesses: sharingSettings.userGroupAccesses,
+                    userAccesses: sharingSettings.userAccesses,
+                }
+            )
+            .getData();
+    }
+
+    private async addToDataStore(doc: Document): Promise<void> {
         const list = await this.dataStore.get<Document[]>(this.dataStoreKey).getData();
         await this.dataStore.save(this.dataStoreKey, [...(list ?? []), doc]).getData();
+    }
+
+    private buildSharingSettings(permissions: Sharing): {
+        publicAccess: string;
+        userGroupAccesses: Array<{ id: Id; access: string }>;
+        userAccesses: Array<{ id: Id; access: string }>;
+    } {
+        return {
+            publicAccess: Permissions.NO_ACCESS, // documents must be private
+            userGroupAccesses: permissions.userGroups,
+            userAccesses: permissions.users,
+        };
     }
 }

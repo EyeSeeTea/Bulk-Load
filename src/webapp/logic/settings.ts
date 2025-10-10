@@ -25,7 +25,7 @@ import { Id, NamedRef } from "../../domain/entities/ReferenceObject";
 import i18n from "../../utils/i18n";
 import { D2Api, Ref } from "../../types/d2-api";
 import { GetArrayInnerType, Maybe, OkOrError } from "../../types/utils";
-import { User } from "../../domain/entities/User";
+import { isAdmin, User } from "../../domain/entities/User";
 
 const privateFields = ["currentUser"] as const;
 
@@ -138,7 +138,7 @@ export default class Settings {
             orgUnits: d2CurrentUser.organisationUnits,
             orgUnitsView: d2CurrentUser.dataViewOrganisationUnits,
         };
-        const isUserAdmin = currentUser.authorities.has("ALL");
+        const isUserAdmin = isAdmin(currentUser);
 
         const defaultSettings = compositionRoot.settings.getDefault();
         const data = await compositionRoot.settings.read<Partial<AppSettings>>(Settings.constantCode, defaultSettings);
@@ -533,7 +533,7 @@ export default class Settings {
     private hasPermissions(permission: PermissionValue): boolean {
         if (permission.type === "all") return true;
 
-        const isUserAdmin = this.currentUser.authorities.has("ALL");
+        const isUserAdmin = isAdmin(this.currentUser);
         const hasGroupAccess = this.findCurrentUser(permission.groups);
         const hasUserAccess = this.findCurrentUser(permission.users);
         const hasUnknownAccess = this.findCurrentUser(permission.unknown);

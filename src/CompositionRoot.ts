@@ -142,7 +142,7 @@ export function getCompositionRoot({ appConfig, dhisInstance, mockApi, importSou
             search: new SearchUsersUseCase(usersRepository),
         }),
         history: getExecute({
-            getEntries: new GetHistoryEntriesUseCase(historyRepository),
+            getEntries: new GetHistoryEntriesUseCase(historyRepository, instance),
             getDetails: new GetHistoryEntryDetailsUseCase(historyRepository),
             downloadDocument: new DownloadDocumentUseCase(documentRepository),
             cleanupDocuments: new DocumentsCleanupUseCase(documentRepository, historyRepository),

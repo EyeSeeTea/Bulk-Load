@@ -4,6 +4,7 @@ import { useSnackbar } from "@eyeseetea/d2-ui-components";
 import { HistoryEntryStatus, HistoryEntrySummary } from "../../domain/entities/HistoryEntry";
 import i18n from "../../utils/i18n";
 import { useAppContext } from "../contexts/app-context";
+import Settings from "../logic/settings";
 
 export default function useHistory() {
     const { compositionRoot } = useAppContext();
@@ -13,10 +14,10 @@ export default function useHistory() {
     const [entries, setEntries] = useState<HistoryEntrySummary[]>([]);
 
     const load = useCallback(
-        async ({ searchText, status }: { searchText?: string; status?: HistoryEntryStatus }) => {
+        async (settings: Settings, { searchText, status }: { searchText?: string; status?: HistoryEntryStatus }) => {
             try {
                 setLoading(true);
-                const entries = await compositionRoot.history.getEntries({ searchText, status });
+                const entries = await compositionRoot.history.getEntries(settings, { searchText, status });
                 setEntries(entries);
             } catch (error) {
                 console.error("Error loading history entries:", error);

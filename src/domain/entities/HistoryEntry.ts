@@ -3,10 +3,12 @@ import { generateUid } from "d2/uid";
 import { SynchronizationResult } from "./SynchronizationResult";
 import { Maybe } from "../../types/utils";
 import { ImportTemplateError } from "../usecases/ImportTemplateUseCase";
-import { User } from "./User";
-import { DataForm } from "./DataForm";
+import { isAdmin, User } from "./User";
+import { DataForm, DataFormPermissions } from "./DataForm";
 import { Either } from "./Either";
 import { Document, UnsavedDocument } from "./Document";
+import { defaultSharing, Sharing } from "./Sharing";
+import Settings from "../../webapp/logic/settings";
 
 export class HistoryEntry {
     public readonly id: Id;
@@ -93,6 +95,7 @@ export class HistoryEntry {
             status: this.computeStatus(),
             username: this.user.username,
             fileName: this.document.name,
+            dataFormId: this.dataForm?.id,
             ...documentInformation,
         };
     }
@@ -138,6 +141,7 @@ export type HistoryEntryStatus = "SUCCESS" | "ERROR" | "WARNING";
 
 export interface HistoryEntrySummary {
     id: Id;
+    dataFormId?: Id;
     name: string;
     timestamp: string;
     status: HistoryEntryStatus;
@@ -162,3 +166,47 @@ interface UnhandledException {
 type ErrorDetails = ImportTemplateError | UnhandledException;
 
 export type HistoryEntryDocument = Document | UnsavedDocument;
+
+export function buildHistorySharing(
+    templatePermissions: Settings["templatePermissions"],
+    dataForm: Maybe<DataFormPermissions>
+): Maybe<Sharing> {
+    const READ_ONLY = "r-------";
+    if (!dataForm) {
+        return;
+    }
+    const overrides = templatePermissions[dataForm.id];
+    if (overrides?.type === "sharing") {
+        return {
+            ...defaultSharing,
+            userGroups: overrides.groups.map(g => ({ id: g.id, access: READ_ONLY, displayName: g.name })),
+            users: overrides.users.map(u => ({ id: u.id, access: READ_ONLY, displayName: u.name })),
+        };
+    }
+    const hasWriteAccess = (sharingItem: { access: string }) =>
+        sharingItem.access[1] === "w" || sharingItem.access[3] === "w";
+    return {
+        ...defaultSharing,
+        userGroups: dataForm.sharing.userGroups.filter(hasWriteAccess).map(g => ({ ...g, access: READ_ONLY })),
+        users: dataForm.sharing.users.filter(hasWriteAccess).map(u => ({ ...u, access: READ_ONLY })),
+    };
+}
+
+export function canViewHistoryEntry(
+    entry: HistoryEntrySummary,
+    settings: Pick<Settings, "currentUser" | "templatePermissions">,
+    permissions: Maybe<DataFormPermissions>
+): boolean {
+    const { currentUser, templatePermissions } = settings;
+    const baseCanView = isAdmin(currentUser) || currentUser.username === entry.username;
+    if (!entry.dataFormId || !permissions || baseCanView) {
+        return baseCanView;
+    }
+    const sharing = buildHistorySharing(templatePermissions, permissions);
+    if (!sharing) {
+        return baseCanView;
+    }
+    const hasUserAccess = sharing.users.some(u => u.id === currentUser.id);
+    const hasGroupAccess = sharing.userGroups.some(g => currentUser.userGroups.some(ug => ug.id === g.id));
+    return hasUserAccess || hasGroupAccess;
+}

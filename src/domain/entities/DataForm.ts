@@ -1,6 +1,7 @@
 import i18n from "../../utils/i18n";
 import { ofType } from "../../types/utils";
 import { Id, NamedRef } from "./ReferenceObject";
+import { Sharing } from "./Sharing";
 
 export const dataFormTypeMap = {
     dataSets: "dataSets",
@@ -42,6 +43,7 @@ export interface DataForm {
     readAccess: boolean;
     writeAccess: boolean;
     featureType?: DataFormFeatureType;
+    sharing: Sharing;
 }
 
 export interface TrackedEntityAttributeType extends NamedRef {
@@ -99,3 +101,5 @@ export interface OrganisationUnit {
     name: string;
     path: string;
 }
+
+export type DataFormPermissions = Pick<DataForm, "id" | "sharing">;

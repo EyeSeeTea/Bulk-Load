@@ -29,9 +29,8 @@ import { ImportSourceRepository } from "../repositories/ImportSourceRepository";
 import { HistoryRepository } from "../repositories/HistoryRepository";
 import { AttributeValue, TrackedEntityInstance } from "../entities/TrackedEntityInstance";
 import { Maybe } from "../../types/utils";
-import { HistoryEntry, HistoryEntryDocument } from "../entities/HistoryEntry";
+import { buildHistorySharing, HistoryEntry, HistoryEntryDocument } from "../entities/HistoryEntry";
 import { DocumentRepository } from "../repositories/DocumentRepository";
-import { User } from "../entities/User";
 
 export type ImportTemplateError =
     | {
@@ -96,7 +95,6 @@ export class ImportTemplateUseCase implements UseCase {
     public async execute(
         params: ImportTemplateUseCaseParams
     ): Promise<Either<ImportTemplateError, SynchronizationResult[]>> {
-        const document = await this.uploadDocument(params);
         let dataForm: DataForm | undefined = undefined;
 
         try {
@@ -108,8 +106,7 @@ export class ImportTemplateUseCase implements UseCase {
                 error: async error => {
                     const errorResult = Either.error(error);
                     await this.saveHistoryIfNeeded({
-                        user: params.settings.currentUser,
-                        document,
+                        params,
                         dataForm: undefined,
                         result: errorResult,
                     });
@@ -119,8 +116,7 @@ export class ImportTemplateUseCase implements UseCase {
                     dataForm = retrievedDataForm;
                     const importResult = await this.run(params, retrievedDataForm, spreadSheet, images);
                     await this.saveHistoryIfNeeded({
-                        user: params.settings.currentUser,
-                        document,
+                        params,
                         dataForm: retrievedDataForm,
                         result: importResult,
                     });
@@ -130,12 +126,15 @@ export class ImportTemplateUseCase implements UseCase {
 
             return result;
         } catch (error) {
-            // In case of unhandled exception, save a history entry with the error message
+            console.error("Unhandled exception during import", error);
+            // TS infers dataForm as undefined even though it can be set in the try/success block
+            const errorDataForm = dataForm as DataForm | undefined;
+            const document = await this.uploadDocument(params, errorDataForm);
             const historyEntry = HistoryEntry.create({
                 user: params.settings.currentUser,
                 document,
                 errorDetails: { type: "UNHANDLED_EXCEPTION", message: (error as Error).message },
-                dataForm,
+                dataForm: errorDataForm,
                 syncResults: undefined,
             });
             await this.historyRepository.save(historyEntry);
@@ -144,25 +143,26 @@ export class ImportTemplateUseCase implements UseCase {
     }
 
     private async saveHistoryIfNeeded({
-        user,
-        document,
+        params,
         dataForm,
         result,
     }: {
-        user: User;
-        document: HistoryEntryDocument;
+        params: ImportTemplateUseCaseParams;
         dataForm: DataForm | undefined;
         result: Either<ImportTemplateError, SynchronizationResult[]>;
     }): Promise<void> {
-        if (HistoryEntry.shouldSaveImportResult(result)) {
-            const historyEntry = HistoryEntry.fromImportResult({
-                user,
-                document,
-                dataForm,
-                result,
-            });
-            await this.historyRepository.save(historyEntry);
+        if (!HistoryEntry.shouldSaveImportResult(result)) {
+            return;
         }
+        const document = await this.uploadDocument(params, dataForm);
+        const { currentUser } = params.settings;
+        const historyEntry = HistoryEntry.fromImportResult({
+            user: currentUser,
+            document,
+            dataForm,
+            result,
+        });
+        await this.historyRepository.save(historyEntry);
     }
 
     private async getDataForm(
@@ -279,10 +279,10 @@ export class ImportTemplateUseCase implements UseCase {
      * Uploads the document if the user has permissions, otherwise returns an unsaved document
      * In case of any other error also returns an unsaved document
      */
-    private async uploadDocument({
-        file,
-        settings,
-    }: Pick<ImportTemplateUseCaseParams, "file" | "settings">): Promise<HistoryEntryDocument> {
+    private async uploadDocument(
+        { file, settings }: Pick<ImportTemplateUseCaseParams, "file" | "settings">,
+        dataForm: Maybe<DataForm>
+    ): Promise<HistoryEntryDocument> {
         const unsavedDocument = { name: file.name };
         if (!settings.canUploadDocument()) {
             return unsavedDocument;
@@ -291,6 +291,7 @@ export class ImportTemplateUseCase implements UseCase {
             const uploadedDocument = await this.documentRepository.upload({
                 data: file,
                 name: file.name,
+                permissions: buildHistorySharing(settings.templatePermissions, dataForm),
             });
             return uploadedDocument;
         } catch (error) {

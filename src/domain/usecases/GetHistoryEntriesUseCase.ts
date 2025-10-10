@@ -1,6 +1,10 @@
 import { UseCase } from "../../CompositionRoot";
-import { HistoryEntryStatus, HistoryEntrySummary } from "../entities/HistoryEntry";
+import Settings from "../../webapp/logic/settings";
+import { canViewHistoryEntry, HistoryEntryStatus, HistoryEntrySummary } from "../entities/HistoryEntry";
+import { Id } from "../entities/ReferenceObject";
+import { isAdmin } from "../entities/User";
 import { HistoryRepository } from "../repositories/HistoryRepository";
+import { InstanceRepository } from "../repositories/InstanceRepository";
 
 type GetHistoryEntriesFilters = {
     searchText?: string;
@@ -8,11 +12,31 @@ type GetHistoryEntriesFilters = {
 };
 
 export class GetHistoryEntriesUseCase implements UseCase {
-    constructor(private historyRepository: HistoryRepository) {}
+    constructor(private historyRepository: HistoryRepository, private instanceRepository: InstanceRepository) {}
 
-    public async execute(filters: GetHistoryEntriesFilters = {}): Promise<HistoryEntrySummary[]> {
+    public async execute(settings: Settings, filters: GetHistoryEntriesFilters = {}): Promise<HistoryEntrySummary[]> {
         const entries = await this.historyRepository.get();
-        return this.sortEntries(this.filterByStatus(this.filterByText(entries, filters.searchText), filters.status));
+        const filteredByFilters = this.filterByStatus(this.filterByText(entries, filters.searchText), filters.status);
+        const filteredByPermissions = await this.filterByPermissions(filteredByFilters, settings);
+        return this.sortEntries(filteredByPermissions);
+    }
+
+    private async filterByPermissions(
+        entries: HistoryEntrySummary[],
+        settings: Settings
+    ): Promise<HistoryEntrySummary[]> {
+        if (isAdmin(settings.currentUser)) {
+            return entries;
+        }
+        const entryIds = [...new Set(entries.map(e => e.dataFormId).filter(Boolean))] as Id[];
+        const permissions = entryIds.length === 0 ? [] : await this.instanceRepository.getDataFormPermissions(entryIds);
+        return entries.filter(entry =>
+            canViewHistoryEntry(
+                entry,
+                settings,
+                permissions.find(p => p.id === entry.dataFormId)
+            )
+        );
     }
 
     private filterByText(entries: HistoryEntrySummary[], searchText?: string): HistoryEntrySummary[] {

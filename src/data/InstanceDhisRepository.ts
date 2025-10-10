@@ -6,6 +6,7 @@ import {
     DataForm,
     DataFormFeatureType,
     DataFormPeriod,
+    DataFormPermissions,
     DataFormType,
     dataFormTypeMap,
 } from "../domain/entities/DataForm";
@@ -52,6 +53,7 @@ import { cache } from "../utils/cache";
 import { promiseMap } from "../utils/promises";
 import { postEvents } from "./Dhis2Events";
 import { getProgram, getTrackedEntityInstances, updateTrackedEntityInstances } from "./Dhis2TrackedEntityInstances";
+import { Sharing } from "../domain/entities/Sharing";
 
 export class InstanceDhisRepository implements InstanceRepository {
     private api: D2Api;
@@ -85,7 +87,18 @@ export class InstanceDhisRepository implements InstanceRepository {
             .getData();
 
         return objects.map(
-            ({ id, displayName, name, access, periodType, dataSetElements, sections, attributeValues }) => ({
+            ({
+                id,
+                displayName,
+                name,
+                access,
+                periodType,
+                dataSetElements,
+                sections,
+                attributeValues,
+                // @ts-expect-error sharing is not defined in d2-api
+                sharing,
+            }) => ({
                 type: dataFormTypeMap.dataSets,
                 id,
                 attributeValues,
@@ -102,6 +115,7 @@ export class InstanceDhisRepository implements InstanceRepository {
                     dataElements: dataElements.map(dataElement => formatDataElement(dataElement)),
                     repeatable: false,
                 })),
+                sharing: mapSharing(sharing),
             })
         );
     }
@@ -129,7 +143,9 @@ export class InstanceDhisRepository implements InstanceRepository {
                 attributeValues,
                 programTrackedEntityAttributes,
                 trackedEntityType,
-            }) => ({
+                // @ts-expect-error sharing is not defined in d2-api
+                sharing,
+            }): DataForm => ({
                 type: programType === "WITH_REGISTRATION" ? dataFormTypeMap.trackerPrograms : dataFormTypeMap.programs,
                 id,
                 attributeValues,
@@ -160,6 +176,7 @@ export class InstanceDhisRepository implements InstanceRepository {
                 //      which is why we retrieve featureType from the first one.
                 //      Specifically used in `ExcelReader > readByRow -> formatGeometry`
                 featureType: getFeatureType(programStages.map(({ featureType }) => featureType)[0]),
+                sharing: mapSharing(sharing),
             })
         );
     }
@@ -352,6 +369,25 @@ export class InstanceDhisRepository implements InstanceRepository {
             options: _.keyBy(options, opt => opt.id),
             categoryOptionCombos: _.keyBy(cocs, coc => coc.id),
         };
+    }
+
+    @cache()
+    async getDataFormPermissions(dataFormIds: string[]): Promise<DataFormPermissions[]> {
+        const getParams = {
+            paging: false,
+            fields: { id: true, sharing: true },
+            filter: { id: { in: dataFormIds } },
+        } as const;
+        const getDataSets = this.api.models.dataSets.get(getParams).getData();
+        const getPrograms = this.api.models.programs.get(getParams).getData();
+        const [dataSets, programs] = await Promise.all([getDataSets, getPrograms]);
+        return [...dataSets.objects, ...programs.objects].map(
+            ({
+                id,
+                // @ts-expect-error sharing is not defined in d2-api
+                sharing,
+            }) => ({ id, sharing: mapSharing(sharing) })
+        );
     }
 
     /* Private */
@@ -803,6 +839,7 @@ const dataSetFields = {
     sections: { id: true, name: true, dataElements: dataElementFields },
     periodType: true,
     access: true,
+    sharing: true,
 } as const;
 
 const programFields = {
@@ -828,6 +865,7 @@ const programFields = {
     access: true,
     programType: true,
     trackedEntityType: { id: true, featureType: true },
+    sharing: true,
 } as const;
 
 const formatDataElement = (de: SelectedPick<D2DataElementSchema, typeof dataElementFields>): DataElement => ({
@@ -853,4 +891,26 @@ function getTrackedEntityTypeFromApi(
 
 function getFeatureType(featureType?: D2ProgramStage["featureType"]): DataFormFeatureType {
     return featureType === "POINT" ? "point" : featureType === "POLYGON" ? "polygon" : "none";
+}
+
+// TODO: review these sharing types not defined in d2-api
+type D2SharingObject = {
+    id: Id;
+    displayName: string;
+    access: string;
+};
+type D2Sharing = {
+    owner: Id;
+    external: boolean;
+    public: string;
+    userGroups: Record<Id, D2SharingObject>;
+    users: Record<Id, D2SharingObject>;
+};
+
+function mapSharing(sharing: D2Sharing): Sharing {
+    return {
+        ...sharing,
+        userGroups: Object.values(sharing.userGroups),
+        users: Object.values(sharing.users),
+    };
 }

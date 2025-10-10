@@ -77,7 +77,7 @@ export function initializeMockServer() {
     mock.onGet("/dataSets", {
         params: {
             paging: false,
-            fields: "access,attributeValues[attribute[code],value],dataSetElements[dataElement[categoryCombo[categoryOptionCombos[id,name]],formName,id,name,optionSet[id,options[code,id,name]],valueType]],displayName,id,name,periodType,sections[dataElements[categoryCombo[categoryOptionCombos[id,name]],formName,id,name,optionSet[id,options[code,id,name]],valueType],id,name]",
+            fields: "access,attributeValues[attribute[code],value],dataSetElements[dataElement[categoryCombo[categoryOptionCombos[id,name]],formName,id,name,optionSet[id,options[code,id,name]],valueType]],displayName,id,name,periodType,sections[dataElements[categoryCombo[categoryOptionCombos[id,name]],formName,id,name,optionSet[id,options[code,id,name]],valueType],id,name],sharing",
             filter: [],
         },
     }).reply(200, {
@@ -103,6 +103,13 @@ export function initializeMockServer() {
                 dataSetElements: [],
                 organisationUnits: [],
                 sections: [],
+                sharing: {
+                    owner: "ownerid",
+                    publicAccess: "--------",
+                    externalAccess: false,
+                    userGroups: [],
+                    users: [],
+                },
             },
         ],
     });
@@ -111,7 +118,7 @@ export function initializeMockServer() {
     mock.onGet("/programs", {
         params: {
             paging: false,
-            fields: "access,attributeValues[attribute[code],value],displayName,id,name,programStages[featureType,id,name,programStageDataElements[dataElement[categoryCombo[categoryOptionCombos[id,name]],formName,id,name,optionSet[id,options[code,id,name]],valueType]],repeatable],programTrackedEntityAttributes[trackedEntityAttribute[id,name,optionSet[id,options[code,id,name]],valueType]],programType,trackedEntityType[featureType,id]",
+            fields: "access,attributeValues[attribute[code],value],displayName,id,name,programStages[featureType,id,name,programStageDataElements[dataElement[categoryCombo[categoryOptionCombos[id,name]],formName,id,name,optionSet[id,options[code,id,name]],valueType]],repeatable],programTrackedEntityAttributes[trackedEntityAttribute[id,name,optionSet[id,options[code,id,name]],valueType]],programType,sharing,trackedEntityType[featureType,id]",
             filter: [],
         },
     }).reply(200, {
@@ -136,6 +143,13 @@ export function initializeMockServer() {
                 programStages: [],
                 programTrackedEntityAttributes: [],
                 trackedEntityType: { id: "ZhmIeRK6IfG", featureType: "NONE" },
+                sharing: {
+                    owner: "ownerid",
+                    publicAccess: "--------",
+                    externalAccess: false,
+                    userGroups: [],
+                    users: [],
+                },
             },
         ],
     });

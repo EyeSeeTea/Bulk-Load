@@ -18,8 +18,13 @@ import { HistoryStatusIndicator } from "./HistoryStatusIndicator";
 import { firstOrFail } from "../../../types/utils";
 import useHistory from "../../hooks/useHistory";
 import { useDownloadDocument } from "../../hooks/useDownloadDocument";
+import Settings from "../../logic/settings";
 
-export function HistoryTable() {
+export interface HistoryTableProps {
+    settings: Settings;
+}
+
+export function HistoryTable({ settings }: HistoryTableProps) {
     const classes = useStyles();
 
     const [selection, setSelection] = useState<TableSelection[]>([]);
@@ -31,8 +36,8 @@ export function HistoryTable() {
     const { downloadDocument } = useDownloadDocument();
 
     useEffect(() => {
-        load({ searchText, status: statusFilter });
-    }, [load, searchText, statusFilter]);
+        load(settings, { searchText, status: statusFilter });
+    }, [load, searchText, statusFilter, settings]);
 
     const onClickDownload = useCallback(
         async selectedIds => {
