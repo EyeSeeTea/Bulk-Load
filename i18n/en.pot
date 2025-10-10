@@ -5,8 +5,8 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2025-09-25T16:22:01.598Z\n"
-"PO-Revision-Date: 2025-09-25T16:22:01.598Z\n"
+"POT-Creation-Date: 2025-10-10T15:27:15.865Z\n"
+"PO-Revision-Date: 2025-10-10T15:27:15.865Z\n"
 
 msgid "Events - Create/update"
 msgstr ""
@@ -179,6 +179,9 @@ msgstr ""
 msgid "The original file has been deleted and is no longer available for download"
 msgstr ""
 
+msgid "The original file is not available for download"
+msgstr ""
+
 msgid "Success"
 msgstr ""
 
@@ -289,6 +292,9 @@ msgstr ""
 msgid "Program"
 msgstr ""
 
+msgid "Items older than {{period}}"
+msgstr ""
+
 msgid "Access to Template Generation"
 msgstr ""
 
@@ -296,6 +302,9 @@ msgid "Access to Import Data"
 msgstr ""
 
 msgid "Access to Settings and Themes"
+msgstr ""
+
+msgid "Access to History"
 msgstr ""
 
 msgid "Access Permissions confirmation"
@@ -319,6 +328,18 @@ msgid "Search data elements or attributes"
 msgstr ""
 
 msgid "Populate events for every Tracked Entity Instance (TEI)"
+msgstr ""
+
+msgid "File cleanup completed successfully"
+msgstr ""
+
+msgid "An error occurred during file cleanup"
+msgstr ""
+
+msgid "History cleanup completed successfully"
+msgstr ""
+
+msgid "An error occurred during history cleanup"
 msgstr ""
 
 msgid "Select Organisation Units on template generation"
@@ -436,9 +457,6 @@ msgstr ""
 msgid "Maintenance"
 msgstr ""
 
-msgid "Cleaning up files..."
-msgstr ""
-
 msgid "File cleanup"
 msgstr ""
 
@@ -447,15 +465,7 @@ msgid ""
 "but the files will be unaccessible"
 msgstr ""
 
-msgid "Cleaning up history..."
-msgstr ""
-
-msgid "History cleanup"
-msgstr ""
-
-msgid ""
-"Remove history entries and their documents older than the selected period. "
-"This action cannot be undone"
+msgid "Cleaning up files..."
 msgstr ""
 
 msgid "Confirm File Cleanup"
@@ -467,10 +477,21 @@ msgid ""
 "will be inaccessible."
 msgstr ""
 
+msgid "Remove files older than"
+msgstr ""
+
 msgid "Clean up files"
 msgstr ""
 
-msgid "Remove files older than"
+msgid "History cleanup"
+msgstr ""
+
+msgid ""
+"Remove history entries and their documents older than the selected period. "
+"This action cannot be undone"
+msgstr ""
+
+msgid "Cleaning up history..."
 msgstr ""
 
 msgid "Confirm History Cleanup"
@@ -481,10 +502,10 @@ msgid ""
 "older than the selected period? This action cannot be undone."
 msgstr ""
 
-msgid "Clean up history"
+msgid "Remove history entries older than"
 msgstr ""
 
-msgid "Remove history entries older than"
+msgid "Clean up history"
 msgstr ""
 
 msgid "Edit custom template"
@@ -1052,18 +1073,6 @@ msgid "Error loading history entries"
 msgstr ""
 
 msgid "Error loading import details"
-msgstr ""
-
-msgid "History cleanup completed successfully"
-msgstr ""
-
-msgid "An error occurred during history cleanup"
-msgstr ""
-
-msgid "File cleanup completed successfully"
-msgstr ""
-
-msgid "An error occurred during file cleanup"
 msgstr ""
 
 msgid "Error deleting data values"

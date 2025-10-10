@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2025-09-25T16:22:01.598Z\n"
+"POT-Creation-Date: 2025-10-10T15:27:15.865Z\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -201,6 +201,9 @@ msgid ""
 "The original file has been deleted and is no longer available for download"
 msgstr ""
 
+msgid "The original file is not available for download"
+msgstr ""
+
 msgid "Success"
 msgstr ""
 
@@ -326,6 +329,9 @@ msgstr "Elementos de datos usados para determinar los duplicados"
 msgid "Program"
 msgstr "Programa"
 
+msgid "Items older than {{period}}"
+msgstr ""
+
 msgid "Access to Template Generation"
 msgstr "Acceso a la generación de plantillas"
 
@@ -334,6 +340,10 @@ msgstr "Acceso a la importación de datos"
 
 msgid "Access to Settings and Themes"
 msgstr "Acceso al área de configuración y a los temas"
+
+#, fuzzy
+msgid "Access to History"
+msgstr "Acceso a plantillas"
 
 msgid "Access Permissions confirmation"
 msgstr "Confirme los permisos de accesso"
@@ -359,6 +369,20 @@ msgstr "Buscar elementos de datos o atributos"
 
 msgid "Populate events for every Tracked Entity Instance (TEI)"
 msgstr ""
+
+msgid "File cleanup completed successfully"
+msgstr ""
+
+#, fuzzy
+msgid "An error occurred during file cleanup"
+msgstr "Ha ocurrido un error mientras se guardaba el tema"
+
+msgid "History cleanup completed successfully"
+msgstr ""
+
+#, fuzzy
+msgid "An error occurred during history cleanup"
+msgstr "Ha ocurrido un error mientras se guardaba el tema"
 
 msgid "Select Organisation Units on template generation"
 msgstr "Mostrar unidades organizativas durante la generación de la plantilla"
@@ -483,10 +507,6 @@ msgstr "Permisos"
 msgid "Maintenance"
 msgstr "Migrar la instancia"
 
-#, fuzzy
-msgid "Cleaning up files..."
-msgstr "Leyendo archivo..."
-
 msgid "File cleanup"
 msgstr ""
 
@@ -496,16 +516,8 @@ msgid ""
 msgstr ""
 
 #, fuzzy
-msgid "Cleaning up history..."
+msgid "Cleaning up files..."
 msgstr "Leyendo archivo..."
-
-msgid "History cleanup"
-msgstr ""
-
-msgid ""
-"Remove history entries and their documents older than the selected period. "
-"This action cannot be undone"
-msgstr ""
 
 msgid "Confirm File Cleanup"
 msgstr ""
@@ -516,12 +528,24 @@ msgid ""
 "will be inaccessible."
 msgstr ""
 
+msgid "Remove files older than"
+msgstr ""
+
 #, fuzzy
 msgid "Clean up files"
 msgstr "No se puede leer el archivo"
 
-msgid "Remove files older than"
+msgid "History cleanup"
 msgstr ""
+
+msgid ""
+"Remove history entries and their documents older than the selected period. "
+"This action cannot be undone"
+msgstr ""
+
+#, fuzzy
+msgid "Cleaning up history..."
+msgstr "Leyendo archivo..."
 
 msgid "Confirm History Cleanup"
 msgstr ""
@@ -531,12 +555,12 @@ msgid ""
 "older than the selected period? This action cannot be undone."
 msgstr ""
 
+msgid "Remove history entries older than"
+msgstr ""
+
 #, fuzzy
 msgid "Clean up history"
 msgstr "No se puede leer el archivo"
-
-msgid "Remove history entries older than"
-msgstr ""
 
 msgid "Edit custom template"
 msgstr "Editar plantilla personalizada"
@@ -1109,20 +1133,6 @@ msgstr ""
 
 msgid "Error loading import details"
 msgstr ""
-
-msgid "History cleanup completed successfully"
-msgstr ""
-
-#, fuzzy
-msgid "An error occurred during history cleanup"
-msgstr "Ha ocurrido un error mientras se guardaba el tema"
-
-msgid "File cleanup completed successfully"
-msgstr ""
-
-#, fuzzy
-msgid "An error occurred during file cleanup"
-msgstr "Ha ocurrido un error mientras se guardaba el tema"
 
 msgid "Error deleting data values"
 msgstr "Se ha producido un error borrando valores de datos"

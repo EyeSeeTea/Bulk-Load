@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load App\n"
-"POT-Creation-Date: 2025-09-25T16:22:01.598Z\n"
+"POT-Creation-Date: 2025-10-10T15:27:15.865Z\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -195,6 +195,9 @@ msgid ""
 "The original file has been deleted and is no longer available for download"
 msgstr ""
 
+msgid "The original file is not available for download"
+msgstr ""
+
 msgid "Success"
 msgstr ""
 
@@ -313,6 +316,9 @@ msgstr "Éléments de données utilisés pour l'évaluation des doublons"
 msgid "Program"
 msgstr "Programme"
 
+msgid "Items older than {{period}}"
+msgstr ""
+
 msgid "Access to Template Generation"
 msgstr "Accès à la génération de modèles"
 
@@ -321,6 +327,10 @@ msgstr "Accès à l'import de données"
 
 msgid "Access to Settings and Themes"
 msgstr "Accès aux Paramètres et aux Thèmes"
+
+#, fuzzy
+msgid "Access to History"
+msgstr "Accès à la génération de modèles"
 
 msgid "Access Permissions confirmation"
 msgstr ""
@@ -344,6 +354,20 @@ msgstr ""
 
 msgid "Populate events for every Tracked Entity Instance (TEI)"
 msgstr ""
+
+msgid "File cleanup completed successfully"
+msgstr ""
+
+#, fuzzy
+msgid "An error occurred during file cleanup"
+msgstr "Une erreur s'est produite lors de l'enregistrement du thème"
+
+msgid "History cleanup completed successfully"
+msgstr ""
+
+#, fuzzy
+msgid "An error occurred during history cleanup"
+msgstr "Une erreur s'est produite lors de l'enregistrement du thème"
 
 msgid "Select Organisation Units on template generation"
 msgstr "Sélectionnez les unités d'organisation lors de la génération du modèle"
@@ -466,10 +490,6 @@ msgstr "Autorisations"
 msgid "Maintenance"
 msgstr ""
 
-#, fuzzy
-msgid "Cleaning up files..."
-msgstr "Lecture du fichier en cours ..."
-
 msgid "File cleanup"
 msgstr ""
 
@@ -479,16 +499,8 @@ msgid ""
 msgstr ""
 
 #, fuzzy
-msgid "Cleaning up history..."
+msgid "Cleaning up files..."
 msgstr "Lecture du fichier en cours ..."
-
-msgid "History cleanup"
-msgstr ""
-
-msgid ""
-"Remove history entries and their documents older than the selected period. "
-"This action cannot be undone"
-msgstr ""
 
 msgid "Confirm File Cleanup"
 msgstr ""
@@ -499,12 +511,24 @@ msgid ""
 "will be inaccessible."
 msgstr ""
 
+msgid "Remove files older than"
+msgstr ""
+
 #, fuzzy
 msgid "Clean up files"
 msgstr "Le fichier ne peut pas être lu"
 
-msgid "Remove files older than"
+msgid "History cleanup"
 msgstr ""
+
+msgid ""
+"Remove history entries and their documents older than the selected period. "
+"This action cannot be undone"
+msgstr ""
+
+#, fuzzy
+msgid "Cleaning up history..."
+msgstr "Lecture du fichier en cours ..."
 
 msgid "Confirm History Cleanup"
 msgstr ""
@@ -514,12 +538,12 @@ msgid ""
 "older than the selected period? This action cannot be undone."
 msgstr ""
 
+msgid "Remove history entries older than"
+msgstr ""
+
 #, fuzzy
 msgid "Clean up history"
 msgstr "Le fichier ne peut pas être lu"
-
-msgid "Remove history entries older than"
-msgstr ""
 
 #, fuzzy
 msgid "Edit custom template"
@@ -1130,20 +1154,6 @@ msgstr ""
 
 msgid "Error loading import details"
 msgstr ""
-
-msgid "History cleanup completed successfully"
-msgstr ""
-
-#, fuzzy
-msgid "An error occurred during history cleanup"
-msgstr "Une erreur s'est produite lors de l'enregistrement du thème"
-
-msgid "File cleanup completed successfully"
-msgstr ""
-
-#, fuzzy
-msgid "An error occurred during file cleanup"
-msgstr "Une erreur s'est produite lors de l'enregistrement du thème"
 
 msgid "Error deleting data values"
 msgstr "Erreur lors de la suppression des valeurs de données"
