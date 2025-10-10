@@ -25,6 +25,7 @@ function getTranslations() {
             generation: i18n.t("Access to Template Generation"),
             import: i18n.t("Access to Import Data"),
             settings: i18n.t("Access to Settings and Themes"),
+            history: i18n.t("Access to History"),
         }),
     };
 }

@@ -1,21 +1,14 @@
-import { SharingRule } from "@eyeseetea/d2-ui-components";
 import { generateUid } from "d2/uid";
 import _ from "lodash";
 import { defaultColorScale } from "../../webapp/utils/colors";
 import { Id } from "./ReferenceObject";
+import { publicReadSharing, Sharing } from "./Sharing";
 import { Validation } from "./Validation";
 
 export type Color = string;
 
 export type ThemeableSections = "title" | "subtitle";
 export type ImageSections = "logo";
-
-export type Sharing = {
-    external: boolean;
-    public: string;
-    userGroups: SharingRule[];
-    users: SharingRule[];
-};
 
 export interface ThemeStyle {
     text?: string;
@@ -40,13 +33,6 @@ export interface CellImage {
     src: string;
 }
 
-const defaultSharing: Sharing = {
-    external: false,
-    public: "r-------",
-    userGroups: [],
-    users: [],
-};
-
 export class Theme {
     public readonly id: Id;
     public readonly name: string;
@@ -67,7 +53,7 @@ export class Theme {
         palette = defaultColorScale,
         sections = {},
         pictures = {},
-        sharing = defaultSharing,
+        sharing = publicReadSharing,
     }: Partial<Theme> = {}) {
         this.id = id;
         this.name = name;

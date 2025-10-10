@@ -2,7 +2,7 @@ import { DhisInstance } from "../domain/entities/DhisInstance";
 import { StorageRepository } from "../domain/repositories/StorageRepository";
 import { D2Api, D2ApiDefault, DataStore } from "../types/d2-api";
 
-const dataStoreNamespace = "bulk-load";
+export const dataStoreNamespace = "bulk-load";
 
 export class StorageDataStoreRepository extends StorageRepository {
     private api: D2Api;

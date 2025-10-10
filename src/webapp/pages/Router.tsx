@@ -16,6 +16,7 @@ import ThemesPage from "./themes/ThemesPage";
 import BlankTemplatePage from "./blank-template/BlankTemplatePage";
 import { AboutPage } from "./about/AboutPage";
 import { CustomTemplate } from "../../domain/entities/Template";
+import HistoryPage from "./history/HistoryPage";
 
 export interface RouteComponentProps {
     settings: Settings;
@@ -89,6 +90,15 @@ export const Router: React.FC = React.memo(() => {
                 section: "main",
                 auth: (settings: Settings) => settings.isImportDataVisibleForCurrentUser(),
                 component: (props: RouteComponentProps) => <ImportTemplatePage {...props} />,
+            },
+            {
+                key: "history",
+                name: i18n.t("History"),
+                icon: "history",
+                path: "/history",
+                section: "main",
+                auth: (settings: Settings) => settings.isHistoryVisibleForCurrentUser(),
+                component: (props: RouteComponentProps) => <HistoryPage {...props} />,
             },
             {
                 key: "themes",

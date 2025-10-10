@@ -25,7 +25,7 @@ import { Id, NamedRef } from "../../domain/entities/ReferenceObject";
 import i18n from "../../utils/i18n";
 import { D2Api, Ref } from "../../types/d2-api";
 import { GetArrayInnerType, Maybe, OkOrError } from "../../types/utils";
-import { User } from "../../domain/entities/User";
+import { isAdmin, User } from "../../domain/entities/User";
 
 const privateFields = ["currentUser"] as const;
 
@@ -51,7 +51,7 @@ const allFields = [...privateFields, ...publicFields];
 type Options = Pick<Settings, GetArrayInnerType<typeof allFields>>;
 type PublicOption = Pick<Options, GetArrayInnerType<typeof publicFields>>;
 
-export type PermissionSetting = "generation" | "settings" | "import";
+export type PermissionSetting = "generation" | "settings" | "import" | "history";
 export type PermissionType = "user" | "userGroup";
 
 type PermissionValue =
@@ -138,7 +138,7 @@ export default class Settings {
             orgUnits: d2CurrentUser.organisationUnits,
             orgUnitsView: d2CurrentUser.dataViewOrganisationUnits,
         };
-        const isUserAdmin = currentUser.authorities.has("ALL");
+        const isUserAdmin = isAdmin(currentUser);
 
         const defaultSettings = compositionRoot.settings.getDefault();
         const data = await compositionRoot.settings.read<Partial<AppSettings>>(Settings.constantCode, defaultSettings);
@@ -186,6 +186,7 @@ export default class Settings {
             generation: await buildPermission("generation"),
             import: await buildPermission("import"),
             settings: await buildPermission("settings"),
+            history: await buildPermission("history"),
         };
 
         return new Settings({
@@ -261,9 +262,11 @@ export default class Settings {
             permissionsForGeneration: buildPermissions("generation"),
             permissionsForSettings: buildPermissions("settings"),
             permissionsForImport: buildPermissions("import"),
+            permissionsForHistory: buildPermissions("history"),
             allPermissionsForSettings: permissions.settings.type === "all",
             allPermissionsForGeneration: permissions.generation.type === "all",
             allPermissionsForImport: permissions.import.type === "all",
+            allPermissionsForHistory: permissions.history.type === "all",
             orgUnitSelection,
             duplicateEnabled,
             duplicateExclusion,
@@ -483,9 +486,18 @@ export default class Settings {
         return this.hasPermissions(this.permissions.import);
     }
 
+    isHistoryVisibleForCurrentUser(): boolean {
+        return this.hasPermissions(this.permissions.history);
+    }
+
     isDataFormVisibleForCurrentUser(dataFormId: Id): boolean {
         const permission = this.templatePermissions[dataFormId];
         return !permission || this.hasPermissions(permission);
+    }
+
+    canUploadDocument(): boolean {
+        const DOCUMENT_AUTHORITIES = ["ALL", "F_DOCUMENT_PRIVATE_ADD"];
+        return DOCUMENT_AUTHORITIES.some(auth => this.currentUser.authorities.has(auth));
     }
 
     getModelsInfo(): Array<{ key: Model; name: string; value: boolean }> {
@@ -521,7 +533,7 @@ export default class Settings {
     private hasPermissions(permission: PermissionValue): boolean {
         if (permission.type === "all") return true;
 
-        const isUserAdmin = this.currentUser.authorities.has("ALL");
+        const isUserAdmin = isAdmin(this.currentUser);
         const hasGroupAccess = this.findCurrentUser(permission.groups);
         const hasUserAccess = this.findCurrentUser(permission.users);
         const hasUnknownAccess = this.findCurrentUser(permission.unknown);
@@ -553,6 +565,8 @@ function mapPermissionSettingToConfig(prop: PermissionSetting) {
             return "permissionsForImport";
         case "settings":
             return "permissionsForSettings";
+        case "history":
+            return "permissionsForHistory";
     }
 }
 
@@ -564,5 +578,7 @@ function mapPermissionSettingToAllConfig(prop: PermissionSetting) {
             return "allPermissionsForImport";
         case "settings":
             return "allPermissionsForSettings";
+        case "history":
+            return "allPermissionsForHistory";
     }
 }

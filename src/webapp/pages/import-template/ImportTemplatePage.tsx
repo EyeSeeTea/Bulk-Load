@@ -12,7 +12,7 @@ import { SynchronizationResult } from "../../../domain/entities/SynchronizationR
 import { ImportTemplateUseCaseParams } from "../../../domain/usecases/ImportTemplateUseCase";
 import i18n from "../../../utils/i18n";
 import ModalDialog, { ModalDialogProps } from "../../components/modal-dialog/ModalDialog";
-import SyncSummary from "../../components/sync-summary/SyncSummary";
+import SyncSummaryDialog from "../../components/sync-summary/SyncSummaryDialog";
 import { useAppContext } from "../../contexts/app-context";
 import { orgUnitListParams } from "../../utils/template";
 import { RouteComponentProps } from "../Router";
@@ -301,7 +301,7 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
         <React.Fragment>
             {dialogProps && <ModalDialog isOpen={true} maxWidth={"xl"} {...dialogProps} />}
 
-            {syncResults && <SyncSummary results={syncResults} onClose={hideSyncResults} />}
+            {syncResults && <SyncSummaryDialog results={syncResults} onClose={hideSyncResults} />}
 
             <h3>{i18n.t("Bulk data import")}</h3>
 
