@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2025-10-10T15:27:15.865Z\n"
+"POT-Creation-Date: 2025-10-14T17:59:40.618Z\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -194,6 +194,10 @@ msgstr ""
 msgid "Status"
 msgstr "Estado"
 
+#, fuzzy
+msgid "Import strategy"
+msgstr "Importar datos"
+
 msgid "File"
 msgstr ""
 
@@ -203,6 +207,27 @@ msgstr ""
 
 msgid "The original file is not available for download"
 msgstr ""
+
+msgid "Default"
+msgstr ""
+
+#, fuzzy
+msgid "Delete and import"
+msgstr "Importación de datos"
+
+#, fuzzy
+msgid "Import despite duplicates"
+msgstr "Importar datos"
+
+msgid "Import only new data values"
+msgstr "Importar solo nuevos valores de datos"
+
+msgid "Import only new records"
+msgstr "Importar solo los datos nuevos"
+
+#, fuzzy
+msgid "Import and Update"
+msgstr "Importar datos"
 
 msgid "Success"
 msgstr ""
@@ -1359,13 +1384,6 @@ msgstr ""
 msgid "Delete and Import"
 msgstr ""
 
-msgid "Import only new data values"
-msgstr "Importar solo nuevos valores de datos"
-
-#, fuzzy
-msgid "Import and Update"
-msgstr "Importar datos"
-
 msgid ""
 "All data values in the spreadsheet will be imported to the system, but any "
 "data that was existing for such organisation unit and periods in the system "
@@ -1401,9 +1419,6 @@ msgstr "Importar todo, incluyendo los datos que pudieran ser duplicados"
 
 msgid "Cancel import"
 msgstr "Cancelar importación"
-
-msgid "Import only new records"
-msgstr "Importar solo los datos nuevos"
 
 msgid "Invalid organisation units found"
 msgstr "Encontradas unidades organizativas no validas"

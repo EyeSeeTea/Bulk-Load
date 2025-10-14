@@ -5,8 +5,8 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2025-10-10T15:27:15.865Z\n"
-"PO-Revision-Date: 2025-10-10T15:27:15.865Z\n"
+"POT-Creation-Date: 2025-10-14T17:59:40.618Z\n"
+"PO-Revision-Date: 2025-10-14T17:59:40.618Z\n"
 
 msgid "Events - Create/update"
 msgstr ""
@@ -173,6 +173,9 @@ msgstr ""
 msgid "Status"
 msgstr ""
 
+msgid "Import strategy"
+msgstr ""
+
 msgid "File"
 msgstr ""
 
@@ -180,6 +183,24 @@ msgid "The original file has been deleted and is no longer available for downloa
 msgstr ""
 
 msgid "The original file is not available for download"
+msgstr ""
+
+msgid "Default"
+msgstr ""
+
+msgid "Delete and import"
+msgstr ""
+
+msgid "Import despite duplicates"
+msgstr ""
+
+msgid "Import only new data values"
+msgstr ""
+
+msgid "Import only new records"
+msgstr ""
+
+msgid "Import and Update"
 msgstr ""
 
 msgid "Success"
@@ -1289,12 +1310,6 @@ msgstr ""
 msgid "Delete and Import"
 msgstr ""
 
-msgid "Import only new data values"
-msgstr ""
-
-msgid "Import and Update"
-msgstr ""
-
 msgid ""
 "All data values in the spreadsheet will be imported to the system, but any "
 "data that was existing for such organisation unit and periods in the system "
@@ -1326,9 +1341,6 @@ msgid "Import everything anyway"
 msgstr ""
 
 msgid "Cancel import"
-msgstr ""
-
-msgid "Import only new records"
 msgstr ""
 
 msgid "Invalid organisation units found"
