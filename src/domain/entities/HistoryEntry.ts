@@ -4,11 +4,12 @@ import { SynchronizationResult } from "./SynchronizationResult";
 import { Maybe } from "../../types/utils";
 import { ImportTemplateError } from "../usecases/ImportTemplateUseCase";
 import { isAdmin, User } from "./User";
-import { DataForm, DataFormPermissions } from "./DataForm";
+import { DataForm, DataFormPermissions, DataFormType } from "./DataForm";
 import { Either } from "./Either";
 import { Document, UnsavedDocument } from "./Document";
 import { defaultSharing, Sharing } from "./Sharing";
 import Settings from "../../webapp/logic/settings";
+import { ImportTemplateConfiguration } from "./ImportTemplateConfiguration";
 
 export class HistoryEntry {
     public readonly id: Id;
@@ -18,6 +19,7 @@ export class HistoryEntry {
     public readonly document: HistoryEntryDocument;
     public readonly syncResults: Maybe<SynchronizationResult[]>;
     public readonly errorDetails: Maybe<ErrorDetails>;
+    public readonly importConfiguration: ImportTemplateConfiguration;
 
     constructor({
         id = generateUid(),
@@ -27,12 +29,14 @@ export class HistoryEntry {
         document,
         syncResults,
         errorDetails,
+        importConfiguration,
     }: Partial<HistoryEntry> & {
         dataForm: Maybe<DataForm>;
         user: User;
         document: HistoryEntryDocument;
         syncResults: Maybe<SynchronizationResult[]>;
         errorDetails: Maybe<ErrorDetails>;
+        importConfiguration: ImportTemplateConfiguration;
     }) {
         this.id = id;
         this.dataForm = dataForm;
@@ -41,6 +45,7 @@ export class HistoryEntry {
         this.document = document;
         this.syncResults = syncResults;
         this.errorDetails = errorDetails;
+        this.importConfiguration = importConfiguration;
         if (!this.syncResults && !this.errorDetails) {
             throw new Error("Either syncResults or errorDetails must be provided");
         }
@@ -52,6 +57,7 @@ export class HistoryEntry {
         dataForm: Maybe<DataForm>;
         syncResults: Maybe<SynchronizationResult[]>;
         errorDetails: Maybe<ErrorDetails>;
+        importConfiguration: ImportTemplateConfiguration;
     }): HistoryEntry {
         return new HistoryEntry(data);
     }
@@ -61,6 +67,7 @@ export class HistoryEntry {
         document: HistoryEntryDocument;
         dataForm: Maybe<DataForm>;
         result: Either<ImportTemplateError, SynchronizationResult[]>;
+        importConfiguration: ImportTemplateConfiguration;
     }): HistoryEntry {
         if (data.result.isError()) {
             return new HistoryEntry({
@@ -69,6 +76,7 @@ export class HistoryEntry {
                 dataForm: data.dataForm,
                 syncResults: undefined,
                 errorDetails: data.result.value.error,
+                importConfiguration: data.importConfiguration,
             });
         } else {
             return new HistoryEntry({
@@ -77,6 +85,7 @@ export class HistoryEntry {
                 dataForm: data.dataForm,
                 syncResults: data.result.value.data,
                 errorDetails: undefined,
+                importConfiguration: data.importConfiguration,
             });
         }
     }
@@ -96,6 +105,7 @@ export class HistoryEntry {
             username: this.user.username,
             fileName: this.document.name,
             dataFormId: this.dataForm?.id,
+            dataFormType: this.dataForm?.type,
             ...documentInformation,
         };
     }
@@ -124,6 +134,12 @@ export class HistoryEntry {
         return {
             results: this.syncResults,
             errorDetails: this.errorDetails,
+            configuration: _.pick(this.importConfiguration, [
+                "useBuilderOrgUnits",
+                "selectedOrgUnits",
+                "duplicateStrategy",
+                "organisationUnitStrategy",
+            ]),
         };
     }
 
@@ -142,6 +158,7 @@ export type HistoryEntryStatus = "SUCCESS" | "ERROR" | "WARNING";
 export interface HistoryEntrySummary {
     id: Id;
     dataFormId?: Id;
+    dataFormType?: DataFormType;
     name: string;
     timestamp: string;
     status: HistoryEntryStatus;
@@ -156,6 +173,7 @@ export interface HistoryEntrySummary {
 export interface HistoryEntryDetails {
     results: Maybe<SynchronizationResult[]>;
     errorDetails: Maybe<ErrorDetails>;
+    configuration: ImportTemplateConfiguration;
 }
 
 interface UnhandledException {

@@ -74,7 +74,7 @@ export function HistoryDetailsDialog({ isOpen, entry, onClose }: HistoryDetailsD
 
         return (
             <>
-                <HistoryImportSummary entry={entry} />
+                <HistoryImportSummary summary={entry} details={details} />
 
                 {results && results.length > 0 && (
                     <div className={classes.section}>

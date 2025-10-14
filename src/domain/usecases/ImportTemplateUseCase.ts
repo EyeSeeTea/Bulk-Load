@@ -32,6 +32,7 @@ import { Maybe } from "../../types/utils";
 import { buildHistorySharing, HistoryEntry, HistoryEntryDocument } from "../entities/HistoryEntry";
 import { DocumentRepository } from "../repositories/DocumentRepository";
 import { DataElementDisaggregationsMappingRepository } from "../repositories/DataElementDisaggregationsMappingRepository";
+import { DuplicateImportStrategy, ImportTemplateConfiguration } from "../entities/ImportTemplateConfiguration";
 
 export type ImportTemplateError =
     | {
@@ -45,17 +46,10 @@ export type ImportTemplateError =
           instanceDataValues: TemplateDataPackage;
       };
 
-export type DuplicateImportStrategy = "ERROR" | "IMPORT" | "IGNORE" | "IMPORT_WITHOUT_DELETE";
-export type OrganisationUnitImportStrategy = "ERROR" | "IGNORE";
-
-export interface ImportTemplateUseCaseParams {
+export type ImportTemplateUseCaseParams = {
     file: File;
-    useBuilderOrgUnits?: boolean;
-    selectedOrgUnits?: string[];
-    duplicateStrategy?: DuplicateImportStrategy;
-    organisationUnitStrategy?: OrganisationUnitImportStrategy;
     settings: Settings;
-}
+} & ImportTemplateConfiguration;
 
 type CustomErrorMatch = {
     regex: RegExp;
@@ -138,6 +132,7 @@ export class ImportTemplateUseCase implements UseCase {
                 errorDetails: { type: "UNHANDLED_EXCEPTION", message: (error as Error).message },
                 dataForm: errorDataForm,
                 syncResults: undefined,
+                importConfiguration: params,
             });
             await this.historyRepository.save(historyEntry);
             throw error;
@@ -163,6 +158,7 @@ export class ImportTemplateUseCase implements UseCase {
             document,
             dataForm,
             result,
+            importConfiguration: params,
         });
         await this.historyRepository.save(historyEntry);
     }
