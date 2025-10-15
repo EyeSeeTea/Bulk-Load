@@ -13,6 +13,7 @@ import { ImportTemplateUseCaseParams } from "../../../domain/usecases/ImportTemp
 import i18n from "../../../utils/i18n";
 import ModalDialog, { ModalDialogProps } from "../../components/modal-dialog/ModalDialog";
 import SyncSummaryDialog from "../../components/sync-summary/SyncSummaryDialog";
+import { ImportCommentDialog } from "../../components/import-comment-dialog/ImportCommentDialog";
 import { useAppContext } from "../../contexts/app-context";
 import { orgUnitListParams } from "../../utils/template";
 import { RouteComponentProps } from "../Router";
@@ -43,6 +44,8 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
     const [importState, setImportState] = useState<ImportState>();
     const [messages, setMessages] = useState<string[]>([]);
     const [dialogProps, updateDialog] = useState<ModalDialogProps>();
+    const [showCommentDialog, setShowCommentDialog] = useState<boolean>(false);
+    const [pendingImportParams, setPendingImportParams] = useState<ImportTemplateUseCaseParams>();
 
     useEffect(() => {
         compositionRoot.orgUnits.getUserRoots().then(setOrgUnitTreeRootIds);
@@ -185,27 +188,27 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
                                 updateTooltipText,
                             } = dataValues.type === "dataSets" ? dataSetConfig : programConfig;
 
+                            const handleDuplicateAction = async (
+                                duplicateStrategy: "IMPORT" | "IMPORT_WITHOUT_DELETE" | "IGNORE"
+                            ) => {
+                                updateDialog(undefined);
+                                const importParams = { ...params, duplicateStrategy };
+                                if (dataValues.type === "dataSets") {
+                                    setPendingImportParams(importParams);
+                                    setShowCommentDialog(true);
+                                } else {
+                                    loading.show(true, i18n.t("Importing data..."));
+                                    await startImport(importParams);
+                                    loading.reset();
+                                }
+                            };
+
                             updateDialog({
                                 title,
                                 description: message,
-                                onSave: async () => {
-                                    updateDialog(undefined);
-                                    loading.show(true, i18n.t("Importing data..."));
-                                    await startImport({ ...params, duplicateStrategy: "IMPORT" });
-                                    loading.reset();
-                                },
-                                onUpdate: async () => {
-                                    updateDialog(undefined);
-                                    loading.show(true, i18n.t("Importing data..."));
-                                    await startImport({ ...params, duplicateStrategy: "IMPORT_WITHOUT_DELETE" });
-                                    loading.reset();
-                                },
-                                onInfoAction: async () => {
-                                    updateDialog(undefined);
-                                    loading.show(true, i18n.t("Importing data..."));
-                                    await startImport({ ...params, duplicateStrategy: "IGNORE" });
-                                    loading.reset();
-                                },
+                                onSave: async () => handleDuplicateAction("IMPORT"),
+                                onUpdate: async () => handleDuplicateAction("IMPORT_WITHOUT_DELETE"),
+                                onInfoAction: async () => handleDuplicateAction("IGNORE"),
                                 onCancel: () => {
                                     updateDialog(undefined);
                                 },
@@ -223,7 +226,7 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
 
                     case "INVALID_ORG_UNITS":
                         {
-                            const { invalidDataValues } = error;
+                            const { invalidDataValues, dataValues } = error;
 
                             const totalInvalid = _.flatMap(
                                 invalidDataValues.dataEntries,
@@ -241,10 +244,16 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
                                 },
                                 onSave: async () => {
                                     updateDialog(undefined);
-                                    await startImport({
+                                    const importParams = {
                                         ...params,
-                                        organisationUnitStrategy: "IGNORE",
-                                    });
+                                        organisationUnitStrategy: "IGNORE" as const,
+                                    };
+                                    if (dataValues.type === "dataSets") {
+                                        setPendingImportParams(importParams);
+                                        setShowCommentDialog(true);
+                                    } else {
+                                        await startImport(importParams);
+                                    }
                                 },
                                 onInfoAction: () => {
                                     downloadInvalidOrganisations(invalidDataValues);
@@ -270,6 +279,21 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
                 }
             },
         });
+    };
+
+    const handleCommentDialogContinue = async (comment: string | undefined) => {
+        setShowCommentDialog(false);
+        if (pendingImportParams) {
+            loading.show(true, i18n.t("Importing data..."));
+            await startImport({ ...pendingImportParams, comment });
+            loading.reset();
+            setPendingImportParams(undefined);
+        }
+    };
+
+    const handleCommentDialogCancel = () => {
+        setShowCommentDialog(false);
+        setPendingImportParams(undefined);
     };
 
     const downloadInvalidOrganisations = (dataPackage: TemplateDataPackage) => {
@@ -302,6 +326,12 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
             {dialogProps && <ModalDialog isOpen={true} maxWidth={"xl"} {...dialogProps} />}
 
             {syncResults && <SyncSummaryDialog results={syncResults} onClose={hideSyncResults} />}
+
+            <ImportCommentDialog
+                isOpen={showCommentDialog}
+                onContinue={handleCommentDialogContinue}
+                onCancel={handleCommentDialogCancel}
+            />
 
             <h3>{i18n.t("Bulk data import")}</h3>
 
