@@ -47,6 +47,9 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
     const [showCommentDialog, setShowCommentDialog] = useState<boolean>(false);
     const [pendingImportParams, setPendingImportParams] = useState<ImportTemplateUseCaseParams>();
 
+    // used to store the initial comment provided by the user, to reuse as default value in case of conflicts
+    const [initialComment, setInitialComment] = useState<string | undefined>(undefined);
+
     useEffect(() => {
         compositionRoot.orgUnits.getUserRoots().then(setOrgUnitTreeRootIds);
     }, [compositionRoot]);
@@ -104,7 +107,15 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
                 throw new Error(i18n.t("Select at least one organisation unit to import data"));
             }
 
-            await startImport({ file, settings, useBuilderOrgUnits, selectedOrgUnits });
+            const baseParams = { file, settings, useBuilderOrgUnits, selectedOrgUnits };
+
+            if (importState.dataForm.type === "dataSets") {
+                loading.show(false);
+                setPendingImportParams(baseParams);
+                setShowCommentDialog(true);
+            } else {
+                await startImport(baseParams);
+            }
         } catch (reason: any) {
             console.error(reason);
             snackbar.error(reason.message || reason.toString());
@@ -121,6 +132,7 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
             success: syncResults => {
                 loading.reset();
                 setSyncResults(syncResults);
+                setInitialComment(undefined);
             },
             error: error => {
                 loading.reset();
@@ -284,6 +296,7 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
     const handleCommentDialogContinue = async (comment: string | undefined) => {
         setShowCommentDialog(false);
         if (pendingImportParams) {
+            setInitialComment(comment);
             loading.show(true, i18n.t("Importing data..."));
             await startImport({ ...pendingImportParams, comment });
             loading.reset();
@@ -294,6 +307,7 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
     const handleCommentDialogCancel = () => {
         setShowCommentDialog(false);
         setPendingImportParams(undefined);
+        setInitialComment(undefined);
     };
 
     const downloadInvalidOrganisations = (dataPackage: TemplateDataPackage) => {
@@ -331,6 +345,7 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
                 isOpen={showCommentDialog}
                 onContinue={handleCommentDialogContinue}
                 onCancel={handleCommentDialogCancel}
+                defaultComment={initialComment}
             />
 
             <h3>{i18n.t("Bulk data import")}</h3>
