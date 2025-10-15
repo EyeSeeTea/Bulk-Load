@@ -82,7 +82,7 @@ export function HistoryImportSummary({ summary, details }: HistoryImportSummaryP
 }
 
 function getImportStrategyLabel(entry: HistoryEntryDetails, dataFormType: Maybe<DataFormType>): string {
-    const strategy = entry.configuration.duplicateStrategy;
+    const strategy = entry.configuration?.duplicateStrategy;
     if (!strategy || strategy === "ERROR") {
         return i18n.t("Default");
     }

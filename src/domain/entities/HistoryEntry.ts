@@ -173,7 +173,7 @@ export interface HistoryEntrySummary {
 export interface HistoryEntryDetails {
     results: Maybe<SynchronizationResult[]>;
     errorDetails: Maybe<ErrorDetails>;
-    configuration: ImportTemplateConfiguration;
+    configuration: Maybe<ImportTemplateConfiguration>;
 }
 
 interface UnhandledException {
