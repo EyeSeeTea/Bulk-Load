@@ -6,22 +6,10 @@ export interface ImportCommentDialogProps {
     isOpen: boolean;
     onContinue: (comment: string | undefined) => void;
     onCancel: () => void;
-    defaultComment?: string;
 }
 
-export const ImportCommentDialog: React.FC<ImportCommentDialogProps> = ({
-    isOpen,
-    onContinue,
-    onCancel,
-    defaultComment,
-}) => {
+export const ImportCommentDialog: React.FC<ImportCommentDialogProps> = ({ isOpen, onContinue, onCancel }) => {
     const [comment, setComment] = useState<string>("");
-
-    React.useEffect(() => {
-        if (isOpen && defaultComment !== undefined) {
-            setComment(defaultComment);
-        }
-    }, [isOpen, defaultComment]);
 
     const handleCommentChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setComment(event.target.value);
