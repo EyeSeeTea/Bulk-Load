@@ -357,21 +357,6 @@ export const TemplateSelector = ({
                     </div>
                 </div>
 
-                {hasDataFilter && state.dataFilterOptions.teiFilter && (
-                    <div className={classes.select}>
-                        <Select
-                            placeholder={state.dataFilterOptions.teiFilter.label}
-                            onChange={onDataFilterChange}
-                            options={state.dataFilterOptions.teiFilter.filters}
-                            value={state.dataFilter.teiFilterId}
-                            allowEmpty={true}
-                            emptyLabel={i18n.t("<No value>")}
-                        />
-                    </div>
-                )}
-
-                {state.type === "dataSets" && <h4 className={classes.subSectionTitle}>Periods</h4>}
-
                 {state.type === "dataSets" && state.templateType === "custom" && showPopulate && (
                     <DatePicker
                         className={classes.fullWidth}
@@ -488,6 +473,18 @@ export const TemplateSelector = ({
                     {/*start/end date*/}
                     {state.populate && !isCustomDataSet && (
                         <>
+                            {hasDataFilter && state.dataFilterOptions.teiFilter && (
+                                <div className={classes.select}>
+                                    <Select
+                                        placeholder={state.dataFilterOptions.teiFilter.label}
+                                        onChange={onDataFilterChange}
+                                        options={state.dataFilterOptions.teiFilter.filters}
+                                        value={state.dataFilter.teiFilterId}
+                                        allowEmpty={true}
+                                        emptyLabel={i18n.t("<No value>")}
+                                    />
+                                </div>
+                            )}
                             {!isDataSet && (
                                 <div>
                                     <FormControlLabel
