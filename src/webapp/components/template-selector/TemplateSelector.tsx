@@ -463,7 +463,7 @@ export const TemplateSelector = ({
                 )}
             </Section>
 
-            {userHasReadAccess && !!selectedOrgUnits.length && state.templateType !== "custom" && (
+            {userHasReadAccess && !!selectedOrgUnits.length && showPopulate && (
                 <Section title={<h3 className={classes.title}>{i18n.t("Populate")}</h3>} classProps={classes}>
                     <div>
                         <FormControlLabel
