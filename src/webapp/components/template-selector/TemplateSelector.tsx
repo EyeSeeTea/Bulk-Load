@@ -358,16 +358,19 @@ export const TemplateSelector = ({
                 </div>
 
                 {state.type === "dataSets" && state.templateType === "custom" && showPopulate && (
-                    <DatePicker
-                        className={classes.fullWidth}
-                        label={i18n.t("Period")}
-                        value={state.startDate ?? null}
-                        onChange={(date: Date) => onCustomFormDateChange(date)}
-                        maxDate={state.endDate}
-                        views={datePickerFormat?.views}
-                        format={datePickerFormat?.format ?? "DD/MM/YYYY"}
-                        InputLabelProps={{ style: { color: "#494949" } }}
-                    />
+                    <>
+                        <h4 className={classes.subSectionTitle}>Periods</h4>
+                        <DatePicker
+                            className={classes.fullWidth}
+                            label={i18n.t("Period")}
+                            value={state.startDate ?? null}
+                            onChange={(date: Date) => onCustomFormDateChange(date)}
+                            maxDate={state.endDate}
+                            views={datePickerFormat?.views}
+                            format={datePickerFormat?.format ?? "DD/MM/YYYY"}
+                            InputLabelProps={{ style: { color: "#494949" } }}
+                        />
+                    </>
                 )}
 
                 {state.type === "dataSets" && (showPopulate || state.showPeriod) && (
