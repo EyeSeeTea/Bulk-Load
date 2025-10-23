@@ -198,6 +198,7 @@ export class ImportTemplateUseCase implements UseCase {
             duplicateStrategy = "ERROR",
             organisationUnitStrategy = "ERROR",
             settings,
+            comment,
         }: ImportTemplateUseCaseParams,
         dataForm: DataForm,
         spreadSheet: Blob,
@@ -244,6 +245,11 @@ export class ImportTemplateUseCase implements UseCase {
             });
         }
 
+        const dataValuesWithComments =
+            dataForm.type === dataFormTypeMap.dataSets
+                ? this.applyCommentsToDataValues(dataValues, instanceDataValues, comment)
+                : dataValues;
+
         const shouldDeleteExistingData =
             dataForm.type === dataFormTypeMap.dataSets ? this.shouldDeleteAggregatedData(duplicateStrategy) : false;
 
@@ -251,10 +257,13 @@ export class ImportTemplateUseCase implements UseCase {
             ? await this.instanceRepository.deleteAggregatedData(templateToDataPackage(instanceDataValues))
             : undefined;
 
-        const importResult = await this.instanceRepository.importDataPackage(templateToDataPackage(dataValues), {
-            createAndUpdate: duplicateStrategy === "IMPORT_WITHOUT_DELETE" || duplicateStrategy === "ERROR",
-            multiTextTeiDelimiter: this.getMultiTextTeiDelimiter(template),
-        });
+        const importResult = await this.instanceRepository.importDataPackage(
+            templateToDataPackage(dataValuesWithComments),
+            {
+                createAndUpdate: duplicateStrategy === "IMPORT_WITHOUT_DELETE" || duplicateStrategy === "ERROR",
+                multiTextTeiDelimiter: this.getMultiTextTeiDelimiter(template),
+            }
+        );
 
         const importResultHasErrors = importResult.flatMap(result => result.errors);
         if (importResultHasErrors.length > 0 || deleteResult) {
@@ -610,6 +619,51 @@ export class ImportTemplateUseCase implements UseCase {
             };
         });
         return importResultsWithErrorsDetails;
+    }
+
+    /**
+     * Returns the `dataPackage` with dataValues with comments populated from `existingDataPackage` and `userComment`
+     */
+    private applyCommentsToDataValues(
+        dataPackage: TemplateDataPackage,
+        existingDataPackage: TemplateDataPackage,
+        userComment: Maybe<string>
+    ): TemplateDataPackage {
+        if (dataPackage.type !== dataFormTypeMap.dataSets) {
+            return dataPackage;
+        }
+        const timestamp = moment().format("YYYYMMDD");
+        const formattedComment = userComment ? `${timestamp} - BL Import - ${userComment}` : "";
+
+        const dataEntriesWithComments = dataPackage.dataEntries.map(entry => ({
+            ...entry,
+            dataValues: entry.dataValues.map(dv => {
+                const existingEntry = existingDataPackage.dataEntries.find(
+                    existing =>
+                        existing.orgUnit === entry.orgUnit &&
+                        existing.period === entry.period &&
+                        existing.dataForm === entry.dataForm
+                );
+                const existingDv = existingEntry?.dataValues.find(existing => existing.dataElement === dv.dataElement);
+                const existingComment = existingDv?.comment || "";
+                if (!formattedComment) {
+                    return {
+                        ...dv,
+                        comment: existingComment,
+                    };
+                } else {
+                    return {
+                        ...dv,
+                        comment: existingComment ? `${existingComment.trim()}\n${formattedComment}` : formattedComment,
+                    };
+                }
+            }),
+        }));
+
+        return {
+            ...dataPackage,
+            dataEntries: dataEntriesWithComments,
+        };
     }
 
     private generateErrorDetails(errors: ErrorMessage[], allowedMessages: CustomErrorMatch[], orgUnits: OrgUnit[]) {
