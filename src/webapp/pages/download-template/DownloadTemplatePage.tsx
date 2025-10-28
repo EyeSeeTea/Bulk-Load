@@ -49,7 +49,7 @@ export default function DownloadTemplatePage({ settings, themes, customTemplates
         if (templateType === "custom" && Boolean(orgUnits)) {
             templateToDownload = {
                 ...template,
-                populate: true,
+                populate: populate,
                 populateStartDate: template.populateStartDate || template.startDate,
                 populateEndDate: template.populateEndDate || template.endDate,
             };

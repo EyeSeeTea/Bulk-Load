@@ -357,32 +357,20 @@ export const TemplateSelector = ({
                     </div>
                 </div>
 
-                {hasDataFilter && state.dataFilterOptions.teiFilter && (
-                    <div className={classes.select}>
-                        <Select
-                            placeholder={state.dataFilterOptions.teiFilter.label}
-                            onChange={onDataFilterChange}
-                            options={state.dataFilterOptions.teiFilter.filters}
-                            value={state.dataFilter.teiFilterId}
-                            allowEmpty={true}
-                            emptyLabel={i18n.t("<No value>")}
-                        />
-                    </div>
-                )}
-
-                {state.type === "dataSets" && <h4 className={classes.subSectionTitle}>Periods</h4>}
-
                 {state.type === "dataSets" && state.templateType === "custom" && showPopulate && (
-                    <DatePicker
-                        className={classes.fullWidth}
-                        label={i18n.t("Period")}
-                        value={state.startDate ?? null}
-                        onChange={(date: Date) => onCustomFormDateChange(date)}
-                        maxDate={state.endDate}
-                        views={datePickerFormat?.views}
-                        format={datePickerFormat?.format ?? "DD/MM/YYYY"}
-                        InputLabelProps={{ style: { color: "#494949" } }}
-                    />
+                    <>
+                        <h4 className={classes.subSectionTitle}>Periods</h4>
+                        <DatePicker
+                            className={classes.fullWidth}
+                            label={i18n.t("Period")}
+                            value={state.startDate ?? null}
+                            onChange={(date: Date) => onCustomFormDateChange(date)}
+                            maxDate={state.endDate}
+                            views={datePickerFormat?.views}
+                            format={datePickerFormat?.format ?? "DD/MM/YYYY"}
+                            InputLabelProps={{ style: { color: "#494949" } }}
+                        />
+                    </>
                 )}
 
                 {state.type === "dataSets" && (showPopulate || state.showPeriod) && (
@@ -475,7 +463,7 @@ export const TemplateSelector = ({
                 )}
             </Section>
 
-            {userHasReadAccess && !!selectedOrgUnits.length && state.templateType !== "custom" && (
+            {userHasReadAccess && !!selectedOrgUnits.length && showPopulate && (
                 <Section title={<h3 className={classes.title}>{i18n.t("Populate")}</h3>} classProps={classes}>
                     <div>
                         <FormControlLabel
@@ -488,6 +476,18 @@ export const TemplateSelector = ({
                     {/*start/end date*/}
                     {state.populate && !isCustomDataSet && (
                         <>
+                            {hasDataFilter && state.dataFilterOptions.teiFilter && (
+                                <div className={classes.select}>
+                                    <Select
+                                        placeholder={state.dataFilterOptions.teiFilter.label}
+                                        onChange={onDataFilterChange}
+                                        options={state.dataFilterOptions.teiFilter.filters}
+                                        value={state.dataFilter.teiFilterId}
+                                        allowEmpty={true}
+                                        emptyLabel={i18n.t("<No value>")}
+                                    />
+                                </div>
+                            )}
                             {!isDataSet && (
                                 <div>
                                     <FormControlLabel
