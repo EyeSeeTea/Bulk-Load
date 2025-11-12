@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2025-10-15T16:41:05.367Z\n"
+"POT-Creation-Date: 2025-10-14T17:59:40.618Z\n"
 "Language: pt\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -200,9 +200,6 @@ msgstr "Estado"
 msgid "Import strategy"
 msgstr "Importar dados"
 
-msgid "Comment"
-msgstr ""
-
 msgid "File"
 msgstr ""
 
@@ -263,24 +260,6 @@ msgstr ""
 
 msgid "All"
 msgstr "Tudo"
-
-msgid "Comment for all imported data values"
-msgstr ""
-
-msgid ""
-"You can add an optional comment below. If provided, it will be associated "
-"with every data value that is created, updated, or deleted during this "
-"import."
-msgstr ""
-
-msgid "Comment (optional)"
-msgstr ""
-
-msgid "CONTINUE WITHOUT COMMENT"
-msgstr ""
-
-msgid "SAVE AND CONTINUE"
-msgstr ""
 
 msgid ""
 "There has been an error. You can either retry or contact your administrator "

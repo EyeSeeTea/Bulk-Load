@@ -5,8 +5,8 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2025-10-15T16:41:05.367Z\n"
-"PO-Revision-Date: 2025-10-15T16:41:05.367Z\n"
+"POT-Creation-Date: 2025-10-14T17:59:40.618Z\n"
+"PO-Revision-Date: 2025-10-14T17:59:40.618Z\n"
 
 msgid "Events - Create/update"
 msgstr ""
@@ -176,9 +176,6 @@ msgstr ""
 msgid "Import strategy"
 msgstr ""
 
-msgid "Comment"
-msgstr ""
-
 msgid "File"
 msgstr ""
 
@@ -231,24 +228,6 @@ msgid "Search by file name, data form, or user"
 msgstr ""
 
 msgid "All"
-msgstr ""
-
-msgid "Comment for all imported data values"
-msgstr ""
-
-msgid ""
-"You can add an optional comment below. If provided, it will be associated "
-"with every data value that is created, updated, or deleted during this "
-"import."
-msgstr ""
-
-msgid "Comment (optional)"
-msgstr ""
-
-msgid "CONTINUE WITHOUT COMMENT"
-msgstr ""
-
-msgid "SAVE AND CONTINUE"
 msgstr ""
 
 msgid ""
