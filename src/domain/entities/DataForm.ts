@@ -45,7 +45,7 @@ export interface DataForm {
 }
 
 export interface TrackedEntityAttributeType extends NamedRef {
-    valueType: DataElementType | undefined;
+    valueType: ValueType | undefined;
     options: Array<DataOption>;
 }
 
@@ -59,39 +59,41 @@ export type DataFormFeatureType = "none" | "point" | "polygon";
 export interface DataElement {
     id: Id;
     name: string;
-    valueType: DataElementType;
+    valueType: ValueType;
     options: Array<DataOption>;
 }
 
 export type DataOption = { id: Id; code: string; name: string };
 
-export type DataElementType =
-    | "TEXT"
-    | "LONG_TEXT"
-    | "LETTER"
-    | "PHONE_NUMBER"
-    | "EMAIL"
+export type ValueType =
+    | "AGE"
     | "BOOLEAN"
-    | "TRUE_ONLY"
+    | "COORDINATE"
     | "DATE"
     | "DATETIME"
-    | "TIME"
-    | "NUMBER"
-    | "UNIT_INTERVAL"
-    | "PERCENTAGE"
-    | "INTEGER"
-    | "INTEGER_POSITIVE"
-    | "INTEGER_NEGATIVE"
-    | "INTEGER_ZERO_OR_POSITIVE"
-    | "TRACKER_ASSOCIATE"
-    | "USERNAME"
-    | "COORDINATE"
-    | "ORGANISATION_UNIT"
-    | "AGE"
-    | "URL"
+    | "EMAIL"
     | "FILE_RESOURCE"
+    | "GEOJSON"
     | "IMAGE"
-    | "MULTI_TEXT";
+    | "INTEGER"
+    | "INTEGER_NEGATIVE"
+    | "INTEGER_POSITIVE"
+    | "INTEGER_ZERO_OR_POSITIVE"
+    | "LETTER"
+    | "LONG_TEXT"
+    | "MULTI_TEXT"
+    | "NUMBER"
+    | "ORGANISATION_UNIT"
+    | "PERCENTAGE"
+    | "PHONE_NUMBER"
+    | "REFERENCE"
+    | "TEXT"
+    | "TIME"
+    | "TRACKER_ASSOCIATE"
+    | "TRUE_ONLY"
+    | "UNIT_INTERVAL"
+    | "URL"
+    | "USERNAME";
 
 export interface OrganisationUnit {
     id: Id;

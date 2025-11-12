@@ -25,12 +25,7 @@ import {
     RelationshipOrgUnitFilter,
 } from "./Dhis2RelationshipTypes";
 import { ImportPostResponse, postImport } from "./Dhis2Import";
-import {
-    TrackedEntitiesApiRequest,
-    TrackedEntitiesResponse,
-    TrackedEntity,
-    TrackedEntitiesAPIResponse,
-} from "../domain/entities/TrackedEntity";
+import { TrackedEntitiesApiRequest, TrackedEntitiesResponse, TrackedEntity } from "../domain/entities/TrackedEntity";
 import { Params } from "@eyeseetea/d2-api/api/common";
 import { ImportDataPackageOptions } from "../domain/repositories/InstanceRepository";
 import { MULTI_TEXT_OPTION_DELIMITER } from "../domain/helpers/ExcelBuilder";
@@ -272,10 +267,20 @@ export interface Metadata {
 
 /* Get metadata required to map attribute values for option sets */
 async function getMetadata(api: D2Api): Promise<Metadata> {
+    const constraintfields = {
+        program: true,
+        programStage: true,
+        relationshipEntity: true,
+        trackedEntityType: true,
+        trackerDataView: true,
+    };
+
     const { options, relationshipTypes } = await api.metadata
         .get({
             options: { fields: { id: true, name: true, code: true } },
-            relationshipTypes: { fields: { id: true, toConstraint: true, fromConstraint: true } },
+            relationshipTypes: {
+                fields: { id: true, toConstraint: constraintfields, fromConstraint: constraintfields },
+            },
         })
         .getData();
 
@@ -527,11 +532,11 @@ export async function getTrackedEntities(
     api: D2Api,
     filterQuery: TrackedEntityGetRequest
 ): Promise<TrackedEntitiesResponse> {
-    const { instances, trackedEntities, pageCount } = await api
-        .get<TrackedEntitiesAPIResponse>("/tracker/trackedEntities", filterQuery)
+    const { instances, trackedEntities, pager, pageCount } = await api
+        .get<TrackedEntitiesD2ApiResponse>("/tracker/trackedEntities", filterQuery)
         .getData();
 
-    return { instances: instances || trackedEntities || [], pageCount: pageCount };
+    return { instances: instances || trackedEntities || [], pageCount: pageCount ?? pager?.pageCount ?? 0 };
 }
 
 function buildTei(
@@ -643,3 +648,12 @@ function getValue(
 export function generateUidForTei(teiId: Id, orgUnitId: Id, programId: Id): string {
     return getUid([teiId, orgUnitId, programId].join("-"));
 }
+
+export type TrackedEntitiesD2ApiResponse = {
+    instances?: TrackedEntitiesApiRequest[];
+    trackedEntities?: TrackedEntitiesApiRequest[];
+    pager?: {
+        pageCount: number;
+    };
+    pageCount?: number;
+};

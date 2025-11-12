@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { DataElementType } from "./DataForm";
+import { ValueType } from "./DataForm";
 import { Geometry } from "./Geometry";
 import { Id, Ref } from "./ReferenceObject";
 import { Relationship } from "./Relationship";
@@ -42,7 +42,7 @@ export interface Program {
 
 export interface Attribute {
     id: Id;
-    valueType: DataElementType | undefined;
+    valueType: ValueType | undefined;
     optionSet?: { id: Id; options: Array<{ id: string; code: string; name: string }> };
 }
 

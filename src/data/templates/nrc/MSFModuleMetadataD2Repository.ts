@@ -1,4 +1,4 @@
-import { D2Api, MetadataPick } from "@eyeseetea/d2-api/2.33";
+import { D2Api, MetadataPick } from "../../../types/d2-api";
 import { i18nShortCode, Id } from "../../../domain/entities/ReferenceObject";
 import { CategoryOptionCombo, MSFModuleMetadata } from "../../../domain/entities/templates/MSFModuleMetadata";
 import { MSFModuleMetadataRepository } from "../../../domain/repositories/templates/MSFModuleMetadataRepository";

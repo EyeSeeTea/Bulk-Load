@@ -180,8 +180,8 @@ export async function getRelationshipMetadata(
                 fields: {
                     id: true,
                     name: true,
-                    fromConstraint: true,
-                    toConstraint: true,
+                    fromConstraint: constraintfields,
+                    toConstraint: constraintfields,
                 },
             },
             programs: { fields: { id: true, name: true, programStages: { id: true, name: true } } },
@@ -189,14 +189,20 @@ export async function getRelationshipMetadata(
         .getData();
 
     const relationshipTypesWithTeis = await promiseMap(allRelationshipTypes, async relType => {
+        const type = relType as unknown as {
+            id: Id;
+            fromConstraint: D2RelationshipConstraint;
+            toConstraint: D2RelationshipConstraint;
+        };
+
         const isProgramAssociatedWithSomeConstraint =
-            isProgramAssociatedWithTeiConstraint(program, relType.fromConstraint) ||
-            isProgramAssociatedWithTeiConstraint(program, relType.toConstraint);
+            isProgramAssociatedWithTeiConstraint(program, type.fromConstraint) ||
+            isProgramAssociatedWithTeiConstraint(program, type.toConstraint);
 
         if (!isProgramAssociatedWithSomeConstraint) return;
 
-        const fromConstraint = await getConstraint(api, trackedEntityTypes, programs, relType.fromConstraint, filters);
-        const toConstraint = await getConstraint(api, trackedEntityTypes, programs, relType.toConstraint, filters);
+        const fromConstraint = await getConstraint(api, trackedEntityTypes, programs, type.fromConstraint, filters);
+        const toConstraint = await getConstraint(api, trackedEntityTypes, programs, type.toConstraint, filters);
 
         return fromConstraint && toConstraint
             ? { id: relType.id, name: relType.name, constraints: { from: fromConstraint, to: toConstraint } }
@@ -231,10 +237,10 @@ const getConstraint = memoizeAsync(
             case "TRACKED_ENTITY_INSTANCE":
                 return getConstraintForTypeTei(api, filters, trackedEntityTypes, constraint);
             case "PROGRAM_STAGE_INSTANCE": {
-                if ("program" in constraint) {
+                if (constraint.program) {
                     const program = programsById[constraint.program.id];
                     return getConstraintForTypeProgram(api, filters, program);
-                } else if ("programStage" in constraint) {
+                } else if (constraint.programStage) {
                     const data = programsDataByProgramStageId[constraint.programStage.id];
                     return getConstraintForTypeProgram(api, filters, data?.program, data?.programStage);
                 }
@@ -247,7 +253,7 @@ async function getConstraintForTypeTei(
     api: D2Api,
     filters: ProgramFilters | undefined,
     trackedEntityTypes: NamedRef[],
-    constraint: Extract<D2RelationshipConstraint, { relationshipEntity: "TRACKED_ENTITY_INSTANCE" }>
+    constraint: D2RelationshipConstraint
 ): Promise<RelationshipConstraint> {
     const { ouMode = "CAPTURE", organisationUnits = [] } = filters || {};
     const trackedEntityTypesById = _.keyBy(trackedEntityTypes, obj => obj.id);
@@ -371,3 +377,11 @@ function isProgramAssociatedWithTeiConstraint(program: Program, constraint: D2Re
             return false;
     }
 }
+
+const constraintfields = {
+    program: true,
+    programStage: true,
+    relationshipEntity: true,
+    trackedEntityType: true,
+    trackerDataView: true,
+};

@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { D2Api, MetadataPick } from "@eyeseetea/d2-api/2.33";
+import { D2Api, MetadataPick } from "../../../types/d2-api";
 import { Id, NamedRef, Ref } from "../../../domain/entities/ReferenceObject";
 import { DataElement, NRCModuleMetadata } from "../../../domain/entities/templates/NRCModuleMetadata";
 import { NRCModuleMetadataRepository } from "../../../domain/repositories/templates/NRCModuleMetadataRepository";
