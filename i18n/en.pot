@@ -5,8 +5,8 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2025-09-18T05:58:00.550Z\n"
-"PO-Revision-Date: 2025-09-18T05:58:00.550Z\n"
+"POT-Creation-Date: 2025-11-12T16:45:33.366Z\n"
+"PO-Revision-Date: 2025-11-12T16:45:33.366Z\n"
 
 msgid "Events - Create/update"
 msgstr ""
@@ -755,9 +755,6 @@ msgstr ""
 msgid "Select template to export..."
 msgstr ""
 
-msgid "<No value>"
-msgstr ""
-
 msgid "Start period"
 msgstr ""
 
@@ -774,6 +771,9 @@ msgid "Populate"
 msgstr ""
 
 msgid "Populate template with data"
+msgstr ""
+
+msgid "<No value>"
 msgstr ""
 
 msgid "Also filter TEI and relationships by their enrollment date"

@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2025-09-18T05:58:00.550Z\n"
+"POT-Creation-Date: 2025-11-12T16:45:33.366Z\n"
 "Language: pt\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -843,9 +843,6 @@ msgstr "Modelo de dados"
 msgid "Select template to export..."
 msgstr "Selecione o planilha para exportar ..."
 
-msgid "<No value>"
-msgstr "<Sem valor>"
-
 msgid "Start period"
 msgstr "Período inicial"
 
@@ -864,6 +861,9 @@ msgstr "Modelo"
 
 msgid "Populate template with data"
 msgstr "Preencher a planilha com dados"
+
+msgid "<No value>"
+msgstr "<Sem valor>"
 
 msgid "Also filter TEI and relationships by their enrollment date"
 msgstr ""
@@ -1110,9 +1110,9 @@ msgid ""
 "Samaritan’s Purse, Medecins Sans Frontières (MSF), the the Norwegian Refugee "
 "Council (NRC) and the Clinton Health Access Initiative (CHAI) to support "
 "countries in strengthening the collection and use of health data by using "
-"DHIS2. The application has been developed by [EyeSeeTea SL](http://eyeseetea."
-"com). Source code, documentation and release notes can be found at the "
-"[EyeSeetea GitHub Project Page](https://eyeseetea.github.io/Bulk-Load-"
+"DHIS2. The application has been developed by [EyeSeeTea SL](http://"
+"eyeseetea.com). Source code, documentation and release notes can be found at "
+"the [EyeSeetea GitHub Project Page](https://eyeseetea.github.io/Bulk-Load-"
 "blessed/)."
 msgstr ""
 
