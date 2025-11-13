@@ -1,5 +1,4 @@
 //@ts-ignore
-import { HeaderBar } from "@dhis2/ui-widgets";
 import { useSnackbar } from "@eyeseetea/d2-ui-components";
 import { makeStyles, Paper } from "@material-ui/core";
 import React, { useEffect, useMemo, useState } from "react";
@@ -16,6 +15,7 @@ import ThemesPage from "./themes/ThemesPage";
 import BlankTemplatePage from "./blank-template/BlankTemplatePage";
 import { AboutPage } from "./about/AboutPage";
 import { CustomTemplate } from "../../domain/entities/Template";
+import { HeaderBar } from "../components/header-bar/HeaderBar";
 
 export interface RouteComponentProps {
     settings: Settings;
