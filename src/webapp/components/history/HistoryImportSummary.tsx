@@ -36,18 +36,10 @@ export function HistoryImportSummary({ summary, details }: HistoryImportSummaryP
                 <HistoryStatusIndicator status={summary.status} iconStyle={{ fontSize: 18, marginRight: 8 }} />
             </div>
             {details && (
-                <>
-                    <div className={classes.infoRow}>
-                        <Typography className={classes.infoLabel}>{i18n.t("Import strategy")}:</Typography>
-                        <Typography variant="body2">{getImportStrategyLabel(details, summary.dataFormType)}</Typography>
-                    </div>
-                    {details.configuration?.comment && (
-                        <div className={classes.infoRow}>
-                            <Typography className={classes.infoLabel}>{i18n.t("Comment")}:</Typography>
-                            <Typography variant="body2">{details.configuration?.comment}</Typography>
-                        </div>
-                    )}
-                </>
+                <div className={classes.infoRow}>
+                    <Typography className={classes.infoLabel}>{i18n.t("Import strategy")}:</Typography>
+                    <Typography variant="body2">{getImportStrategyLabel(details, summary.dataFormType)}</Typography>
+                </div>
             )}
             <div className={classes.infoRow}>
                 <Typography className={classes.infoLabel}>{i18n.t("File")}:</Typography>

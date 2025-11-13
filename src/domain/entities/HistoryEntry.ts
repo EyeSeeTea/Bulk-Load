@@ -139,7 +139,6 @@ export class HistoryEntry {
                 "selectedOrgUnits",
                 "duplicateStrategy",
                 "organisationUnitStrategy",
-                "comment",
             ]),
         };
     }

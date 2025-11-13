@@ -6,5 +6,4 @@ export interface ImportTemplateConfiguration {
     selectedOrgUnits?: string[];
     duplicateStrategy?: DuplicateImportStrategy;
     organisationUnitStrategy?: OrganisationUnitImportStrategy;
-    comment?: string;
 }
