@@ -26,9 +26,13 @@ import { TemplateRepository } from "../repositories/TemplateRepository";
 import { FileRepository } from "../repositories/FileRepository";
 import { FileResource } from "../entities/FileResource";
 import { ImportSourceRepository } from "../repositories/ImportSourceRepository";
+import { HistoryRepository } from "../repositories/HistoryRepository";
 import { AttributeValue, TrackedEntityInstance } from "../entities/TrackedEntityInstance";
 import { Maybe } from "../../types/utils";
+import { buildHistorySharing, HistoryEntry, HistoryEntryDocument } from "../entities/HistoryEntry";
+import { DocumentRepository } from "../repositories/DocumentRepository";
 import { DataElementDisaggregationsMappingRepository } from "../repositories/DataElementDisaggregationsMappingRepository";
+import { DuplicateImportStrategy, ImportTemplateConfiguration } from "../entities/ImportTemplateConfiguration";
 
 export type ImportTemplateError =
     | {
@@ -42,17 +46,10 @@ export type ImportTemplateError =
           instanceDataValues: TemplateDataPackage;
       };
 
-export type DuplicateImportStrategy = "ERROR" | "IMPORT" | "IGNORE" | "IMPORT_WITHOUT_DELETE";
-export type OrganisationUnitImportStrategy = "ERROR" | "IGNORE";
-
-export interface ImportTemplateUseCaseParams {
+export type ImportTemplateUseCaseParams = {
     file: File;
-    useBuilderOrgUnits?: boolean;
-    selectedOrgUnits?: string[];
-    duplicateStrategy?: DuplicateImportStrategy;
-    organisationUnitStrategy?: OrganisationUnitImportStrategy;
     settings: Settings;
-}
+} & ImportTemplateConfiguration;
 
 type CustomErrorMatch = {
     regex: RegExp;
@@ -82,19 +79,94 @@ export class ImportTemplateUseCase implements UseCase {
         private excelRepository: ExcelRepository,
         private fileRepository: FileRepository,
         private importSourceRepository: ImportSourceRepository,
+        private historyRepository: HistoryRepository,
+        private documentRepository: DocumentRepository,
         private dataElementDisaggregationsMappingRepository: DataElementDisaggregationsMappingRepository
     ) {}
 
-    public async execute({
-        file,
-        useBuilderOrgUnits = false,
-        selectedOrgUnits = [],
-        duplicateStrategy = "ERROR",
-        organisationUnitStrategy = "ERROR",
-        settings,
-    }: ImportTemplateUseCaseParams): Promise<Either<ImportTemplateError, SynchronizationResult[]>> {
-        const { spreadSheet, images } = await this.importSourceRepository.import(file);
+    /**
+     * Imports a template file into DHIS2
+     * Uploads the file as a upload, runs the import, and stores the history entry
+     */
+    public async execute(
+        params: ImportTemplateUseCaseParams
+    ): Promise<Either<ImportTemplateError, SynchronizationResult[]>> {
+        let dataForm: DataForm | undefined = undefined;
 
+        try {
+            const { spreadSheet, images } = await this.importSourceRepository.import(params.file);
+
+            const dataFormResult = await this.getDataForm(params, spreadSheet);
+
+            const result = await dataFormResult.match({
+                error: async error => {
+                    const errorResult = Either.error(error);
+                    await this.saveHistoryIfNeeded({
+                        params,
+                        dataForm: undefined,
+                        result: errorResult,
+                    });
+                    return errorResult;
+                },
+                success: async retrievedDataForm => {
+                    dataForm = retrievedDataForm;
+                    const importResult = await this.run(params, retrievedDataForm, spreadSheet, images);
+                    await this.saveHistoryIfNeeded({
+                        params,
+                        dataForm: retrievedDataForm,
+                        result: importResult,
+                    });
+                    return importResult;
+                },
+            });
+
+            return result;
+        } catch (error) {
+            console.error("Unhandled exception during import", error);
+            // TS infers dataForm as undefined even though it can be set in the try/success block
+            const errorDataForm = dataForm as DataForm | undefined;
+            const document = await this.uploadDocument(params, errorDataForm);
+            const historyEntry = HistoryEntry.create({
+                user: params.settings.currentUser,
+                document,
+                errorDetails: { type: "UNHANDLED_EXCEPTION", message: (error as Error).message },
+                dataForm: errorDataForm,
+                syncResults: undefined,
+                importConfiguration: params,
+            });
+            await this.historyRepository.save(historyEntry);
+            throw error;
+        }
+    }
+
+    private async saveHistoryIfNeeded({
+        params,
+        dataForm,
+        result,
+    }: {
+        params: ImportTemplateUseCaseParams;
+        dataForm: DataForm | undefined;
+        result: Either<ImportTemplateError, SynchronizationResult[]>;
+    }): Promise<void> {
+        if (!HistoryEntry.shouldSaveImportResult(result)) {
+            return;
+        }
+        const document = await this.uploadDocument(params, dataForm);
+        const { currentUser } = params.settings;
+        const historyEntry = HistoryEntry.fromImportResult({
+            user: currentUser,
+            document,
+            dataForm,
+            result,
+            importConfiguration: params,
+        });
+        await this.historyRepository.save(historyEntry);
+    }
+
+    private async getDataForm(
+        { useBuilderOrgUnits = false, selectedOrgUnits = [] }: ImportTemplateUseCaseParams,
+        spreadSheet: Blob
+    ): Promise<Either<ImportTemplateError, DataForm>> {
         if (useBuilderOrgUnits && selectedOrgUnits.length !== 1) {
             return Either.error({ type: "INVALID_OVERRIDE_ORG_UNIT" });
         }
@@ -111,10 +183,30 @@ export class ImportTemplateUseCase implements UseCase {
             return Either.error({ type: "INVALID_DATA_FORM_ID" });
         }
 
-        const [dataForm] = await this.instanceRepository.getDataForms({ ids: [dataFormId] });
-        if (!dataForm) {
+        const [retrievedDataForm] = await this.instanceRepository.getDataForms({ ids: [dataFormId] });
+        if (!retrievedDataForm) {
             return Either.error({ type: "DATA_FORM_NOT_FOUND" });
         }
+
+        return Either.success(retrievedDataForm);
+    }
+
+    private async run(
+        {
+            useBuilderOrgUnits = false,
+            selectedOrgUnits = [],
+            duplicateStrategy = "ERROR",
+            organisationUnitStrategy = "ERROR",
+            settings,
+        }: ImportTemplateUseCaseParams,
+        dataForm: DataForm,
+        spreadSheet: Blob,
+        images: FileResource[]
+    ): Promise<Either<ImportTemplateError, SynchronizationResult[]>> {
+        const templateId = await this.excelRepository.loadTemplate({ type: "file", file: spreadSheet });
+        const template = await this.templateRepository.getTemplate(templateId);
+
+        const dataFormId = dataForm.id;
 
         const dataPackage = await this.readTemplate(template, dataForm);
         if (!dataPackage) {
@@ -178,6 +270,31 @@ export class ImportTemplateUseCase implements UseCase {
             return Either.success(_.compact([deleteResultWithErrorsDetails, ...importResultWithErrorsDetails]));
         } else {
             return Either.success(_.compact([deleteResult, ...importResult]));
+        }
+    }
+
+    /**
+     * Uploads the document if the user has permissions, otherwise returns an unsaved document
+     * In case of any other error also returns an unsaved document
+     */
+    private async uploadDocument(
+        { file, settings }: Pick<ImportTemplateUseCaseParams, "file" | "settings">,
+        dataForm: Maybe<DataForm>
+    ): Promise<HistoryEntryDocument> {
+        const unsavedDocument = { name: file.name };
+        if (!settings.canUploadDocument()) {
+            return unsavedDocument;
+        }
+        try {
+            const uploadedDocument = await this.documentRepository.upload({
+                data: file,
+                name: file.name,
+                permissions: buildHistorySharing(settings.templatePermissions, dataForm),
+            });
+            return uploadedDocument;
+        } catch (error) {
+            console.error("Error uploading document", error);
+            return unsavedDocument;
         }
     }
 
