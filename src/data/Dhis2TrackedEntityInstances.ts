@@ -267,14 +267,6 @@ export interface Metadata {
 
 /* Get metadata required to map attribute values for option sets */
 async function getMetadata(api: D2Api): Promise<Metadata> {
-    const constraintfields = {
-        program: true,
-        programStage: true,
-        relationshipEntity: true,
-        trackedEntityType: true,
-        trackerDataView: true,
-    };
-
     const { options, relationshipTypes } = await api.metadata
         .get({
             options: { fields: { id: true, name: true, code: true } },
@@ -656,4 +648,12 @@ export type TrackedEntitiesD2ApiResponse = {
         pageCount: number;
     };
     pageCount?: number;
+};
+
+const constraintfields = {
+    program: true,
+    programStage: true,
+    relationshipEntity: true,
+    trackedEntityType: true,
+    trackerDataView: true,
 };
