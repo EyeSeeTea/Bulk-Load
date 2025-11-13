@@ -1,8 +1,7 @@
-import { D2Api } from "@eyeseetea/d2-api/2.33";
 import { DhisInstance } from "../domain/entities/DhisInstance";
 import { FileResource } from "../domain/entities/FileResource";
 import { FileRepository } from "../domain/repositories/FileRepository";
-import { D2ApiDefault } from "../types/d2-api";
+import { D2Api, D2ApiDefault } from "../types/d2-api";
 import { promiseMap } from "../utils/promises";
 
 type FileResponse = {

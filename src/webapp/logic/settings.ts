@@ -113,6 +113,7 @@ export default class Settings {
                     id: true,
                     name: true,
                     userCredentials: { username: true },
+                    username: true,
                     userGroups: { id: true },
                     dataViewOrganisationUnits: {
                         id: true,
@@ -132,7 +133,7 @@ export default class Settings {
         const currentUser: User = {
             id: d2CurrentUser.id,
             name: d2CurrentUser.name,
-            username: d2CurrentUser.userCredentials.username,
+            username: d2CurrentUser.username ?? d2CurrentUser.userCredentials?.username ?? "",
             authorities: new Set(authorities),
             userGroups: d2CurrentUser.userGroups,
             orgUnits: d2CurrentUser.organisationUnits,

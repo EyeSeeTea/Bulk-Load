@@ -205,10 +205,34 @@ export class InstanceDhisRepository implements InstanceRepository {
 
     @cache()
     public async getDefaultIds(filter?: string): Promise<string[]> {
-        const response = await this.api
-            .get<Record<string, { id: string }[]>>("/metadata", {
-                filter: "identifiable:eq:default",
-                fields: "id",
+        // Workaround for a bug in 2.42, filter by type
+        // See https://dhis2.atlassian.net/browse/DHIS2-20193
+
+        // const response = await this.api
+        //     .get<Record<string, { id: string }[]>>("/metadata", {
+        //         filter: "identifiable:eq:default",
+        //         fields: "id",
+        //     })
+        //     .getData();
+
+        const response = await this.api.metadata
+            .get({
+                categoryOptionCombos: {
+                    fields: { id: true },
+                    filter: { identifiable: { eq: "default" } },
+                },
+                categories: {
+                    fields: { id: true },
+                    filter: { identifiable: { eq: "default" } },
+                },
+                categoryCombos: {
+                    fields: { id: true },
+                    filter: { identifiable: { eq: "default" } },
+                },
+                categoryOptions: {
+                    fields: { id: true },
+                    filter: { identifiable: { eq: "default" } },
+                },
             })
             .getData();
 

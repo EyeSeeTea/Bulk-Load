@@ -16,6 +16,7 @@ export class D2UsersRepository implements UsersRepository {
                 fields: {
                     id: true,
                     name: true,
+                    username: true,
                     userCredentials: { username: true },
                     userGroups: { id: true, name: true },
                     authorities: true,
@@ -38,7 +39,7 @@ export class D2UsersRepository implements UsersRepository {
         return {
             id: apiUser.id,
             name: apiUser.name,
-            username: apiUser.userCredentials.username,
+            username: apiUser.username ?? apiUser.userCredentials?.username ?? "",
             authorities: new Set(apiUser.authorities),
             userGroups: apiUser.userGroups,
             orgUnitsView: apiUser.dataViewOrganisationUnits.map(this.buildOrgUnit),
