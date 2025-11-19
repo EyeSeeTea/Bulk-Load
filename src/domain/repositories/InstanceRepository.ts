@@ -2,7 +2,7 @@ import { Moment } from "moment";
 import { RelationshipOrgUnitFilter } from "../../data/Dhis2RelationshipTypes";
 import { DataStore } from "../../types/d2-api";
 import { Maybe } from "../../types/utils";
-import { DataForm, DataFormType } from "../entities/DataForm";
+import { DataForm, DataFormPermissions, DataFormType } from "../entities/DataForm";
 import { DataPackage } from "../entities/DataPackage";
 import { AggregatedPackage, EventsPackage } from "../entities/DhisDataPackage";
 import { Locale } from "../entities/Locale";
@@ -42,6 +42,7 @@ export interface InstanceRepository {
     getProgram(programId: Id): Promise<Program | undefined>;
     convertDataPackage(dataPackage: DataPackage): EventsPackage | AggregatedPackage;
     getBuilderMetadata(teis: TrackedEntityInstance[]): Promise<BuilderMetadata>;
+    getDataFormPermissions(dataFormIds: Id[]): Promise<DataFormPermissions[]>;
 }
 
 export type ImportDataPackageOptions = { createAndUpdate: boolean; multiTextTeiDelimiter: Maybe<string> };

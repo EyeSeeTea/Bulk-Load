@@ -23,3 +23,7 @@ export function getUserTimestamp(currentUser: User): UserTimestamp {
     const user = _.pick(currentUser, ["id", "username", "name"]);
     return { user, timestamp };
 }
+
+export function isAdmin(user: User): boolean {
+    return user.authorities.has("ALL");
+}

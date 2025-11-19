@@ -2,7 +2,6 @@ import {
     Accordion,
     AccordionDetails,
     AccordionSummary,
-    DialogContent,
     makeStyles,
     Table,
     TableBody,
@@ -12,7 +11,6 @@ import {
     Typography,
 } from "@material-ui/core";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
-import { ConfirmationDialog } from "@eyeseetea/d2-ui-components";
 import _ from "lodash";
 import { useCallback, useMemo } from "react";
 import ReactJson from "react-json-view";
@@ -112,10 +110,9 @@ const buildMessageTable = (messages: ErrorMessage[]) => {
 
 interface SyncSummaryProps {
     results: SynchronizationResult[];
-    onClose: () => void;
 }
 
-const SyncSummary = ({ results, onClose }: SyncSummaryProps) => {
+const SyncSummary = ({ results }: SyncSummaryProps) => {
     const classes = useStyles();
     const rawResults = useMemo(
         () =>
@@ -131,74 +128,65 @@ const SyncSummary = ({ results, onClose }: SyncSummaryProps) => {
     }, []);
 
     return (
-        <ConfirmationDialog
-            isOpen={true}
-            title={i18n.t("Synchronization Results")}
-            onCancel={onClose}
-            cancelText={i18n.t("Ok")}
-            maxWidth={"lg"}
-            fullWidth={true}
-        >
-            <DialogContent>
-                {results.map(({ title, status, stats = [], message, errors }, idx) => (
-                    <Accordion defaultExpanded={results.length === 1} className={classes.accordion} key={`row-${idx}`}>
-                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                            <Typography className={classes.accordionHeading1}>
-                                {title}
-                                <br />
-                            </Typography>
-                            <Typography className={classes.accordionHeading2}>
-                                {`${i18n.t("Status")}: `}
-                                {formatStatusTag(status)}
-                            </Typography>
-                        </AccordionSummary>
+        <>
+            {results.map(({ title, status, stats = [], message, errors }, idx) => (
+                <Accordion defaultExpanded={results.length === 1} className={classes.accordion} key={`row-${idx}`}>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                        <Typography className={classes.accordionHeading1}>
+                            {title}
+                            <br />
+                        </Typography>
+                        <Typography className={classes.accordionHeading2}>
+                            {`${i18n.t("Status")}: `}
+                            {formatStatusTag(status)}
+                        </Typography>
+                    </AccordionSummary>
 
+                    <AccordionDetails className={classes.accordionDetails}>
+                        <Typography variant="overline">{i18n.t("Summary")}</Typography>
+                    </AccordionDetails>
+
+                    {message && (
                         <AccordionDetails className={classes.accordionDetails}>
-                            <Typography variant="overline">{i18n.t("Summary")}</Typography>
+                            <Typography variant="body2">{message}</Typography>
                         </AccordionDetails>
+                    )}
 
-                        {message && (
-                            <AccordionDetails className={classes.accordionDetails}>
-                                <Typography variant="body2">{message}</Typography>
-                            </AccordionDetails>
-                        )}
-
-                        {!_.isEmpty(stats) && (
-                            <AccordionDetails className={classes.accordionDetails}>
-                                {buildSummaryTable([...stats])}
-                            </AccordionDetails>
-                        )}
-
-                        {errors && errors.length > 0 && (
-                            <div>
-                                <AccordionDetails className={classes.accordionDetails}>
-                                    <Typography variant="overline">{i18n.t("Messages")}</Typography>
-                                </AccordionDetails>
-                                <AccordionDetails className={classes.accordionDetails}>
-                                    {buildMessageTable(_.take(errors, 10))}
-                                </AccordionDetails>
-                            </div>
-                        )}
-                    </Accordion>
-                ))}
-
-                {!_.isEmpty(rawResults) && (
-                    <Accordion>
-                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                            <Typography className={classes.accordionHeading1}>{i18n.t("JSON Response")}</Typography>
-                        </AccordionSummary>
-
-                        <AccordionDetails>
-                            <ReactJson
-                                src={rawResults.length === 1 ? rawResults[0] ?? {} : rawResults}
-                                collapsed={2}
-                                enableClipboard={copyToClipboard}
-                            />
+                    {!_.isEmpty(stats) && (
+                        <AccordionDetails className={classes.accordionDetails}>
+                            {buildSummaryTable([...stats])}
                         </AccordionDetails>
-                    </Accordion>
-                )}
-            </DialogContent>
-        </ConfirmationDialog>
+                    )}
+
+                    {errors && errors.length > 0 && (
+                        <div>
+                            <AccordionDetails className={classes.accordionDetails}>
+                                <Typography variant="overline">{i18n.t("Messages")}</Typography>
+                            </AccordionDetails>
+                            <AccordionDetails className={classes.accordionDetails}>
+                                {buildMessageTable(_.take(errors, 10))}
+                            </AccordionDetails>
+                        </div>
+                    )}
+                </Accordion>
+            ))}
+
+            {!_.isEmpty(rawResults) && (
+                <Accordion>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                        <Typography className={classes.accordionHeading1}>{i18n.t("JSON Response")}</Typography>
+                    </AccordionSummary>
+
+                    <AccordionDetails>
+                        <ReactJson
+                            src={rawResults.length === 1 ? rawResults[0] ?? {} : rawResults}
+                            collapsed={2}
+                            enableClipboard={copyToClipboard}
+                        />
+                    </AccordionDetails>
+                </Accordion>
+            )}
+        </>
     );
 };
 
