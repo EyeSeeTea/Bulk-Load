@@ -48,6 +48,7 @@ import {
     DataValueSetsGetResponse,
     Id,
     SelectedPick,
+    D2SharingSchema,
 } from "../types/d2-api";
 import { cache } from "../utils/cache";
 import { promiseMap } from "../utils/promises";
@@ -104,7 +105,6 @@ export class InstanceDhisRepository implements InstanceRepository {
                     dataElements: dataElements.map(dataElement => formatDataElement(dataElement)),
                     repeatable: false,
                 })),
-                // @ts-expect-error sharing is defined as Ref in d2-api
                 sharing: mapSharing(sharing),
             })
         );
@@ -165,7 +165,6 @@ export class InstanceDhisRepository implements InstanceRepository {
                 //      which is why we retrieve featureType from the first one.
                 //      Specifically used in `ExcelReader > readByRow -> formatGeometry`
                 featureType: getFeatureType(programStages.map(({ featureType }) => featureType)[0]),
-                // @ts-expect-error sharing is defined as Ref in d2-api
                 sharing: mapSharing(sharing),
             })
         );
@@ -389,16 +388,16 @@ export class InstanceDhisRepository implements InstanceRepository {
     async getDataFormPermissions(dataFormIds: string[]): Promise<DataFormPermissions[]> {
         const getParams = {
             paging: false,
-            fields: { id: true, sharing: true },
+            fields: { id: true, sharing: sharingFields },
             filter: { id: { in: dataFormIds } },
         } as const;
         const getDataSets = this.api.models.dataSets.get(getParams).getData();
         const getPrograms = this.api.models.programs.get(getParams).getData();
         const [dataSets, programs] = await Promise.all([getDataSets, getPrograms]);
-        return [...dataSets.objects, ...programs.objects].map(({ id, sharing }) => {
-            // @ts-expect-error sharing is defined as Ref in d2-api
-            return { id, sharing: mapSharing(sharing) };
-        });
+        return [...dataSets.objects, ...programs.objects].map(({ id, sharing }) => ({
+            id,
+            sharing: mapSharing(sharing),
+        }));
     }
 
     /* Private */
@@ -841,6 +840,20 @@ const dataElementFields = {
     optionSet: { id: true, options: { id: true, code: true, name: true } },
 } as const;
 
+const sharingObjectFields = {
+    id: true,
+    displayName: true,
+    access: true,
+} as const;
+
+const sharingFields = {
+    owner: true,
+    external: true,
+    public: true,
+    userGroups: sharingObjectFields,
+    users: sharingObjectFields,
+} as const;
+
 const dataSetFields = {
     id: true,
     displayName: true,
@@ -850,7 +863,7 @@ const dataSetFields = {
     sections: { id: true, name: true, dataElements: dataElementFields },
     periodType: true,
     access: true,
-    sharing: true,
+    sharing: sharingFields,
 } as const;
 
 const programFields = {
@@ -876,7 +889,7 @@ const programFields = {
     access: true,
     programType: true,
     trackedEntityType: { id: true, featureType: true },
-    sharing: true,
+    sharing: sharingFields,
 } as const;
 
 const formatDataElement = (de: SelectedPick<D2DataElementSchema, typeof dataElementFields>): DataElement => ({
@@ -903,19 +916,7 @@ function getFeatureType(featureType?: D2ProgramStage["featureType"]): DataFormFe
     return featureType === "POINT" ? "point" : featureType === "POLYGON" ? "polygon" : "none";
 }
 
-// TODO: review these sharing types not defined in d2-api
-type D2SharingObject = {
-    id: Id;
-    displayName: string;
-    access: string;
-};
-type D2Sharing = {
-    owner: Id;
-    external: boolean;
-    public: string;
-    userGroups: Record<Id, D2SharingObject>;
-    users: Record<Id, D2SharingObject>;
-};
+type D2Sharing = SelectedPick<D2SharingSchema, typeof sharingFields>;
 
 function mapSharing(sharing: D2Sharing): Sharing {
     return {
