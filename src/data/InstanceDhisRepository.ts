@@ -87,18 +87,7 @@ export class InstanceDhisRepository implements InstanceRepository {
             .getData();
 
         return objects.map(
-            ({
-                id,
-                displayName,
-                name,
-                access,
-                periodType,
-                dataSetElements,
-                sections,
-                attributeValues,
-                // @ts-expect-error sharing is not defined in d2-api
-                sharing,
-            }) => ({
+            ({ id, displayName, name, access, periodType, dataSetElements, sections, attributeValues, sharing }) => ({
                 type: dataFormTypeMap.dataSets,
                 id,
                 attributeValues,
@@ -115,6 +104,7 @@ export class InstanceDhisRepository implements InstanceRepository {
                     dataElements: dataElements.map(dataElement => formatDataElement(dataElement)),
                     repeatable: false,
                 })),
+                // @ts-expect-error sharing is defined as Ref in d2-api
                 sharing: mapSharing(sharing),
             })
         );
@@ -143,7 +133,6 @@ export class InstanceDhisRepository implements InstanceRepository {
                 attributeValues,
                 programTrackedEntityAttributes,
                 trackedEntityType,
-                // @ts-expect-error sharing is not defined in d2-api
                 sharing,
             }): DataForm => ({
                 type: programType === "WITH_REGISTRATION" ? dataFormTypeMap.trackerPrograms : dataFormTypeMap.programs,
@@ -176,6 +165,7 @@ export class InstanceDhisRepository implements InstanceRepository {
                 //      which is why we retrieve featureType from the first one.
                 //      Specifically used in `ExcelReader > readByRow -> formatGeometry`
                 featureType: getFeatureType(programStages.map(({ featureType }) => featureType)[0]),
+                // @ts-expect-error sharing is defined as Ref in d2-api
                 sharing: mapSharing(sharing),
             })
         );
@@ -405,13 +395,10 @@ export class InstanceDhisRepository implements InstanceRepository {
         const getDataSets = this.api.models.dataSets.get(getParams).getData();
         const getPrograms = this.api.models.programs.get(getParams).getData();
         const [dataSets, programs] = await Promise.all([getDataSets, getPrograms]);
-        return [...dataSets.objects, ...programs.objects].map(
-            ({
-                id,
-                // @ts-expect-error sharing is not defined in d2-api
-                sharing,
-            }) => ({ id, sharing: mapSharing(sharing) })
-        );
+        return [...dataSets.objects, ...programs.objects].map(({ id, sharing }) => {
+            // @ts-expect-error sharing is defined as Ref in d2-api
+            return { id, sharing: mapSharing(sharing) };
+        });
     }
 
     /* Private */

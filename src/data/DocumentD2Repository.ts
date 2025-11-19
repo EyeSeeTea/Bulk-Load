@@ -1,4 +1,4 @@
-import { D2Api } from "@eyeseetea/d2-api/2.33";
+import { D2Api } from "@eyeseetea/d2-api/2.41";
 import { DhisInstance } from "../domain/entities/DhisInstance";
 import { D2ApiDefault, DataStore } from "../types/d2-api";
 import { dataStoreNamespace } from "./StorageDataStoreRepository";

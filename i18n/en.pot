@@ -5,8 +5,8 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2025-11-12T16:45:33.366Z\n"
-"PO-Revision-Date: 2025-11-12T16:45:33.366Z\n"
+"POT-Creation-Date: 2025-11-19T17:15:26.356Z\n"
+"PO-Revision-Date: 2025-11-19T17:15:26.356Z\n"
 
 msgid "Events - Create/update"
 msgstr ""
@@ -601,6 +601,12 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "Are you sure you want to remove the selected templates"
+msgstr ""
+
+msgid "Cannot determine file extension for template"
+msgstr ""
+
+msgid "Unsupported file extension for template"
 msgstr ""
 
 msgid "Cannot download spreadsheet for template"
