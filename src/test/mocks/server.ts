@@ -85,7 +85,7 @@ export function initializeMockServer() {
     mock.onGet("/dataSets", {
         params: {
             paging: false,
-            fields: "access,attributeValues[attribute[code],value],dataSetElements[dataElement[categoryCombo[id],formName,id,name,optionSet[id,options[code,id,name]],valueType]],displayName,id,name,periodType,sections[dataElements[categoryCombo[id],formName,id,name,optionSet[id,options[code,id,name]],valueType],id,name],sharing",
+            fields: "access,attributeValues[attribute[code],value],dataSetElements[dataElement[categoryCombo[id],formName,id,name,optionSet[id,options[code,id,name]],valueType]],displayName,id,name,periodType,sections[dataElements[categoryCombo[id],formName,id,name,optionSet[id,options[code,id,name]],valueType],id,name],sharing[external,owner,public,userGroups[access,displayName,id],users[access,displayName,id]]",
             filter: [],
         },
     }).reply(200, {
@@ -126,7 +126,7 @@ export function initializeMockServer() {
     mock.onGet("/programs", {
         params: {
             paging: false,
-            fields: "access,attributeValues[attribute[code],value],displayName,id,name,programStages[featureType,id,name,programStageDataElements[dataElement[categoryCombo[id],formName,id,name,optionSet[id,options[code,id,name]],valueType]],repeatable],programTrackedEntityAttributes[trackedEntityAttribute[id,name,optionSet[id,options[code,id,name]],valueType]],programType,sharing,trackedEntityType[featureType,id]",
+            fields: "access,attributeValues[attribute[code],value],displayName,id,name,programStages[featureType,id,name,programStageDataElements[dataElement[categoryCombo[id],formName,id,name,optionSet[id,options[code,id,name]],valueType]],repeatable],programTrackedEntityAttributes[trackedEntityAttribute[id,name,optionSet[id,options[code,id,name]],valueType]],programType,sharing[external,owner,public,userGroups[access,displayName,id],users[access,displayName,id]],trackedEntityType[featureType,id]",
             filter: [],
         },
     }).reply(200, {
