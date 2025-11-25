@@ -145,12 +145,21 @@ export async function postImport(
         });
     } catch (error: any) {
         if (error?.response?.data) {
-            return processImportResponse({
-                title,
-                model: model,
-                importResult: error.response.data,
-                splitStatsList,
-            });
+            if (error.response.data.validationReport) {
+                return processImportResponse({
+                    title,
+                    model: model,
+                    importResult: error.response.data,
+                    splitStatsList,
+                });
+            } else {
+                return {
+                    title: model,
+                    status: "ERROR",
+                    rawResponse: error.response,
+                    message: error.response.data.message,
+                };
+            }
         } else {
             return { title: model, status: "NETWORK ERROR", rawResponse: {} };
         }
