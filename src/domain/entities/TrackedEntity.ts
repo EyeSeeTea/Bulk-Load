@@ -1,6 +1,6 @@
 import { Id } from "./ReferenceObject";
 import { Enrollment } from "./TrackedEntityInstance";
-import { DataElementType } from "./DataForm";
+import { ValueType } from "./DataForm";
 import { D2Geometry } from "@eyeseetea/d2-api/schemas";
 
 export type RelationshipItem = {
@@ -33,7 +33,7 @@ export type D2TrackerAttribute = {
 export type TrackedEntitiesApiRequest = {
     attributes: {
         attribute: string;
-        valueType: DataElementType | undefined;
+        valueType: ValueType | undefined;
         value: string;
     }[];
     enrollments: Enrollment[];

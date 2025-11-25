@@ -26,9 +26,11 @@ export interface AppSettings {
     permissionsForGeneration: NamedRef[];
     permissionsForSettings: NamedRef[];
     permissionsForImport: NamedRef[];
+    permissionsForHistory: NamedRef[];
     allPermissionsForGeneration: boolean;
     allPermissionsForSettings: boolean;
     allPermissionsForImport: boolean;
+    allPermissionsForHistory: boolean;
     orgUnitSelection: OrgUnitSelectionSetting;
     duplicateEnabled: boolean;
     duplicateExclusion: DuplicateExclusion;
