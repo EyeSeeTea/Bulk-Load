@@ -478,8 +478,20 @@ msgstr ""
 msgid "Data elements and attributes to include/exclude for programs"
 msgstr ""
 
+msgid "Duplicate"
+msgstr "Doublon"
+
 msgid "Duplicate detection"
 msgstr "Détection des doublons"
+
+msgid "Event date time difference for events (programs)"
+msgstr "Décalage de la date de l'événement pour les programmes des événements"
+
+msgid "Duplicate detection filter for events (programs)"
+msgstr ""
+
+msgid "Data elements used for duplicates identification"
+msgstr "Éléments de données utilisés pour l'identification des doublons"
 
 #, fuzzy
 msgid "Template configuration"
@@ -499,15 +511,6 @@ msgstr ""
 
 msgid "Show populate in custom forms"
 msgstr ""
-
-msgid "Event date time difference for events (programs)"
-msgstr "Décalage de la date de l'événement pour les programmes des événements"
-
-msgid "Duplicate detection filter for events (programs)"
-msgstr ""
-
-msgid "Data elements used for duplicates identification"
-msgstr "Éléments de données utilisés pour l'identification des doublons"
 
 msgid "Permissions"
 msgstr "Autorisations"
