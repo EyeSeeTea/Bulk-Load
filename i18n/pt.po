@@ -499,8 +499,20 @@ msgstr "Filtrar colunas para programas"
 msgid "Data elements and attributes to include/exclude for programs"
 msgstr "Elementos de dados e atributos a incluir/excluir para programas"
 
+msgid "Duplicate"
+msgstr "Duplicado"
+
 msgid "Duplicate detection"
-msgstr "Detecção duplicada"
+msgstr "Detecção de duplicados"
+
+msgid "Event date time difference for events (programs)"
+msgstr "Diferença de data e hora do evento de eventos (programas)"
+
+msgid "Duplicate detection filter for events (programs)"
+msgstr "Filtro de detecção duplicado para eventos (programas)"
+
+msgid "Data elements used for duplicates identification"
+msgstr "Elementos de dados usados para identificação de duplicatas"
 
 #, fuzzy
 msgid "Template configuration"
@@ -520,15 +532,6 @@ msgstr ""
 
 msgid "Show populate in custom forms"
 msgstr ""
-
-msgid "Event date time difference for events (programs)"
-msgstr "Diferença de data e hora do evento de eventos (programas)"
-
-msgid "Duplicate detection filter for events (programs)"
-msgstr "Filtro de detecção duplicado para eventos (programas)"
-
-msgid "Data elements used for duplicates identification"
-msgstr "Elementos de dados usados para identificação de duplicatas"
 
 msgid "Permissions"
 msgstr "Permissões"

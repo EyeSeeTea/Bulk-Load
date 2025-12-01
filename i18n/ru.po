@@ -499,8 +499,20 @@ msgstr "Фильтр столбцов для программ"
 msgid "Data elements and attributes to include/exclude for programs"
 msgstr "Элементы данных и атрибуты для включения/исключения для программ"
 
+msgid "Duplicate"
+msgstr "Дубликат"
+
 msgid "Duplicate detection"
 msgstr "Обнаружение дубликатов"
+
+msgid "Event date time difference for events (programs)"
+msgstr "Разница во времени даты события для событий (программ)"
+
+msgid "Duplicate detection filter for events (programs)"
+msgstr "Фильтр обнаружения дубликатов для событий (программ)"
+
+msgid "Data elements used for duplicates identification"
+msgstr "Элементы данных, используемые для выявления дубликатов"
 
 #, fuzzy
 msgid "Template configuration"
@@ -520,15 +532,6 @@ msgstr ""
 
 msgid "Show populate in custom forms"
 msgstr ""
-
-msgid "Event date time difference for events (programs)"
-msgstr "Разница во времени даты события для событий (программ)"
-
-msgid "Duplicate detection filter for events (programs)"
-msgstr "Фильтр обнаружения дубликатов для событий (программ)"
-
-msgid "Data elements used for duplicates identification"
-msgstr "Элементы данных, используемые для выявления дубликатов"
 
 msgid "Permissions"
 msgstr "Разрешения"
