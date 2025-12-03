@@ -12,10 +12,9 @@ import { AttributeValue, Enrollment, Program, TrackedEntityInstance } from "../d
 import { parseDate } from "../domain/helpers/ExcelReader";
 import i18n from "../utils/i18n";
 import { D2Api, D2RelationshipType, Id, Ref } from "../types/d2-api";
-import { KeysOfUnion } from "../types/utils";
+import { Dictionary, KeysOfUnion } from "../types/utils";
 import { promiseMap } from "../utils/promises";
 import { getUid } from "./dhis2-uid";
-import { postEvents } from "./Dhis2Events";
 import {
     buildOrgUnitMode,
     fromApiRelationships,
@@ -162,13 +161,21 @@ export async function updateTrackedEntityInstances(
     if (!program) throw new Error(`Program not found: ${programId}`);
 
     const apiEvents = await getApiEvents(api, teis, dataEntries, metadata, teiSeed);
+    const eventsMap = _.groupBy(apiEvents, event => event.trackedEntity);
     const { preTeis, postTeis } = await splitTeis(api, teis, metadata);
     const options = { api, program, metadata, existingTeis };
 
     return runSequentialPromisesOnSuccess([
-        () => uploadTeis({ ...options, teis: preTeis, title: i18n.t("Create/update"), importOptions }),
-        () => uploadTeis({ ...options, teis: postTeis, title: i18n.t("Relationships"), importOptions }),
-        () => postEvents(api, apiEvents, { existingTeis, teis: teis, program, metadata, importOptions }),
+        () =>
+            uploadTeis({ ...options, teis: preTeis, title: i18n.t("Create/update"), importOptions, events: eventsMap }),
+        () =>
+            uploadTeis({
+                ...options,
+                teis: postTeis,
+                title: i18n.t("Relationships"),
+                importOptions,
+                events: eventsMap,
+            }),
     ]);
 }
 
@@ -235,12 +242,13 @@ async function uploadTeis(options: {
     existingTeis: TrackedEntityInstance[];
     title: string;
     importOptions: ImportDataPackageOptions;
+    events: Dictionary<Event[]>;
 }): Promise<SynchronizationResult[]> {
-    const { api, importOptions, program, metadata, teis, existingTeis, title } = options;
+    const { api, importOptions, program, metadata, teis, existingTeis, title, events } = options;
 
     if (_.isEmpty(teis)) return [];
 
-    const apiTeis = teis.map(tei => getApiTeiToUpload(program, metadata, tei, existingTeis, importOptions));
+    const apiTeis = teis.map(tei => getApiTeiToUpload(program, metadata, tei, existingTeis, importOptions, events));
     const model = i18n.t("Tracked Entity Instance");
 
     const teisResult = await promiseMap(_.chunk(apiTeis, 200), teisToSave => {
@@ -363,8 +371,9 @@ export function getApiTeiToUpload(
     metadata: Metadata,
     tei: TrackedEntityInstance,
     existingTeis: TrackedEntityInstance[],
-    importOptions: ImportDataPackageOptions
-): TrackedEntity {
+    importOptions: ImportDataPackageOptions,
+    events?: Dictionary<Event[]>
+): TrackedEntityToSave {
     const { orgUnit, enrollment, relationships } = tei;
     const optionById = _.keyBy(metadata.options, option => option.id);
 
@@ -389,6 +398,9 @@ export function getApiTeiToUpload(
         };
     });
 
+    const enrollmentEvents = events?.[tei.id] || [];
+    const apiEvents = enrollmentEvents.map(event => ({ ...event, enrollment: enrollmentId }));
+
     return {
         trackedEntity: tei.id,
         trackedEntityType: program.trackedEntityType.id,
@@ -404,6 +416,7 @@ export function getApiTeiToUpload(
                           enrolledAt: enrollment.enrolledAt,
                           occurredAt: enrollment.occurredAt || enrollment.enrolledAt,
                           attributes: attributes,
+                          events: apiEvents,
                       },
                   ]
                 : [],
@@ -648,6 +661,11 @@ export type TrackedEntitiesD2ApiResponse = {
         pageCount: number;
     };
     pageCount?: number;
+};
+
+type EnrollmentWithEvents = Enrollment & { events: Event[] };
+type TrackedEntityToSave = Omit<TrackedEntity, "enrollments"> & {
+    enrollments: EnrollmentWithEvents[];
 };
 
 const constraintfields = {
