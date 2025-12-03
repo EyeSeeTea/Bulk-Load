@@ -55,6 +55,7 @@ import { promiseMap } from "../utils/promises";
 import { postEvents } from "./Dhis2Events";
 import { getProgram, getTrackedEntityInstances, updateTrackedEntityInstances } from "./Dhis2TrackedEntityInstances";
 import { Sharing } from "../domain/entities/Sharing";
+import { getMetadataDetailsFromErrors } from "./Dhis2Import";
 
 export class InstanceDhisRepository implements InstanceRepository {
     private api: D2Api;
@@ -477,13 +478,14 @@ export class InstanceDhisRepository implements InstanceRepository {
         const { status, description, conflicts, importCount } = importSummary;
         const { imported, deleted, updated, ignored } = importCount;
         const errors = conflicts?.map(({ object, value }) => ({ id: object, message: value, details: "" })) ?? [];
+        const errorDetails = await getMetadataDetailsFromErrors(this.api, errors);
 
         return {
             title,
             status,
             message: description,
             stats: [{ imported, deleted, updated, ignored }],
-            errors,
+            errors: errorDetails,
             rawResponse: importSummary,
         };
     }
