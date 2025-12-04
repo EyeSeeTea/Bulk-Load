@@ -543,8 +543,7 @@ export class InstanceDhisRepository implements InstanceRepository {
             };
         });
 
-        // third value only required for program trackers
-        return postEvents(this.api, eventsToSave, undefined);
+        return postEvents(this.api, eventsToSave);
     }
 
     private async getEventProgramStage(programId: Id): Promise<Ref | undefined> {
