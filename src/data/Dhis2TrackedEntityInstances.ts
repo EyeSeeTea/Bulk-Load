@@ -12,7 +12,7 @@ import { AttributeValue, Enrollment, Program, TrackedEntityInstance } from "../d
 import { parseDate } from "../domain/helpers/ExcelReader";
 import i18n from "../utils/i18n";
 import { D2Api, D2RelationshipType, Id, Ref } from "../types/d2-api";
-import { Dictionary, KeysOfUnion } from "../types/utils";
+import { KeysOfUnion } from "../types/utils";
 import { promiseMap } from "../utils/promises";
 import { getUid } from "./dhis2-uid";
 import {
@@ -167,14 +167,20 @@ export async function updateTrackedEntityInstances(
 
     return runSequentialPromisesOnSuccess([
         () =>
-            uploadTeis({ ...options, teis: preTeis, title: i18n.t("Create/update"), importOptions, events: eventsMap }),
+            uploadTeis({
+                ...options,
+                teis: preTeis,
+                title: i18n.t("Create/update"),
+                importOptions,
+                eventsByTei: eventsMap,
+            }),
         () =>
             uploadTeis({
                 ...options,
                 teis: postTeis,
                 title: i18n.t("Relationships"),
                 importOptions,
-                events: eventsMap,
+                eventsByTei: eventsMap,
             }),
     ]);
 }
@@ -242,13 +248,15 @@ async function uploadTeis(options: {
     existingTeis: TrackedEntityInstance[];
     title: string;
     importOptions: ImportDataPackageOptions;
-    events: Dictionary<Event[]>;
+    eventsByTei: EventMap;
 }): Promise<SynchronizationResult[]> {
-    const { api, importOptions, program, metadata, teis, existingTeis, title, events } = options;
+    const { api, importOptions, program, metadata, teis, existingTeis, title, eventsByTei } = options;
 
     if (_.isEmpty(teis)) return [];
 
-    const apiTeis = teis.map(tei => getApiTeiToUpload(program, metadata, tei, existingTeis, importOptions, events));
+    const apiTeis = teis.map(tei =>
+        getApiTeiToUpload({ program, metadata, tei, existingTeis, importOptions, eventsByTei })
+    );
     const model = i18n.t("Tracked Entity Instance");
 
     const teisResult = await promiseMap(_.chunk(apiTeis, 200), teisToSave => {
@@ -366,14 +374,15 @@ async function getApiEvents(
         .value();
 }
 
-export function getApiTeiToUpload(
-    program: Program,
-    metadata: Metadata,
-    tei: TrackedEntityInstance,
-    existingTeis: TrackedEntityInstance[],
-    importOptions: ImportDataPackageOptions,
-    events?: Dictionary<Event[]>
-): TrackedEntityToSave {
+function getApiTeiToUpload(options: {
+    program: Program;
+    metadata: Metadata;
+    tei: TrackedEntityInstance;
+    existingTeis: TrackedEntityInstance[];
+    importOptions: ImportDataPackageOptions;
+    eventsByTei: EventMap;
+}): TrackedEntityToSave {
+    const { program, metadata, tei, existingTeis, importOptions, eventsByTei } = options;
     const { orgUnit, enrollment, relationships } = tei;
     const optionById = _.keyBy(metadata.options, option => option.id);
 
@@ -398,7 +407,7 @@ export function getApiTeiToUpload(
         };
     });
 
-    const enrollmentEvents = events?.[tei.id] || [];
+    const enrollmentEvents = eventsByTei?.[tei.id] || [];
     const apiEvents = enrollmentEvents.map(event => ({ ...event, enrollment: enrollmentId }));
 
     return {
@@ -662,6 +671,9 @@ export type TrackedEntitiesD2ApiResponse = {
     };
     pageCount?: number;
 };
+
+type TEIId = string;
+type EventMap = Record<TEIId, Event[]>;
 
 type EnrollmentWithEvents = Enrollment & { events: Event[] };
 type TrackedEntityToSave = Omit<TrackedEntity, "enrollments"> & {
