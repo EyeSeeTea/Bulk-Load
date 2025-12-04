@@ -407,7 +407,7 @@ function getApiTeiToUpload(options: {
         };
     });
 
-    const enrollmentEvents = eventsByTei?.[tei.id] || [];
+    const enrollmentEvents = eventsByTei[tei.id] || [];
     const apiEvents = enrollmentEvents.map(event => ({ ...event, enrollment: enrollmentId }));
 
     return {
