@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2025-10-14T17:59:40.618Z\n"
+"POT-Creation-Date: 2025-11-12T16:45:33.366Z\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -493,8 +493,22 @@ msgstr "Filtrar las columnas de los programas"
 msgid "Data elements and attributes to include/exclude for programs"
 msgstr "Elementos de datos y atributos a incluir/excluir para los programas"
 
+msgid "Duplicate"
+msgstr "Duplicado"
+
 msgid "Duplicate detection"
 msgstr "Detección de duplicados"
+
+msgid "Event date time difference for events (programs)"
+msgstr ""
+"Diferencia aceptada entre las fechas de los eventos para la identificación "
+"de duplicados para eventos (programas)"
+
+msgid "Duplicate detection filter for events (programs)"
+msgstr "Filtro de detección de duplicados para eventos (programas)"
+
+msgid "Data elements used for duplicates identification"
+msgstr "Elementos de datos usados para identificar los duplicados"
 
 msgid "Template configuration"
 msgstr "Acceso a la configuración de plantillas"
@@ -513,17 +527,6 @@ msgstr ""
 
 msgid "Show populate in custom forms"
 msgstr ""
-
-msgid "Event date time difference for events (programs)"
-msgstr ""
-"Diferencia aceptada entre las fechas de los eventos para la identificación "
-"de duplicados para eventos (programas)"
-
-msgid "Duplicate detection filter for events (programs)"
-msgstr "Filtro de detección de duplicados para eventos (programas)"
-
-msgid "Data elements used for duplicates identification"
-msgstr "Elementos de datos usados para identificar los duplicados"
 
 msgid "Permissions"
 msgstr "Permisos"
@@ -1006,9 +1009,6 @@ msgstr "Modelo de Datos"
 msgid "Select template to export..."
 msgstr "Seleccione plantilla para exportar..."
 
-msgid "<No value>"
-msgstr "<Sin valor>"
-
 msgid "Start period"
 msgstr "Periodo inicial"
 
@@ -1027,6 +1027,9 @@ msgstr "Plantilla"
 
 msgid "Populate template with data"
 msgstr "Rellenar la plantilla con datos"
+
+msgid "<No value>"
+msgstr "<Sin valor>"
 
 msgid "Also filter TEI and relationships by their enrollment date"
 msgstr ""

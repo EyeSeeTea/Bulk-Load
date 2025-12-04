@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2025-10-14T17:59:40.618Z\n"
+"POT-Creation-Date: 2025-11-12T16:45:33.366Z\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -499,8 +499,20 @@ msgstr "Фильтр столбцов для программ"
 msgid "Data elements and attributes to include/exclude for programs"
 msgstr "Элементы данных и атрибуты для включения/исключения для программ"
 
+msgid "Duplicate"
+msgstr "Дубликат"
+
 msgid "Duplicate detection"
 msgstr "Обнаружение дубликатов"
+
+msgid "Event date time difference for events (programs)"
+msgstr "Разница во времени даты события для событий (программ)"
+
+msgid "Duplicate detection filter for events (programs)"
+msgstr "Фильтр обнаружения дубликатов для событий (программ)"
+
+msgid "Data elements used for duplicates identification"
+msgstr "Элементы данных, используемые для выявления дубликатов"
 
 #, fuzzy
 msgid "Template configuration"
@@ -520,15 +532,6 @@ msgstr ""
 
 msgid "Show populate in custom forms"
 msgstr ""
-
-msgid "Event date time difference for events (programs)"
-msgstr "Разница во времени даты события для событий (программ)"
-
-msgid "Duplicate detection filter for events (programs)"
-msgstr "Фильтр обнаружения дубликатов для событий (программ)"
-
-msgid "Data elements used for duplicates identification"
-msgstr "Элементы данных, используемые для выявления дубликатов"
 
 msgid "Permissions"
 msgstr "Разрешения"
@@ -1063,9 +1066,6 @@ msgstr "Модель данных"
 msgid "Select template to export..."
 msgstr "Выберите шаблон для экспорта..."
 
-msgid "<No value>"
-msgstr "<Нет значения>"
-
 msgid "Start period"
 msgstr "Начальный период"
 
@@ -1084,6 +1084,9 @@ msgstr "Шаблон"
 
 msgid "Populate template with data"
 msgstr "Заполнение шаблона данными"
+
+msgid "<No value>"
+msgstr "<Нет значения>"
 
 msgid "Also filter TEI and relationships by their enrollment date"
 msgstr ""

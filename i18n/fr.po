@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load App\n"
-"POT-Creation-Date: 2025-10-14T17:59:40.618Z\n"
+"POT-Creation-Date: 2025-11-12T16:45:33.366Z\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -478,8 +478,20 @@ msgstr ""
 msgid "Data elements and attributes to include/exclude for programs"
 msgstr ""
 
+msgid "Duplicate"
+msgstr "Doublon"
+
 msgid "Duplicate detection"
 msgstr "Détection des doublons"
+
+msgid "Event date time difference for events (programs)"
+msgstr "Décalage de la date de l'événement pour les programmes des événements"
+
+msgid "Duplicate detection filter for events (programs)"
+msgstr ""
+
+msgid "Data elements used for duplicates identification"
+msgstr "Éléments de données utilisés pour l'identification des doublons"
 
 #, fuzzy
 msgid "Template configuration"
@@ -499,15 +511,6 @@ msgstr ""
 
 msgid "Show populate in custom forms"
 msgstr ""
-
-msgid "Event date time difference for events (programs)"
-msgstr "Décalage de la date de l'événement pour les programmes des événements"
-
-msgid "Duplicate detection filter for events (programs)"
-msgstr ""
-
-msgid "Data elements used for duplicates identification"
-msgstr "Éléments de données utilisés pour l'identification des doublons"
 
 msgid "Permissions"
 msgstr "Autorisations"
@@ -1025,9 +1028,6 @@ msgstr "Modèle de données"
 msgid "Select template to export..."
 msgstr "Sélectionnez le modèle à exporter ..."
 
-msgid "<No value>"
-msgstr "<Aucune valeur>"
-
 msgid "Start period"
 msgstr "Période de début"
 
@@ -1048,6 +1048,9 @@ msgstr "Modèle"
 
 msgid "Populate template with data"
 msgstr "Remplir le modèle avec des données"
+
+msgid "<No value>"
+msgstr "<Aucune valeur>"
 
 msgid "Also filter TEI and relationships by their enrollment date"
 msgstr ""

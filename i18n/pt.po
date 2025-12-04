@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2025-10-14T17:59:40.618Z\n"
+"POT-Creation-Date: 2025-11-12T16:45:33.366Z\n"
 "Language: pt\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -499,8 +499,20 @@ msgstr "Filtrar colunas para programas"
 msgid "Data elements and attributes to include/exclude for programs"
 msgstr "Elementos de dados e atributos a incluir/excluir para programas"
 
+msgid "Duplicate"
+msgstr "Duplicado"
+
 msgid "Duplicate detection"
-msgstr "Detecção duplicada"
+msgstr "Detecção de duplicados"
+
+msgid "Event date time difference for events (programs)"
+msgstr "Diferença de data e hora do evento de eventos (programas)"
+
+msgid "Duplicate detection filter for events (programs)"
+msgstr "Filtro de detecção duplicado para eventos (programas)"
+
+msgid "Data elements used for duplicates identification"
+msgstr "Elementos de dados usados para identificação de duplicatas"
 
 #, fuzzy
 msgid "Template configuration"
@@ -520,15 +532,6 @@ msgstr ""
 
 msgid "Show populate in custom forms"
 msgstr ""
-
-msgid "Event date time difference for events (programs)"
-msgstr "Diferença de data e hora do evento de eventos (programas)"
-
-msgid "Duplicate detection filter for events (programs)"
-msgstr "Filtro de detecção duplicado para eventos (programas)"
-
-msgid "Data elements used for duplicates identification"
-msgstr "Elementos de dados usados para identificação de duplicatas"
 
 msgid "Permissions"
 msgstr "Permissões"
@@ -1061,9 +1064,6 @@ msgstr "Modelo de dados"
 msgid "Select template to export..."
 msgstr "Selecione o planilha para exportar ..."
 
-msgid "<No value>"
-msgstr "<Sem valor>"
-
 msgid "Start period"
 msgstr "Período inicial"
 
@@ -1082,6 +1082,9 @@ msgstr "Modelo"
 
 msgid "Populate template with data"
 msgstr "Preencher a planilha com dados"
+
+msgid "<No value>"
+msgstr "<Sem valor>"
 
 msgid "Also filter TEI and relationships by their enrollment date"
 msgstr ""

@@ -5,19 +5,9 @@ import { SynchronizationResult } from "../domain/entities/SynchronizationResult"
 import i18n from "../utils/i18n";
 import { promiseMap } from "../utils/promises";
 import { ImportPostResponse, postImport } from "./Dhis2Import";
-import { Program, TrackedEntityInstance } from "../domain/entities/TrackedEntityInstance";
-import { getApiTeiToUpload, Metadata } from "./Dhis2TrackedEntityInstances";
-import { Maybe } from "../types/utils";
-import { ImportDataPackageOptions } from "../domain/repositories/InstanceRepository";
 
-export async function postEvents(
-    api: D2Api,
-    events: Event[],
-    options: Maybe<OptionEvents>
-): Promise<SynchronizationResult[]> {
-    const eventsWithEnrollment = options ? setEnrollmentToEvent(events, options) : events;
-
-    const eventsResult = await promiseMap(_.chunk(eventsWithEnrollment, 200), eventsToSave => {
+export async function postEvents(api: D2Api, events: Event[]): Promise<SynchronizationResult[]> {
+    return promiseMap(_.chunk(events, 200), eventsToSave => {
         return postImport(
             api,
             async () => await api.post<ImportPostResponse>("/tracker", {}, { events: eventsToSave }).getData(),
@@ -28,29 +18,4 @@ export async function postEvents(
             }
         );
     });
-
-    return eventsResult;
 }
-
-function setEnrollmentToEvent(events: Event[], options: OptionEvents): Event[] {
-    const { existingTeis, teis, program, metadata } = options;
-    const apiTeis = teis.map(tei => getApiTeiToUpload(program, metadata, tei, existingTeis, options.importOptions));
-    const teisByIds = _.keyBy(apiTeis, tei => tei.trackedEntity);
-    return events.map(event => {
-        const eventTeiId = event.trackedEntity ?? "";
-        const tei = teisByIds[eventTeiId];
-        const enrollmentId = tei?.enrollments[0]?.enrollment;
-        if (!enrollmentId) {
-            throw new Error(`Enrollment not found for event-tei: ${eventTeiId}-${event.trackedEntity}`);
-        }
-        return { ...event, enrollment: enrollmentId };
-    });
-}
-
-type OptionEvents = {
-    existingTeis: TrackedEntityInstance[];
-    teis: TrackedEntityInstance[];
-    program: Program;
-    metadata: Metadata;
-    importOptions: ImportDataPackageOptions;
-};
