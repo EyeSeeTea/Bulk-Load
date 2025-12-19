@@ -78,11 +78,16 @@ describe("buildAllPossiblePeriods - Yearly", () => {
     // });
 });
 
-// Quarterly
+// Quarterly Variants
 describe("buildAllPossiblePeriods - Quarterly", () => {
     it("generates Quarterly periods", () => {
         const result = buildAllPossiblePeriods("Quarterly", "2023-12-01", "2024-12-31");
         expect(result).toEqual(["2023Q4", "2024Q1", "2024Q2", "2024Q3", "2024Q4"]);
+    });
+
+    it("generates QuarterlyNov periods", () => {
+        const result = buildAllPossiblePeriods("QuarterlyNov", "2023-10-01", "2024-08-31");
+        expect(result).toEqual(["2023NovQ4", "2024NovQ1", "2024NovQ2", "2024NovQ3", "2024NovQ4"]);
     });
 });
 

@@ -36,6 +36,8 @@ export function buildAllPossiblePeriods(periodType, startDate, endDate) {
             unit = "quarters";
             format = "YYYY[Q]Q";
             break;
+        case "QuarterlyNov":
+            return generateQuarterlyNovPeriods(startDate, endDate);
         case "SixMonthly":
             return generateSixMonthlyPeriods(startDate, endDate);
         case "SixMonthlyApril":
@@ -128,6 +130,27 @@ function generateBiMonthlyPeriods(startDate, endDate) {
         const biMonthNum = Math.floor(current.month() / 2) + 1;
         dates.push(`${current.year()}${String(biMonthNum).padStart(2, "0")}B`);
         current.add(2, "months");
+    }
+
+    return dates;
+}
+
+function generateQuarterlyNovPeriods(startDate, endDate) {
+    const dates = [];
+    const start = moment(startDate);
+    const end = moment(endDate);
+
+    const current = start.add(2, "months").startOf("quarter").subtract(2, "months");
+
+    while (current.isSameOrBefore(end)) {
+        const year = current.year();
+        if (current.month() >= 10) {
+            dates.push(`${year + 1}NovQ${1}`);
+        } else {
+            const quarter = Math.floor((current.month() + 2) / 3) + 1;
+            dates.push(`${year}NovQ${quarter}`);
+        }
+        current.add(3, "months");
     }
 
     return dates;
