@@ -23,9 +23,11 @@ export function buildAllPossiblePeriods(periodType, startDate, endDate) {
             format = "YYYY";
             break;
         case "Weekly":
-            unit = "weeks";
-            format = "YYYY[W]W";
-            break;
+        case "WeeklyWednesday":
+        case "WeeklyThursday":
+        case "WeeklySaturday":
+        case "WeeklySunday":
+            return generateWeeklyPeriods(periodType, startDate, endDate);
         case "Quarterly":
             unit = "quarters";
             format = "YYYY[Q]Q";
@@ -43,5 +45,38 @@ function generateDatesByPeriod(options) {
     for (const current = moment(startDate); current.isSameOrBefore(moment(endDate)); current.add(1, unit)) {
         dates.push(current.format(format));
     }
+    return dates;
+}
+
+function getWeekStartDay(periodType) {
+    const dayMap = {
+        Weekly: 1,
+        WeeklyWednesday: 3,
+        WeeklyThursday: 4,
+        WeeklySaturday: 6,
+        WeeklySunday: 0,
+    };
+    return dayMap[periodType] ?? 1;
+}
+
+function generateWeeklyPeriods(periodType, startDate, endDate) {
+    const dates = [];
+    const start = moment(startDate);
+    const end = moment(endDate);
+    const startDay = getWeekStartDay(periodType);
+
+    const current = moment(start).isoWeekday(startDay);
+    if (current.isAfter(start)) {
+        current.subtract(1, "week");
+    }
+
+    const formatSuffix = periodType === "Weekly" ? "W" : periodType.replace("Weekly", "").substr(0, 3) + "W";
+
+    while (current.isSameOrBefore(end)) {
+        const weekNum = current.isoWeek();
+        dates.push(`${current.isoWeekYear()}${formatSuffix}${weekNum}`);
+        current.add(1, "week");
+    }
+
     return dates;
 }
