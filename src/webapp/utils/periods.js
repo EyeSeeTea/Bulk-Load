@@ -28,6 +28,8 @@ export function buildAllPossiblePeriods(periodType, startDate, endDate) {
         case "WeeklySaturday":
         case "WeeklySunday":
             return generateWeeklyPeriods(periodType, startDate, endDate);
+        case "BiWeekly":
+            return generateBiWeeklyPeriods(startDate, endDate);
         case "Quarterly":
             unit = "quarters";
             format = "YYYY[Q]Q";
@@ -82,6 +84,31 @@ function generateWeeklyPeriods(periodType, startDate, endDate) {
         const weekNum = current.isoWeek();
         dates.push(`${current.isoWeekYear()}${formatSuffix}${weekNum}`);
         current.add(1, "week");
+    }
+
+    return dates;
+}
+
+function getBiWeekStartFromIsoWeek(startDate) {
+    const start = moment(startDate);
+    const isoWeekNumber = start.isoWeek();
+    const startWeek = isoWeekNumber % 2 === 0 ? isoWeekNumber - 1 : isoWeekNumber;
+    return moment(start).isoWeekYear(start.isoWeekYear()).isoWeek(startWeek).startOf("isoWeek");
+}
+
+function generateBiWeeklyPeriods(startDate, endDate) {
+    const dates = [];
+    const start = getBiWeekStartFromIsoWeek(startDate);
+    const end = moment(endDate);
+
+    const current = start.clone();
+
+    while (current.isSameOrBefore(end)) {
+        const isoWeek = current.isoWeek();
+        const biWeekNum = Math.ceil(isoWeek / 2);
+
+        dates.push(`${current.isoWeekYear()}BiW${biWeekNum}`);
+        current.add(2, "weeks");
     }
 
     return dates;

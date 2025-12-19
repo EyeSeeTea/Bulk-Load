@@ -122,3 +122,11 @@ describe("buildAllPossiblePeriods - SixMonthlyNov", () => {
         expect(result).toEqual(["2023NovS2", "2024NovS1", "2024NovS2", "2025NovS1"]);
     });
 });
+
+// BiWeekly
+describe("buildAllPossiblePeriods - BiWeekly", () => {
+    it("generates biweekly periods across multiple years", () => {
+        const result = buildAllPossiblePeriods("BiWeekly", "2024-12-01", "2025-01-31");
+        expect(result).toEqual(["2024BiW24", "2024BiW25", "2024BiW26", "2025BiW1", "2025BiW2", "2025BiW3"]);
+    });
+});
