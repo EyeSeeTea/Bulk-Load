@@ -34,6 +34,10 @@ export function buildAllPossiblePeriods(periodType, startDate, endDate) {
             break;
         case "SixMonthly":
             return generateSixMonthlyPeriods(startDate, endDate);
+        case "SixMonthlyApril":
+            return generateSixMonthlyAprilPeriods(startDate, endDate);
+        case "SixMonthlyNov":
+            return generateSixMonthlyNovPeriods(startDate, endDate);
         default:
             throw new Error("Unsupported period type");
     }
@@ -94,6 +98,56 @@ function generateSixMonthlyPeriods(startDate, endDate) {
     while (current.isSameOrBefore(end)) {
         const half = current.month() < 6 ? 1 : 2;
         dates.push(`${current.year()}S${half}`);
+        current.add(6, "months");
+    }
+
+    return dates;
+}
+
+function generateSixMonthlyAprilPeriods(startDate, endDate) {
+    const dates = [];
+    const start = moment(startDate);
+    const end = moment(endDate);
+
+    const year = start.month() >= 3 ? start.year() : start.year() - 1;
+    const current = moment({ year: year, month: 3, day: 1 });
+
+    while (current.isSameOrBefore(end)) {
+        const periodEnd = moment(current).add(6, "months").subtract(1, "day");
+        if (periodEnd.isSameOrAfter(start)) {
+            const displayYear = current.year();
+            const semester = current.month() === 3 ? 1 : 2;
+            dates.push(`${displayYear}AprilS${semester}`);
+        }
+        current.add(6, "months");
+    }
+
+    return dates;
+}
+
+function generateSixMonthlyNovPeriods(startDate, endDate) {
+    const dates = [];
+    const start = moment(startDate);
+    const end = moment(endDate);
+
+    let current;
+    if (start.month() >= 5) {
+        current = moment({ year: start.year(), month: 4, date: 1 });
+    } else {
+        current = moment({ year: start.year() - 1, month: 10, date: 1 });
+    }
+
+    while (current.isSameOrBefore(end)) {
+        const periodEnd = moment(current).add(6, "months").subtract(1, "day");
+
+        if (periodEnd.isSameOrAfter(start)) {
+            const isNovStart = current.month() === 10;
+            const semester = isNovStart ? 1 : 2;
+            const displayYear = isNovStart ? current.year() + 1 : current.year();
+
+            dates.push(`${displayYear}NovS${semester}`);
+        }
+
         current.add(6, "months");
     }
 

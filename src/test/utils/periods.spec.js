@@ -98,3 +98,27 @@ describe("buildAllPossiblePeriods - SixMonthly", () => {
         expect(result).toEqual(["2023S1", "2023S2", "2024S1", "2024S2"]);
     });
 });
+
+describe("buildAllPossiblePeriods - SixMonthlyApril", () => {
+    it("generates periods within same year", () => {
+        const result = buildAllPossiblePeriods("SixMonthlyApril", "2024-04-01", "2024-09-30");
+        expect(result).toEqual(["2024AprilS1"]);
+    });
+
+    it("generates periods across multiple years", () => {
+        const result = buildAllPossiblePeriods("SixMonthlyApril", "2022-10-01", "2024-09-30");
+        expect(result).toEqual(["2022AprilS2", "2023AprilS1", "2023AprilS2", "2024AprilS1"]);
+    });
+});
+
+describe("buildAllPossiblePeriods - SixMonthlyNov", () => {
+    it("generates periods within same year", () => {
+        const result = buildAllPossiblePeriods("SixMonthlyNov", "2025-01-01", "2025-04-30");
+        expect(result).toEqual(["2025NovS1"]);
+    });
+
+    it("generates periods across multiple years", () => {
+        const result = buildAllPossiblePeriods("SixMonthlyNov", "2023-10-01", "2024-12-31");
+        expect(result).toEqual(["2023NovS2", "2024NovS1", "2024NovS2", "2025NovS1"]);
+    });
+});
