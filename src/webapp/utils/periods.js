@@ -32,6 +32,8 @@ export function buildAllPossiblePeriods(periodType, startDate, endDate) {
             unit = "quarters";
             format = "YYYY[Q]Q";
             break;
+        case "SixMonthly":
+            return generateSixMonthlyPeriods(startDate, endDate);
         default:
             throw new Error("Unsupported period type");
     }
@@ -76,6 +78,23 @@ function generateWeeklyPeriods(periodType, startDate, endDate) {
         const weekNum = current.isoWeek();
         dates.push(`${current.isoWeekYear()}${formatSuffix}${weekNum}`);
         current.add(1, "week");
+    }
+
+    return dates;
+}
+
+function generateSixMonthlyPeriods(startDate, endDate) {
+    const dates = [];
+    const start = moment(startDate);
+    const end = moment(endDate);
+
+    const startMonth = start.month() < 6 ? 0 : 6;
+    const current = moment(start).month(startMonth).startOf("month");
+
+    while (current.isSameOrBefore(end)) {
+        const half = current.month() < 6 ? 1 : 2;
+        dates.push(`${current.year()}S${half}`);
+        current.add(6, "months");
     }
 
     return dates;

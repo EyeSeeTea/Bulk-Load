@@ -85,3 +85,16 @@ describe("buildAllPossiblePeriods - Quarterly", () => {
         expect(result).toEqual(["2023Q4", "2024Q1", "2024Q2", "2024Q3", "2024Q4"]);
     });
 });
+
+// SixMonthly
+describe("buildAllPossiblePeriods - SixMonthly", () => {
+    it("generates periods within same year", () => {
+        const result = buildAllPossiblePeriods("SixMonthly", "2024-01-01", "2024-12-31");
+        expect(result).toEqual(["2024S1", "2024S2"]);
+    });
+
+    it("generates periods across multiple years", () => {
+        const result = buildAllPossiblePeriods("SixMonthly", "2023-06-01", "2024-12-31");
+        expect(result).toEqual(["2023S1", "2023S2", "2024S1", "2024S2"]);
+    });
+});
