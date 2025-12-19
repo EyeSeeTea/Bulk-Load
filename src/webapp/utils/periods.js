@@ -30,6 +30,8 @@ export function buildAllPossiblePeriods(periodType, startDate, endDate) {
             return generateWeeklyPeriods(periodType, startDate, endDate);
         case "BiWeekly":
             return generateBiWeeklyPeriods(startDate, endDate);
+        case "BiMonthly":
+            return generateBiMonthlyPeriods(startDate, endDate);
         case "Quarterly":
             unit = "quarters";
             format = "YYYY[Q]Q";
@@ -109,6 +111,23 @@ function generateBiWeeklyPeriods(startDate, endDate) {
 
         dates.push(`${current.isoWeekYear()}BiW${biWeekNum}`);
         current.add(2, "weeks");
+    }
+
+    return dates;
+}
+
+function generateBiMonthlyPeriods(startDate, endDate) {
+    const dates = [];
+    const start = moment(startDate);
+    const end = moment(endDate);
+
+    const startMonth = Math.floor(start.month() / 2) * 2;
+    const current = moment(start).month(startMonth).startOf("month");
+
+    while (current.isSameOrBefore(end)) {
+        const biMonthNum = Math.floor(current.month() / 2) + 1;
+        dates.push(`${current.year()}${String(biMonthNum).padStart(2, "0")}B`);
+        current.add(2, "months");
     }
 
     return dates;

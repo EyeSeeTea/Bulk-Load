@@ -130,3 +130,20 @@ describe("buildAllPossiblePeriods - BiWeekly", () => {
         expect(result).toEqual(["2024BiW24", "2024BiW25", "2024BiW26", "2025BiW1", "2025BiW2", "2025BiW3"]);
     });
 });
+
+// BiMonthly
+describe("buildAllPossiblePeriods - BiMonthly", () => {
+    it("generates bimontly periods across multiple years", () => {
+        const result = buildAllPossiblePeriods("BiMonthly", "2023-01-01", "2024-03-31");
+        expect(result).toEqual([
+            "202301B",
+            "202302B",
+            "202303B",
+            "202304B",
+            "202305B",
+            "202306B",
+            "202401B",
+            "202402B",
+        ]);
+    });
+});
