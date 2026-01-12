@@ -56,26 +56,27 @@ describe("buildAllPossiblePeriods - Yearly", () => {
         expect(result).toEqual(["2020", "2021", "2022", "2023", "2024"]);
     });
 
-    // Current financial variants dont behave like DHIS2 does, they are yearly periods
-    // it("generates FinancialApril periods", () => {
-    //     const result = buildAllPossiblePeriods("FinancialApril", "2023-04-01", "2025-06-30");
-    //     expect(result).toEqual(["2024April", "2025April"]);
-    // });
+    it("generates FinancialApril periods", () => {
+        const result = buildAllPossiblePeriods("FinancialApril", "2023-03-01", "2025-06-30");
+        expect(result).toEqual(["2023April", "2024April"]);
+    });
 
-    // it("generates FinancialJuly periods", () => {
-    //     const result = buildAllPossiblePeriods("FinancialJuly", "2023-07-01", "2025-09-30");
-    //     expect(result).toEqual(["2024July", "2025July"]);
-    // });
+    it("generates FinancialJuly periods", () => {
+        const result = buildAllPossiblePeriods("FinancialJuly", "2023-06-01", "2025-09-30");
+        expect(result).toEqual(["2023July", "2024July"]);
+    });
 
-    // it("generates FinancialOct periods", () => {
-    //     const result = buildAllPossiblePeriods("FinancialOct", "2023-10-01", "2025-12-31");
-    //     expect(result).toEqual(["2024Oct", "2025Oct"]);
-    // });
+    it("generates FinancialOct periods", () => {
+        const result = buildAllPossiblePeriods("FinancialOct", "2023-09-01", "2025-12-31");
+        expect(result).toEqual(["2023Oct", "2024Oct"]);
+    });
 
-    // it("generates FinancialNov periods", () => {
-    //     const result = buildAllPossiblePeriods("FinancialNov", "2023-11-01", "2025-03-31");
-    //     expect(result).toEqual(["2024Nov", "2025Nov"]);
-    // });
+    // FinancialNov seems bugged in DHIS2 as its not following the "Financial Year X" starts in Year X convention of the rest
+    // See: https://dhis2.atlassian.net/browse/DHIS2-18609
+    it("generates FinancialNov periods", () => {
+        const result = buildAllPossiblePeriods("FinancialNov", "2023-10-01", "2025-12-31");
+        expect(result).toEqual(["2023Nov", "2024Nov"]);
+    });
 });
 
 // Quarterly Variants

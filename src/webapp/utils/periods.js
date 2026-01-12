@@ -1,13 +1,7 @@
 import moment from "moment";
-import { getFinancialFormat, isFinancialPeriodType } from "./period";
 
 export function buildAllPossiblePeriods(periodType, startDate, endDate) {
     let unit, format;
-
-    if (isFinancialPeriodType(periodType)) {
-        const financialUnitFormat = getFinancialFormat(periodType);
-        return generateDatesByPeriod({ startDate, endDate, ...financialUnitFormat });
-    }
 
     switch (periodType) {
         case "Daily":
@@ -44,6 +38,11 @@ export function buildAllPossiblePeriods(periodType, startDate, endDate) {
             return generateSixMonthlyAprilPeriods(startDate, endDate);
         case "SixMonthlyNov":
             return generateSixMonthlyNovPeriods(startDate, endDate);
+        case "FinancialApril":
+        case "FinancialJuly":
+        case "FinancialOct":
+        case "FinancialNov":
+            return generateFinancialPeriods(startDate, endDate, periodType);
         default:
             throw new Error("Unsupported period type");
     }
@@ -218,6 +217,28 @@ function generateSixMonthlyNovPeriods(startDate, endDate) {
         }
 
         current.add(6, "months");
+    }
+
+    return dates;
+}
+
+function generateFinancialPeriods(startDate, endDate, financialType) {
+    const dates = [];
+    const monthName = financialType.replace("Financial", "");
+    const startMonthIndex = moment().month(monthName).month();
+    const start = moment(startDate);
+    const end = moment(endDate);
+
+    const firstYear = start.year();
+    const lastYear = end.year();
+
+    for (let year = firstYear; year <= lastYear; year++) {
+        const periodStart = moment({ year, month: startMonthIndex, date: 1 });
+        const periodEnd = moment(periodStart).add(1, "year").subtract(1, "day");
+
+        if (periodStart.isSameOrAfter(start) && periodEnd.isSameOrBefore(end)) {
+            dates.push(`${year}${monthName}`);
+        }
     }
 
     return dates;
