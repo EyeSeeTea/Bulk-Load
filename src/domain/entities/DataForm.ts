@@ -10,7 +10,26 @@ export const dataFormTypeMap = {
 } as const;
 export const dataFormTypes = Object.values(dataFormTypeMap) as typeof dataFormTypeMap[keyof typeof dataFormTypeMap][];
 export type DataFormType = typeof dataFormTypes[number];
-export type DataFormPeriod = "Daily" | "Monthly" | "Yearly" | "Weekly" | "Quarterly";
+export type DataFormPeriod =
+    | "Daily"
+    | "Monthly"
+    | "Yearly"
+    | "Weekly"
+    | "Quarterly"
+    | "BiWeekly"
+    | "BiMonthly"
+    | "WeeklyWednesday"
+    | "WeeklyThursday"
+    | "WeeklySaturday"
+    | "WeeklySunday"
+    | "QuarterlyNov"
+    | "SixMonthly"
+    | "SixMonthlyApril"
+    | "SixMonthlyNov"
+    | "FinancialApril"
+    | "FinancialJuly"
+    | "FinancialOct"
+    | "FinancialNov";
 
 export function getTranslations() {
     return {

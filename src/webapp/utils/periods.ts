@@ -1,7 +1,24 @@
-import moment from "moment";
+import moment, { Moment } from "moment";
+import { DataFormPeriod } from "../../domain/entities/DataForm";
 
-export function buildAllPossiblePeriods(periodType, startDate, endDate) {
-    let unit, format;
+interface Options {
+    startDate: Moment;
+    endDate: Moment;
+    format: string;
+    unit: moment.unitOfTime.DurationConstructor;
+}
+
+export function buildAllPossiblePeriods(
+    periodType: DataFormPeriod,
+    startDate: Moment | undefined,
+    endDate: Moment | undefined
+): string[] {
+    if (!startDate || !endDate) {
+        return [];
+    }
+
+    let unit: moment.unitOfTime.DurationConstructor;
+    let format: string;
 
     switch (periodType) {
         case "Daily":
@@ -50,7 +67,7 @@ export function buildAllPossiblePeriods(periodType, startDate, endDate) {
     return generateDatesByPeriod({ startDate, endDate, format, unit });
 }
 
-function generateDatesByPeriod(options) {
+function generateDatesByPeriod(options: Options) {
     const { startDate, endDate, unit, format } = options;
     const dates = [];
     for (const current = moment(startDate); current.isSameOrBefore(moment(endDate)); current.add(1, unit)) {
@@ -59,7 +76,8 @@ function generateDatesByPeriod(options) {
     return dates;
 }
 
-function getWeekStartDay(periodType) {
+type WeeklyPeriodType = "Weekly" | "WeeklyWednesday" | "WeeklyThursday" | "WeeklySaturday" | "WeeklySunday";
+function getWeekStartDay(periodType: WeeklyPeriodType) {
     const dayMap = {
         Weekly: 1,
         WeeklyWednesday: 3,
@@ -70,7 +88,7 @@ function getWeekStartDay(periodType) {
     return dayMap[periodType] ?? 1;
 }
 
-function generateWeeklyPeriods(periodType, startDate, endDate) {
+function generateWeeklyPeriods(periodType: WeeklyPeriodType, startDate: Moment, endDate: Moment) {
     const dates = [];
     const start = moment(startDate);
     const end = moment(endDate);
@@ -81,7 +99,7 @@ function generateWeeklyPeriods(periodType, startDate, endDate) {
         current.subtract(1, "week");
     }
 
-    const formatSuffix = periodType === "Weekly" ? "W" : periodType.replace("Weekly", "").substr(0, 3) + "W";
+    const formatSuffix = periodType === "Weekly" ? "W" : periodType.replace("Weekly", "").substring(0, 3) + "W";
 
     while (current.isSameOrBefore(end)) {
         const weekNum = current.isoWeek();
@@ -92,14 +110,14 @@ function generateWeeklyPeriods(periodType, startDate, endDate) {
     return dates;
 }
 
-function getBiWeekStartFromIsoWeek(startDate) {
+function getBiWeekStartFromIsoWeek(startDate: Moment) {
     const start = moment(startDate);
     const isoWeekNumber = start.isoWeek();
     const startWeek = isoWeekNumber % 2 === 0 ? isoWeekNumber - 1 : isoWeekNumber;
     return moment(start).isoWeekYear(start.isoWeekYear()).isoWeek(startWeek).startOf("isoWeek");
 }
 
-function generateBiWeeklyPeriods(startDate, endDate) {
+function generateBiWeeklyPeriods(startDate: Moment, endDate: Moment) {
     const dates = [];
     const start = getBiWeekStartFromIsoWeek(startDate);
     const end = moment(endDate);
@@ -117,7 +135,7 @@ function generateBiWeeklyPeriods(startDate, endDate) {
     return dates;
 }
 
-function generateBiMonthlyPeriods(startDate, endDate) {
+function generateBiMonthlyPeriods(startDate: Moment, endDate: Moment) {
     const dates = [];
     const start = moment(startDate);
     const end = moment(endDate);
@@ -134,7 +152,7 @@ function generateBiMonthlyPeriods(startDate, endDate) {
     return dates;
 }
 
-function generateQuarterlyNovPeriods(startDate, endDate) {
+function generateQuarterlyNovPeriods(startDate: Moment, endDate: Moment) {
     const dates = [];
     const start = moment(startDate);
     const end = moment(endDate);
@@ -155,7 +173,7 @@ function generateQuarterlyNovPeriods(startDate, endDate) {
     return dates;
 }
 
-function generateSixMonthlyPeriods(startDate, endDate) {
+function generateSixMonthlyPeriods(startDate: Moment, endDate: Moment) {
     const dates = [];
     const start = moment(startDate);
     const end = moment(endDate);
@@ -172,13 +190,13 @@ function generateSixMonthlyPeriods(startDate, endDate) {
     return dates;
 }
 
-function generateSixMonthlyAprilPeriods(startDate, endDate) {
+function generateSixMonthlyAprilPeriods(startDate: Moment, endDate: Moment) {
     const dates = [];
     const start = moment(startDate);
     const end = moment(endDate);
 
     const year = start.month() >= 3 ? start.year() : start.year() - 1;
-    const current = moment({ year: year, month: 3, day: 1 });
+    const current = moment({ year: year, month: 3, date: 1 });
 
     while (current.isSameOrBefore(end)) {
         const periodEnd = moment(current).add(6, "months").subtract(1, "day");
@@ -193,7 +211,7 @@ function generateSixMonthlyAprilPeriods(startDate, endDate) {
     return dates;
 }
 
-function generateSixMonthlyNovPeriods(startDate, endDate) {
+function generateSixMonthlyNovPeriods(startDate: Moment, endDate: Moment) {
     const dates = [];
     const start = moment(startDate);
     const end = moment(endDate);
@@ -222,7 +240,8 @@ function generateSixMonthlyNovPeriods(startDate, endDate) {
     return dates;
 }
 
-function generateFinancialPeriods(startDate, endDate, financialType) {
+type FinancialType = "FinancialApril" | "FinancialJuly" | "FinancialOct" | "FinancialNov";
+function generateFinancialPeriods(startDate: Moment, endDate: Moment, financialType: FinancialType) {
     const dates = [];
     const monthName = financialType.replace("Financial", "");
     const startMonthIndex = moment().month(monthName).month();
