@@ -42,7 +42,7 @@ export interface GetOptions {
 type TrackerParams = Params & Omit<TeiGetRequest, "ou" | "ouMode">;
 
 export interface TrackedEntityGetRequest extends TrackerParams {
-    orgUnit?: string;
+    orgUnits?: string;
     orgUnitMode?: TeiGetRequest["ouMode"];
     trackedEntity?: string;
     enrollmentEnrolledAfter?: string;
@@ -463,7 +463,7 @@ function getMultiTextValue(options: {
 
 async function getExistingTeis(api: D2Api): Promise<Ref[]> {
     const query = {
-        ouMode: "CAPTURE",
+        orgUnitMode: "CAPTURE",
         pageSize: 1000,
         totalPages: true,
         fields: "trackedEntity",

@@ -20,12 +20,11 @@ export type RelationshipOrgUnitFilter = TrackedEntityOURequestApi["ouMode"];
 
 export function buildOrgUnitMode(ouMode: RelationshipOrgUnitFilter, orgUnits?: Ref[]) {
     const isOuReq = ouMode === "SELECTED" || ouMode === "CHILDREN" || ouMode === "DESCENDANTS";
-    //issue: v41 - orgUnitMode/ouMode; v38-40 ouMode; ouMode to be deprecated
-    //can't use both orgUnitMode and ouMode in v41
+    // /tracker/trackedEntities uses orgUnitMode (ouMode deprecated since v41, ignored in v42+)
     if (!isOuReq) {
-        return { ouMode };
+        return { orgUnitMode: ouMode };
     } else if (orgUnits && orgUnits.length > 0) {
-        return { ouMode, orgUnit: buildOrgUnitsParameter(orgUnits) };
+        return { orgUnitMode: ouMode, orgUnits: buildOrgUnitsParameter(orgUnits) };
     } else {
         throw new Error(`No orgUnits selected for ouMode ${ouMode}`);
     }

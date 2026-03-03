@@ -8,5 +8,5 @@ export interface OrgUnit {
 }
 
 export function buildOrgUnitsParameter(orgUnitsIds: Ref[]): string {
-    return orgUnitsIds.map(({ id }) => id).join(";");
+    return orgUnitsIds.map(({ id }) => id).join(",");
 }
