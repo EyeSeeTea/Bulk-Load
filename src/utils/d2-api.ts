@@ -15,3 +15,8 @@ export function getD2APiFromInstance(instance: DhisInstance) {
         backend: "fetch",
     });
 }
+
+export async function getVersion(api: D2Api): Promise<string> {
+    const { version } = await api.system.info.getData();
+    return version;
+}

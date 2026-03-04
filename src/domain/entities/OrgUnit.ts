@@ -7,6 +7,7 @@ export interface OrgUnit {
     level: number;
 }
 
-export function buildOrgUnitsParameter(orgUnitsIds: Ref[]): string {
-    return orgUnitsIds.map(({ id }) => id).join(";");
+export function buildOrgUnitsParameter(apiVersion: number, orgUnitsIds: Ref[]): string {
+    const separator = apiVersion >= 42 ? "," : ";";
+    return orgUnitsIds.map(({ id }) => id).join(separator);
 }

@@ -13,19 +13,24 @@ import { getTrackedEntities, TrackedEntityGetRequest } from "./Dhis2TrackedEntit
 import { TrackerRelationship, RelationshipItem, TrackedEntitiesApiRequest } from "../domain/entities/TrackedEntity";
 import { buildOrgUnitsParameter } from "../domain/entities/OrgUnit";
 import { EventsAPIResponse } from "../domain/entities/DhisDataPackage";
+import { getVersion, getMajorVersion } from "../utils/d2-api";
 
 type RelationshipTypesById = Record<Id, Pick<D2RelationshipType, "id" | "toConstraint" | "fromConstraint">>;
 
 export type RelationshipOrgUnitFilter = TrackedEntityOURequestApi["ouMode"];
 
-export function buildOrgUnitMode(ouMode: RelationshipOrgUnitFilter, orgUnits?: Ref[]) {
+export function buildOrgUnitMode(apiVersion: string, ouMode: RelationshipOrgUnitFilter, orgUnits?: Ref[]) {
+    const majorVersion = getMajorVersion(apiVersion);
     const isOuReq = ouMode === "SELECTED" || ouMode === "CHILDREN" || ouMode === "DESCENDANTS";
-    //issue: v41 - orgUnitMode/ouMode; v38-40 ouMode; ouMode to be deprecated
+    //issue: v42 - orgUnitMode and orgUnits; v41 - orgUnitMode/ouMode and orgUnit; v38-40 ouMode; ouMode to be deprecated
     //can't use both orgUnitMode and ouMode in v41
     if (!isOuReq) {
         return { ouMode };
     } else if (orgUnits && orgUnits.length > 0) {
-        return { ouMode, orgUnit: buildOrgUnitsParameter(orgUnits) };
+        const orgUnitsParam = buildOrgUnitsParameter(majorVersion, orgUnits);
+        if (majorVersion >= 42) return { orgUnitMode: ouMode, orgUnits: orgUnitsParam };
+        else if (majorVersion === 41) return { ouMode: ouMode, orgUnit: orgUnitsParam };
+        else return { ouMode, orgUnit: orgUnitsParam };
     } else {
         throw new Error(`No orgUnits selected for ouMode ${ouMode}`);
     }
@@ -169,6 +174,8 @@ export async function getRelationshipMetadata(
     api: D2Api,
     filters?: ProgramFilters
 ): Promise<RelationshipMetadata> {
+    const apiVersion = await getVersion(api);
+
     const {
         trackedEntityTypes,
         relationshipTypes: allRelationshipTypes,
@@ -201,8 +208,22 @@ export async function getRelationshipMetadata(
 
         if (!isProgramAssociatedWithSomeConstraint) return;
 
-        const fromConstraint = await getConstraint(api, trackedEntityTypes, programs, type.fromConstraint, filters);
-        const toConstraint = await getConstraint(api, trackedEntityTypes, programs, type.toConstraint, filters);
+        const fromConstraint = await getConstraint(
+            api,
+            apiVersion,
+            trackedEntityTypes,
+            programs,
+            type.fromConstraint,
+            filters
+        );
+        const toConstraint = await getConstraint(
+            api,
+            apiVersion,
+            trackedEntityTypes,
+            programs,
+            type.toConstraint,
+            filters
+        );
 
         return fromConstraint && toConstraint
             ? { id: relType.id, name: relType.name, constraints: { from: fromConstraint, to: toConstraint } }
@@ -217,6 +238,7 @@ type ProgramInfo = NamedRef & { programStages: NamedRef[] };
 const getConstraint = memoizeAsync(
     async (
         api: D2Api,
+        apiVersion: string,
         trackedEntityTypes: NamedRef[],
         programs: ProgramInfo[],
         constraint: D2RelationshipConstraint,
@@ -235,7 +257,7 @@ const getConstraint = memoizeAsync(
 
         switch (constraint.relationshipEntity) {
             case "TRACKED_ENTITY_INSTANCE":
-                return getConstraintForTypeTei(api, filters, trackedEntityTypes, constraint);
+                return getConstraintForTypeTei(api, apiVersion, filters, trackedEntityTypes, constraint);
             case "PROGRAM_STAGE_INSTANCE": {
                 if (constraint.program) {
                     const program = programsById[constraint.program.id];
@@ -251,6 +273,7 @@ const getConstraint = memoizeAsync(
 
 async function getConstraintForTypeTei(
     api: D2Api,
+    apiVersion: string,
     filters: ProgramFilters | undefined,
     trackedEntityTypes: NamedRef[],
     constraint: D2RelationshipConstraint
@@ -258,7 +281,7 @@ async function getConstraintForTypeTei(
     const { ouMode = "CAPTURE", organisationUnits = [] } = filters || {};
     const trackedEntityTypesById = _.keyBy(trackedEntityTypes, obj => obj.id);
 
-    const ouModeQuery = buildOrgUnitMode(ouMode, organisationUnits);
+    const ouModeQuery = buildOrgUnitMode(apiVersion, ouMode, organisationUnits);
 
     const query = {
         ...ouModeQuery,
