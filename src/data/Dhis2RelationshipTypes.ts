@@ -29,7 +29,6 @@ export function buildOrgUnitMode(apiVersion: string, ouMode: RelationshipOrgUnit
     } else if (orgUnits && orgUnits.length > 0) {
         const orgUnitsParam = buildOrgUnitsParameter(majorVersion, orgUnits);
         if (majorVersion >= 42) return { orgUnitMode: ouMode, orgUnits: orgUnitsParam };
-        else if (majorVersion === 41) return { ouMode: ouMode, orgUnit: orgUnitsParam };
         else return { ouMode, orgUnit: orgUnitsParam };
     } else {
         throw new Error(`No orgUnits selected for ouMode ${ouMode}`);
