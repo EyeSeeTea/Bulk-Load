@@ -88,7 +88,7 @@ function getImportStrategyLabel(entry: HistoryEntryDetails, dataFormType: Maybe<
     }
     switch (strategy) {
         case "IMPORT":
-            return dataFormType === "dataSets" ? i18n.t("Delete and import") : i18n.t("Import despite duplicates");
+            return dataFormType === "dataSets" ? i18n.t("Delete and Import") : i18n.t("Import despite duplicates");
         case "IGNORE":
             return dataFormType === "dataSets"
                 ? i18n.t("Import only new data values")
