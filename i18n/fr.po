@@ -206,10 +206,6 @@ msgid "Default"
 msgstr ""
 
 #, fuzzy
-msgid "Delete and import"
-msgstr "Importation de données en masse"
-
-#, fuzzy
 msgid "Import despite duplicates"
 msgstr "Importer des données"
 
@@ -1407,7 +1403,7 @@ msgstr ""
 "calcul seront enregistrées. Êtes-vous sur de vouloir continuer?"
 
 msgid "Delete and Import"
-msgstr ""
+msgstr "SUPPRIMER ET IMPORTER"
 
 msgid ""
 "All data values in the spreadsheet will be imported to the system, but any "
