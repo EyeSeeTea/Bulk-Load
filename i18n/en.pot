@@ -5,8 +5,8 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2026-03-11T19:21:15.859Z\n"
-"PO-Revision-Date: 2026-03-11T19:21:15.859Z\n"
+"POT-Creation-Date: 2026-03-17T18:02:29.553Z\n"
+"PO-Revision-Date: 2026-03-17T18:02:29.553Z\n"
 
 msgid "Events - Create/update"
 msgstr ""
@@ -228,6 +228,21 @@ msgid "Search by file name, data form, or user"
 msgstr ""
 
 msgid "All"
+msgstr ""
+
+msgid "Import successful"
+msgstr ""
+
+msgid "Import with warnings"
+msgstr ""
+
+msgid "Import with errors"
+msgstr ""
+
+msgid "Network error"
+msgstr ""
+
+msgid "Import pending"
 msgstr ""
 
 msgid ""

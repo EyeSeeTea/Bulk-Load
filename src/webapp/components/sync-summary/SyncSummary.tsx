@@ -20,6 +20,7 @@ import {
     SynchronizationStats,
 } from "../../../domain/entities/SynchronizationResult";
 import i18n from "../../../utils/i18n";
+import { getStatusColor } from "../../utils/statusConfig";
 
 const useStyles = makeStyles(theme => ({
     accordionHeading1: {
@@ -46,14 +47,7 @@ const useStyles = makeStyles(theme => ({
 
 export const formatStatusTag = (value: string) => {
     const text = _.startCase(_.toLower(value));
-    const color =
-        value === "ERROR" || value === "FAILURE" || value === "NETWORK ERROR"
-            ? "#e53935"
-            : value === "DONE" || value === "SUCCESS" || value === "OK"
-            ? "#7cb342"
-            : "#3e2723";
-
-    return <b style={{ color }}>{text}</b>;
+    return <b style={{ color: getStatusColor(value) }}>{text}</b>;
 };
 
 const buildSummaryTable = (stats: SynchronizationStats[]) => {

@@ -2,6 +2,7 @@ import React from "react";
 import { Icon } from "@material-ui/core";
 import { HistoryEntryStatus } from "../../../domain/entities/HistoryEntry";
 import i18n from "../../../utils/i18n";
+import { getStatusConfig } from "../../utils/statusConfig";
 
 interface HistoryStatusIndicatorProps {
     status: HistoryEntryStatus;
@@ -9,42 +10,27 @@ interface HistoryStatusIndicatorProps {
     iconStyle?: React.CSSProperties;
 }
 
-function getStatusConfig(status: HistoryEntryStatus) {
+function getHistoryStatusConfig(status: HistoryEntryStatus) {
+    const base = getStatusConfig(status);
     switch (status) {
         case "SUCCESS":
-            return {
-                icon: "check_circle",
-                label: i18n.t("Success"),
-                color: "#4caf50",
-            };
+            return { ...base, label: i18n.t("Success") };
         case "ERROR":
-            return {
-                icon: "error",
-                label: i18n.t("Error"),
-                color: "#f44336",
-            };
+            return { ...base, label: i18n.t("Error") };
         case "WARNING":
-            return {
-                icon: "warning",
-                label: i18n.t("Warning"),
-                color: "#ff9800",
-            };
+            return { ...base, label: i18n.t("Warning") };
         default:
-            return {
-                icon: "help",
-                label: status,
-                color: "#666",
-            };
+            return { ...base, label: status };
     }
 }
 
 export function HistoryStatusIndicator({ status, style, iconStyle }: HistoryStatusIndicatorProps) {
-    const statusConfig = getStatusConfig(status);
+    const config = getHistoryStatusConfig(status);
 
     return (
         <span
             style={{
-                color: statusConfig.color,
+                color: config.color,
                 display: "flex",
                 alignItems: "center",
                 ...style,
@@ -57,9 +43,9 @@ export function HistoryStatusIndicator({ status, style, iconStyle }: HistoryStat
                     ...iconStyle,
                 }}
             >
-                {statusConfig.icon}
+                {config.icon}
             </Icon>
-            {statusConfig.label}
+            {config.label}
         </span>
     );
 }
