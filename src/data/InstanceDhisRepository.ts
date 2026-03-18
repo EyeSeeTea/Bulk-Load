@@ -542,8 +542,7 @@ export class InstanceDhisRepository implements InstanceRepository {
             { imported: 0, deleted: 0, updated: 0, ignored: 0 }
         );
 
-        // Add a dedicated stat row per null chunk so the UI surfaces unknown outcomes explicitly.
-        // The total is set to the chunk size so the user knows how many records have an unknown outcome.
+        // Add a dedicated stat row per null chunk with total to unknown outcomes are explicitly.
         const nullChunkStats: SynchronizationStats[] = hasEmptySummaries
             ? chunkResults
                   .map((result, i) => ({ result, chunk: chunks[i] }))
