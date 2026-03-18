@@ -61,7 +61,6 @@ import { postEvents } from "./Dhis2Events";
 import { getProgram, getTrackedEntityInstances, updateTrackedEntityInstances } from "./Dhis2TrackedEntityInstances";
 import { Sharing } from "../domain/entities/Sharing";
 import { getMetadataDetailsFromErrors } from "./Dhis2Import";
-import { Maybe } from "../types/utils";
 
 export class InstanceDhisRepository implements InstanceRepository {
     private api: D2Api;
