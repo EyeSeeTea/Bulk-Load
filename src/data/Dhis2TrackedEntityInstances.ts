@@ -37,8 +37,6 @@ export interface GetOptions {
     relationshipsOuFilter?: RelationshipOrgUnitFilter;
 }
 
-type TrackerGetParams = Parameters<D2Api["tracker"]["trackedEntities"]["get"]>[0];
-
 type TrackedEntityGeometryAttributes =
     | { featureType: "NONE" }
     | { featureType: "POINT"; geometry: Extract<D2Geometry, { type: "Point" }> }
