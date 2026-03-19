@@ -1,4 +1,3 @@
-import { TeiGetRequest, TrackedEntityInstanceGeometryAttributes } from "@eyeseetea/d2-api/api/trackedEntityInstances";
 import { generateUid } from "d2/uid";
 import _ from "lodash";
 import { Moment } from "moment";
@@ -12,11 +11,11 @@ import { AttributeValue, Enrollment, Program, TrackedEntityInstance } from "../d
 import { parseDate } from "../domain/helpers/ExcelReader";
 import i18n from "../utils/i18n";
 import { D2Api, D2RelationshipType, Id, Ref } from "../types/d2-api";
-import { KeysOfUnion } from "../types/utils";
+import { D2Geometry } from "@eyeseetea/d2-api/schemas";
 import { promiseMap } from "../utils/promises";
 import { getUid } from "./dhis2-uid";
 import {
-    buildOrgUnitMode,
+    buildOrgUnitParams,
     fromApiRelationships,
     getApiRelationships,
     getRelationshipMetadata,
@@ -24,8 +23,7 @@ import {
     RelationshipOrgUnitFilter,
 } from "./Dhis2RelationshipTypes";
 import { ImportPostResponse, postImport } from "./Dhis2Import";
-import { TrackedEntitiesApiRequest, TrackedEntitiesResponse, TrackedEntity } from "../domain/entities/TrackedEntity";
-import { Params } from "@eyeseetea/d2-api/api/common";
+import { TrackedEntitiesApiRequest, TrackedEntity } from "../domain/entities/TrackedEntity";
 import { ImportDataPackageOptions } from "../domain/repositories/InstanceRepository";
 import { MULTI_TEXT_OPTION_DELIMITER } from "../domain/helpers/ExcelBuilder";
 
@@ -39,15 +37,12 @@ export interface GetOptions {
     relationshipsOuFilter?: RelationshipOrgUnitFilter;
 }
 
-type TrackerParams = Params & Omit<TeiGetRequest, "ou" | "ouMode">;
+type TrackerGetParams = Parameters<D2Api["tracker"]["trackedEntities"]["get"]>[0];
 
-export interface TrackedEntityGetRequest extends TrackerParams {
-    orgUnit?: string;
-    orgUnitMode?: TeiGetRequest["ouMode"];
-    trackedEntity?: string;
-    enrollmentEnrolledAfter?: string;
-    enrollmentEnrolledBefore?: string;
-}
+type TrackedEntityGeometryAttributes =
+    | { featureType: "NONE" }
+    | { featureType: "POINT"; geometry: Extract<D2Geometry, { type: "Point" }> }
+    | { featureType: "POLYGON"; geometry: Extract<D2Geometry, { type: "Polygon" }> };
 
 export async function getTrackedEntityInstances(options: GetOptions): Promise<TrackedEntityInstance[]> {
     const {
@@ -68,26 +63,24 @@ export async function getTrackedEntityInstances(options: GetOptions): Promise<Tr
         ouMode: relationshipsOuFilter,
     });
 
-    // Avoid 414-uri-too-large by spliting orgUnit in chunks
+    // Avoid 414-uri-too-large by splitting orgUnit in chunks
     const orgUnitsList = _.chunk(orgUnits, 250);
 
-    // Get TEIs for the first page:
     const apiTeis: TrackedEntitiesApiRequest[] = [];
 
-    for (const orgUnits of orgUnitsList) {
-        // Limit response size by requesting paginated TEIs
+    for (const orgUnitsChunk of orgUnitsList) {
         for (let page = 1; ; page++) {
-            const { pageCount, instances } = await getTeisFromApi({
+            const { pageCount, trackedEntities } = await getTeisFromApi({
                 api,
                 program,
-                orgUnits,
+                orgUnits: orgUnitsChunk,
                 page,
                 pageSize,
                 enrollmentStartDate,
                 enrollmentEndDate,
-                ouMode: relationshipsOuFilter,
+                orgUnitMode: relationshipsOuFilter,
             });
-            apiTeis.push(...instances);
+            apiTeis.push(...trackedEntities);
             if (pageCount <= page) break;
         }
     }
@@ -462,37 +455,31 @@ function getMultiTextValue(options: {
 }
 
 async function getExistingTeis(api: D2Api): Promise<Ref[]> {
-    const query = {
-        ouMode: "CAPTURE",
-        pageSize: 1000,
-        totalPages: true,
-        fields: "trackedEntity",
-    } as const;
-
     // DHIS 2.37 added a new requirement: "Either Program or Tracked entity type should be specified"
-    // Requests to /api/trackedEntityInstances for these two params are singled-value, so we must
-    // perform multiple requests. Use Tracked Entity Types as tipically there will be more programs.
+    // Requests to /api/tracker/trackedEntities for these two params are single-value, so we must
+    // perform multiple requests. Use Tracked Entity Types as typically there will be more programs.
 
     const metadata = await api.metadata.get({ trackedEntityTypes: { fields: { id: true } } }).getData();
 
     const teisGroups = await promiseMap(metadata.trackedEntityTypes, async entityType => {
-        const queryWithEntityType: TrackedEntityGetRequest = { ...query, trackedEntityType: entityType.id };
+        const query = {
+            orgUnitMode: "CAPTURE" as const,
+            trackedEntityType: entityType.id,
+            pageSize: 1000,
+            totalPages: true,
+            fields: { trackedEntity: true as const },
+        };
 
-        const { instances: firstPage, pageCount } = await getTrackedEntities(api, queryWithEntityType);
-
+        const { pager, trackedEntities: firstPage } = await api.tracker.trackedEntities.get(query).getData();
+        const pageCount = pager.pageCount ?? 0;
         const pages = _.range(2, pageCount + 1);
 
         const otherPages = await promiseMap(pages, async page => {
-            const { instances: trackedEntityInstances } = await getTrackedEntities(api, {
-                ...queryWithEntityType,
-                page,
-            });
-
-            return trackedEntityInstances;
+            const { trackedEntities } = await api.tracker.trackedEntities.get({ ...query, page }).getData();
+            return trackedEntities;
         });
 
-        return [...firstPage, ..._.flatten(otherPages)].map(({ trackedEntity, ...rest }) => ({
-            ...rest,
+        return [...firstPage, ..._.flatten(otherPages)].map(({ trackedEntity }) => ({
             id: trackedEntity,
         }));
     });
@@ -500,7 +487,15 @@ async function getExistingTeis(api: D2Api): Promise<Ref[]> {
     return _.flatten(teisGroups);
 }
 
-type TeiKey = KeysOfUnion<TrackedEntitiesApiRequest>;
+const teiFields = {
+    trackedEntity: true,
+    inactive: true,
+    orgUnit: true,
+    attributes: true,
+    enrollments: true,
+    relationships: true,
+    geometry: true,
+} as const;
 
 async function getTeisFromApi(options: {
     api: D2Api;
@@ -510,47 +505,30 @@ async function getTeisFromApi(options: {
     pageSize: number;
     enrollmentStartDate?: Moment;
     enrollmentEndDate?: Moment;
-    ouMode: RelationshipOrgUnitFilter;
-}): Promise<TrackedEntitiesResponse> {
-    const { api, program, orgUnits, page, pageSize, enrollmentStartDate, enrollmentEndDate, ouMode } = options;
+    orgUnitMode: RelationshipOrgUnitFilter;
+}): Promise<{ trackedEntities: TrackedEntitiesApiRequest[]; pageCount: number }> {
+    const { api, program, orgUnits, page, pageSize, enrollmentStartDate, enrollmentEndDate, orgUnitMode } = options;
 
-    const fields: TeiKey[] = [
-        "trackedEntity",
-        "inactive",
-        "orgUnit",
-        "attributes",
-        "enrollments",
-        "relationships",
-        "geometry",
-    ];
+    const orgUnitParams = buildOrgUnitParams(orgUnitMode, orgUnits);
 
-    const ouModeQuery = buildOrgUnitMode(ouMode, orgUnits);
-
-    const filters: TrackedEntityGetRequest = {
-        ...ouModeQuery,
-        order: "createdAt:asc",
-        program: program.id,
-        pageSize: pageSize,
-        page: page,
-        totalPages: true as const,
-        fields: fields.join(","),
-        enrollmentEnrolledAfter: enrollmentStartDate?.format("YYYY-MM-DD[T]HH:mm"),
-        enrollmentEnrolledBefore: enrollmentEndDate?.format("YYYY-MM-DD[T]HH:mm"),
-    };
-    const { instances, pageCount } = await getTrackedEntities(api, filters);
-
-    return { instances, pageCount };
-}
-
-export async function getTrackedEntities(
-    api: D2Api,
-    filterQuery: TrackedEntityGetRequest
-): Promise<TrackedEntitiesResponse> {
-    const { instances, trackedEntities, pager, pageCount } = await api
-        .get<TrackedEntitiesD2ApiResponse>("/tracker/trackedEntities", filterQuery)
+    const { pager, trackedEntities } = await api.tracker.trackedEntities
+        .get({
+            ...orgUnitParams,
+            order: [{ type: "field", field: "createdAt", direction: "asc" }],
+            program: program.id,
+            pageSize,
+            page,
+            totalPages: true,
+            fields: teiFields,
+            enrollmentEnrolledAfter: enrollmentStartDate?.format("YYYY-MM-DD[T]HH:mm"),
+            enrollmentEnrolledBefore: enrollmentEndDate?.format("YYYY-MM-DD[T]HH:mm"),
+        })
         .getData();
 
-    return { instances: instances || trackedEntities || [], pageCount: pageCount ?? pager?.pageCount ?? 0 };
+    return {
+        trackedEntities: trackedEntities as unknown as TrackedEntitiesApiRequest[],
+        pageCount: pager.pageCount ?? 0,
+    };
 }
 
 function buildTei(
@@ -597,7 +575,7 @@ function buildTei(
     };
 }
 
-function getD2TeiGeometryAttributes(tei: TrackedEntityInstance): TrackedEntityInstanceGeometryAttributes {
+function getD2TeiGeometryAttributes(tei: TrackedEntityInstance): TrackedEntityGeometryAttributes {
     const { geometry } = tei;
 
     switch (geometry.type) {
@@ -662,15 +640,6 @@ function getValue(
 export function generateUidForTei(teiId: Id, orgUnitId: Id, programId: Id): string {
     return getUid([teiId, orgUnitId, programId].join("-"));
 }
-
-export type TrackedEntitiesD2ApiResponse = {
-    instances?: TrackedEntitiesApiRequest[];
-    trackedEntities?: TrackedEntitiesApiRequest[];
-    pager?: {
-        pageCount: number;
-    };
-    pageCount?: number;
-};
 
 type TEIId = string;
 type EventMap = Record<TEIId, Event[]>;

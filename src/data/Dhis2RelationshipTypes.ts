@@ -1,4 +1,4 @@
-import { TeiOuRequest as TrackedEntityOURequestApi } from "@eyeseetea/d2-api/api/trackedEntityInstances";
+import { OrgUnitMode } from "@eyeseetea/d2-api/api/trackerTrackedEntities";
 import _ from "lodash";
 import moment from "moment";
 import { NamedRef } from "../domain/entities/ReferenceObject";
@@ -9,25 +9,27 @@ import { D2Api, D2RelationshipConstraint, D2RelationshipType, Id, Ref } from "..
 import { memoizeAsync } from "../utils/cache";
 import { promiseMap } from "../utils/promises";
 import { getUid } from "./dhis2-uid";
-import { getTrackedEntities, TrackedEntityGetRequest } from "./Dhis2TrackedEntityInstances";
 import { TrackerRelationship, RelationshipItem, TrackedEntitiesApiRequest } from "../domain/entities/TrackedEntity";
 import { buildOrgUnitsParameter } from "../domain/entities/OrgUnit";
 import { EventsAPIResponse } from "../domain/entities/DhisDataPackage";
 
 type RelationshipTypesById = Record<Id, Pick<D2RelationshipType, "id" | "toConstraint" | "fromConstraint">>;
 
-export type RelationshipOrgUnitFilter = TrackedEntityOURequestApi["ouMode"];
+export type RelationshipOrgUnitFilter = OrgUnitMode;
 
-export function buildOrgUnitMode(ouMode: RelationshipOrgUnitFilter, orgUnits?: Ref[]) {
-    const isOuReq = ouMode === "SELECTED" || ouMode === "CHILDREN" || ouMode === "DESCENDANTS";
-    //issue: v41 - orgUnitMode/ouMode; v38-40 ouMode; ouMode to be deprecated
-    //can't use both orgUnitMode and ouMode in v41
-    if (!isOuReq) {
-        return { ouMode };
+export function buildOrgUnitParams(
+    orgUnitMode: RelationshipOrgUnitFilter,
+    orgUnits?: Ref[]
+): { orgUnitMode: OrgUnitMode; orgUnits?: string } {
+    const requiresOrgUnits =
+        orgUnitMode === "SELECTED" || orgUnitMode === "CHILDREN" || orgUnitMode === "DESCENDANTS";
+
+    if (!requiresOrgUnits) {
+        return { orgUnitMode };
     } else if (orgUnits && orgUnits.length > 0) {
-        return { ouMode, orgUnit: buildOrgUnitsParameter(orgUnits) };
+        return { orgUnitMode, orgUnits: buildOrgUnitsParameter(orgUnits) };
     } else {
-        throw new Error(`No orgUnits selected for ouMode ${ouMode}`);
+        throw new Error(`No orgUnits selected for orgUnitMode ${orgUnitMode}`);
     }
 }
 
@@ -258,22 +260,21 @@ async function getConstraintForTypeTei(
     const { ouMode = "CAPTURE", organisationUnits = [] } = filters || {};
     const trackedEntityTypesById = _.keyBy(trackedEntityTypes, obj => obj.id);
 
-    const ouModeQuery = buildOrgUnitMode(ouMode, organisationUnits);
+    const orgUnitParams = buildOrgUnitParams(ouMode, organisationUnits);
 
     const query = {
-        ...ouModeQuery,
-        order: "createdAt:asc",
+        ...orgUnitParams,
+        order: [{ type: "field" as const, field: "createdAt" as const, direction: "asc" as const }],
         program: constraint.program?.id,
         // Program and tracked entity cannot be specified simultaneously
         trackedEntityType: constraint.program ? undefined : constraint.trackedEntityType.id,
         pageSize: 1000,
         totalPages: true,
-        fields: "trackedEntity",
-    } as const;
+        fields: { trackedEntity: true as const },
+    };
 
     const results = await getAllTrackedEntities(api, query);
-    const trackedEntityInstances = results.map(({ trackedEntity, ...rest }) => ({
-        ...rest,
+    const trackedEntityInstances = results.map(({ trackedEntity }) => ({
         id: trackedEntity,
     }));
 
@@ -283,12 +284,18 @@ async function getConstraintForTypeTei(
     return { type: "tei", name, program: constraint.program, teis };
 }
 
-async function getAllTrackedEntities(api: D2Api, query: TrackedEntityGetRequest): Promise<TrackedEntitiesApiRequest[]> {
-    const { instances: firstPage, pageCount } = await getTrackedEntities(api, query);
+type TrackerGetParams = Parameters<D2Api["tracker"]["trackedEntities"]["get"]>[0];
+
+async function getAllTrackedEntities(
+    api: D2Api,
+    query: TrackerGetParams
+): Promise<{ trackedEntity: string }[]> {
+    const { pager, trackedEntities: firstPage } = await api.tracker.trackedEntities.get(query).getData();
+    const pageCount = pager.pageCount ?? 0;
     const pages = _.range(2, pageCount + 1);
     const otherPages = await promiseMap(pages, async page => {
-        const { instances } = await getTrackedEntities(api, { ...query, page });
-        return instances;
+        const { trackedEntities } = await api.tracker.trackedEntities.get({ ...query, page }).getData();
+        return trackedEntities;
     });
 
     return [...firstPage, ..._.flatten(otherPages)];

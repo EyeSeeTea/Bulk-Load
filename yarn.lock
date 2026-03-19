@@ -4626,10 +4626,9 @@
     minimatch "^3.0.4"
     strip-json-comments "^3.1.1"
 
-"@eyeseetea/d2-api@1.20.0":
-  version "1.20.0"
-  resolved "https://registry.yarnpkg.com/@eyeseetea/d2-api/-/d2-api-1.20.0.tgz#2a0dd75bf922c0734f32d249d7df457756087d3f"
-  integrity sha512-/Toy/1sWB3eqlC+YGLk+KUIe1IJ+ws40aqk+SKBnBCtyNr6TK+AaQF+S+aXQPFJF7Nxnkki08tWvQTQjCdaOVw==
+"@eyeseetea/d2-api@EyeSeeTea/d2-api#feature/tracker-orgunitparams-42-869beeny2":
+  version "1.21.0-dhis2.42"
+  resolved "https://codeload.github.com/EyeSeeTea/d2-api/tar.gz/ae3cc7e62c474de1282618ee162047bc985dfe0e"
   dependencies:
     abort-controller "3.0.0"
     axios "1.6.4"
@@ -4640,7 +4639,6 @@
     iconv-lite "0.6.2"
     lodash "4.17.21"
     qs "6.9.7"
-    react "^16.12.0"
 
 "@eyeseetea/d2-ui-components@2.12.0":
   version "2.12.0"
@@ -17011,15 +17009,6 @@ react@17.0.2:
   dependencies:
     loose-envify "^1.1.0"
     object-assign "^4.1.1"
-
-react@^16.12.0:
-  version "16.13.1"
-  resolved "https://registry.yarnpkg.com/react/-/react-16.13.1.tgz#2e818822f1a9743122c063d6410d85c1e3afe48e"
-  integrity sha512-YMZQQq32xHLX0bz5Mnibv1/LHb3Sqzngu7xstSM+vrkE5Kzr9xE0yMByK5kMoTK30YVJE61WfbxIFFvfeDKT1w==
-  dependencies:
-    loose-envify "^1.1.0"
-    object-assign "^4.1.1"
-    prop-types "^15.6.2"
 
 reactcss@^1.2.0:
   version "1.2.3"
