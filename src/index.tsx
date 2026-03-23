@@ -50,9 +50,11 @@ async function main() {
 
         const userSettings = await api.get<{ keyUiLocale: string }>("/userSettings").getData();
         configI18n(userSettings);
+        type ProviderProps = React.ComponentProps<typeof Provider>;
+        const config: ProviderProps["config"] = { baseUrl, apiVersion: 30 };
 
         ReactDOM.render(
-            <Provider config={{ baseUrl, apiVersion: 30 }}>
+            <Provider config={config} plugin={false} parentAlertsAdd={() => {}} showAlertsInPlugin={false}>
                 <App d2={d2 as object} api={api} />
             </Provider>,
             document.getElementById("root")
