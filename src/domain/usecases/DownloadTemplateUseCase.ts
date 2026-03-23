@@ -1,5 +1,5 @@
 import { saveAs } from "file-saver";
-import fs from "fs";
+import * as fs from "fs";
 import _ from "lodash";
 import { Moment } from "moment";
 import { UseCase } from "../../CompositionRoot";

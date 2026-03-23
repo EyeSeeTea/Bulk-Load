@@ -1,7 +1,7 @@
 import { generateUid } from "d2/uid";
 import { DhisInstance } from "../domain/entities/DhisInstance";
 import { StorageRepository } from "../domain/repositories/StorageRepository";
-import { D2Api, D2ApiDefault } from "../types/d2-api";
+import { D2Api } from "../types/d2-api";
 
 interface Constant {
     id: string;
@@ -19,7 +19,7 @@ export class StorageConstantRepository extends StorageRepository {
 
     constructor({ url }: DhisInstance, mockApi?: D2Api) {
         super();
-        this.api = mockApi ?? new D2ApiDefault({ baseUrl: url });
+        this.api = mockApi ?? new D2Api({ baseUrl: url });
     }
 
     private buildDefault<T extends object>(key: string, value: T): Constant {

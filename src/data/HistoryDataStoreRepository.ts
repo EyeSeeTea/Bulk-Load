@@ -2,7 +2,7 @@ import { HistoryRepository } from "../domain/repositories/HistoryRepository";
 import { HistoryEntry, HistoryEntrySummary, HistoryEntryDetails } from "../domain/entities/HistoryEntry";
 import { Id } from "../domain/entities/ReferenceObject";
 import { DhisInstance } from "../domain/entities/DhisInstance";
-import { D2Api, D2ApiDefault, DataStore } from "../types/d2-api";
+import { D2Api, DataStore } from "../types/d2-api";
 import { dataStoreNamespace } from "./StorageDataStoreRepository";
 
 export class HistoryDataStoreRepository implements HistoryRepository {
@@ -11,7 +11,7 @@ export class HistoryDataStoreRepository implements HistoryRepository {
     private readonly HISTORY_KEY = "history";
 
     constructor({ url }: DhisInstance, mockApi?: D2Api) {
-        this.api = mockApi ?? new D2ApiDefault({ baseUrl: url });
+        this.api = mockApi ?? new D2Api({ baseUrl: url });
         this.dataStore = this.api.dataStore(dataStoreNamespace);
     }
 

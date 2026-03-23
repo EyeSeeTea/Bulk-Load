@@ -1,7 +1,7 @@
 import { DhisInstance } from "../domain/entities/DhisInstance";
 import { FileResource } from "../domain/entities/FileResource";
 import { FileRepository } from "../domain/repositories/FileRepository";
-import { D2Api, D2ApiDefault } from "../types/d2-api";
+import { D2Api } from "../types/d2-api";
 import { promiseMap } from "../utils/promises";
 import { Maybe } from "../types/utils";
 
@@ -18,7 +18,7 @@ export class FileD2Repository implements FileRepository {
     private api: D2Api;
 
     constructor(localInstance: DhisInstance) {
-        this.api = new D2ApiDefault({ baseUrl: localInstance.url });
+        this.api = new D2Api({ baseUrl: localInstance.url });
     }
 
     async uploadAll(files: FileResource[]): Promise<FileResource[]> {

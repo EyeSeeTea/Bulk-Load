@@ -40,7 +40,6 @@ import {
 import i18n from "../utils/i18n";
 import {
     D2Api,
-    D2ApiDefault,
     D2DataElementSchema,
     D2ProgramStage,
     D2TrackedEntityType,
@@ -61,7 +60,7 @@ export class InstanceDhisRepository implements InstanceRepository {
     private api: D2Api;
 
     constructor({ url }: DhisInstance, mockApi?: D2Api) {
-        this.api = mockApi ?? new D2ApiDefault({ baseUrl: url });
+        this.api = mockApi ?? new D2Api({ baseUrl: url });
     }
 
     public getDataStore(namespace: string): DataStore {

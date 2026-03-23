@@ -1,13 +1,13 @@
 import { DhisInstance } from "../domain/entities/DhisInstance";
 import { User } from "../domain/entities/User";
 import { SearchResults, UsersRepository } from "../domain/repositories/UsersRepository";
-import { D2ApiDefault, D2OrganisationUnit, D2Api } from "../types/d2-api";
+import { D2OrganisationUnit, D2Api } from "../types/d2-api";
 
 export class D2UsersRepository implements UsersRepository {
     private api: D2Api;
 
     constructor(localInstance: DhisInstance, mockApi?: D2Api) {
-        this.api = mockApi ?? new D2ApiDefault({ baseUrl: localInstance.url });
+        this.api = mockApi ?? new D2Api({ baseUrl: localInstance.url });
     }
 
     async getCurrentUser(): Promise<User> {
