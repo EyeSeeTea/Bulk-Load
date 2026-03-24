@@ -67,7 +67,8 @@
         "check-uncommited": "test -z \"$(git status -uno --porcelain)\"",
         "cy:e2e:open": "NODE_ENV=test CYPRESS_E2E=true cypress open",
         "cy:e2e:run": "NODE_ENV=test CYPRESS_E2E=true cypress run --browser chrome",
-        "prepare": "corepack enable 2>/dev/null || true && husky install"
+        "prepare": "corepack enable 2>/dev/null || true && husky install",
+        "postinstall": "yarn localize"
     },
     "devDependencies": {
         "@babel/core": "7.16.7",
