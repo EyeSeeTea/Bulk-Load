@@ -17,24 +17,15 @@ export function buildAllPossiblePeriods(
         return [];
     }
 
-    let unit: moment.unitOfTime.DurationConstructor;
-    let format: string;
-
     switch (periodType) {
         case undefined:
             return [];
         case "Daily":
-            unit = "days";
-            format = "YYYYMMDD";
-            break;
+            return generateDatesByPeriod({ startDate, endDate, format: "YYYYMMDD", unit: "days" });
         case "Monthly":
-            unit = "months";
-            format = "YYYYMM";
-            break;
+            return generateDatesByPeriod({ startDate, endDate, format: "YYYYMM", unit: "months" });
         case "Yearly":
-            unit = "years";
-            format = "YYYY";
-            break;
+            return generateDatesByPeriod({ startDate, endDate, format: "YYYY", unit: "years" });
         case "Weekly":
         case "WeeklyWednesday":
         case "WeeklyThursday":
@@ -46,9 +37,7 @@ export function buildAllPossiblePeriods(
         case "BiMonthly":
             return generateBiMonthlyPeriods(startDate, endDate);
         case "Quarterly":
-            unit = "quarters";
-            format = "YYYY[Q]Q";
-            break;
+            return generateDatesByPeriod({ startDate, endDate, format: "YYYY[Q]Q", unit: "quarters" });
         case "QuarterlyNov":
             return generateQuarterlyNovPeriods(startDate, endDate);
         case "SixMonthly":
@@ -65,21 +54,24 @@ export function buildAllPossiblePeriods(
         default:
             throw new Error("Unsupported period type");
     }
-
-    return generateDatesByPeriod({ startDate, endDate, format, unit });
 }
 
-function generateDatesByPeriod(options: Options) {
+function generateDatesByPeriod(options: Options): string[] {
     const { startDate, endDate, unit, format } = options;
-    const dates = [];
-    for (const current = moment(startDate); current.isSameOrBefore(moment(endDate)); current.add(1, unit)) {
+    const dates: string[] = [];
+
+    for (
+        let current: Moment = startDate.clone();
+        current.isSameOrBefore(endDate);
+        current = current.clone().add(1, unit)
+    ) {
         dates.push(current.format(format));
     }
     return dates;
 }
 
 type WeeklyPeriodType = "Weekly" | "WeeklyWednesday" | "WeeklyThursday" | "WeeklySaturday" | "WeeklySunday";
-function getWeekStartDay(periodType: WeeklyPeriodType) {
+function getWeekStartDay(periodType: WeeklyPeriodType): number {
     const dayMap = {
         Weekly: 1,
         WeeklyWednesday: 3,
@@ -90,174 +82,164 @@ function getWeekStartDay(periodType: WeeklyPeriodType) {
     return dayMap[periodType] ?? 1;
 }
 
-function generateWeeklyPeriods(periodType: WeeklyPeriodType, startDate: Moment, endDate: Moment) {
-    const dates = [];
-    const start = moment(startDate);
-    const end = moment(endDate);
-    const startDay = getWeekStartDay(periodType);
+function generateWeeklyPeriods(periodType: WeeklyPeriodType, startDate: Moment, endDate: Moment): string[] {
+    const dates: string[] = [];
+    const startDay: number = getWeekStartDay(periodType);
+    const formatSuffix: string = periodType === "Weekly" ? "W" : `${periodType.replace("Weekly", "").substring(0, 3)}W`;
 
-    const current = moment(start).isoWeekday(startDay);
-    if (current.isAfter(start)) {
-        current.subtract(1, "week");
-    }
+    const alignedStartDate: Moment = startDate.clone().isoWeekday(startDay);
+    const weeklyStart: Moment = alignedStartDate.isAfter(startDate)
+        ? alignedStartDate.clone().subtract(1, "week")
+        : alignedStartDate;
 
-    const formatSuffix = periodType === "Weekly" ? "W" : periodType.replace("Weekly", "").substring(0, 3) + "W";
-
-    while (current.isSameOrBefore(end)) {
-        const weekNum = current.isoWeek();
-        dates.push(`${current.isoWeekYear()}${formatSuffix}${weekNum}`);
-        current.add(1, "week");
+    for (let current: Moment = weeklyStart; current.isSameOrBefore(endDate); current = current.clone().add(1, "week")) {
+        dates.push(`${current.isoWeekYear()}${formatSuffix}${current.isoWeek()}`);
     }
 
     return dates;
 }
 
-function getBiWeekStartFromIsoWeek(startDate: Moment) {
-    const start = moment(startDate);
-    const isoWeekNumber = start.isoWeek();
-    const startWeek = isoWeekNumber % 2 === 0 ? isoWeekNumber - 1 : isoWeekNumber;
-    return moment(start).isoWeekYear(start.isoWeekYear()).isoWeek(startWeek).startOf("isoWeek");
+function getBiWeekStartFromIsoWeek(startDate: Moment): Moment {
+    const isoWeekNumber: number = startDate.isoWeek();
+    const startWeek: number = isoWeekNumber % 2 === 0 ? isoWeekNumber - 1 : isoWeekNumber;
+    return startDate.clone().isoWeekYear(startDate.isoWeekYear()).isoWeek(startWeek).startOf("isoWeek");
 }
 
-function generateBiWeeklyPeriods(startDate: Moment, endDate: Moment) {
-    const dates = [];
-    const start = getBiWeekStartFromIsoWeek(startDate);
-    const end = moment(endDate);
+function generateBiWeeklyPeriods(startDate: Moment, endDate: Moment): string[] {
+    const dates: string[] = [];
+    const start: Moment = getBiWeekStartFromIsoWeek(startDate);
 
-    const current = start.clone();
-
-    while (current.isSameOrBefore(end)) {
-        const isoWeek = current.isoWeek();
-        const biWeekNum = Math.ceil(isoWeek / 2);
+    for (let current: Moment = start; current.isSameOrBefore(endDate); current = current.clone().add(2, "weeks")) {
+        const isoWeek: number = current.isoWeek();
+        const biWeekNum: number = Math.ceil(isoWeek / 2);
 
         dates.push(`${current.isoWeekYear()}BiW${biWeekNum}`);
-        current.add(2, "weeks");
     }
 
     return dates;
 }
 
-function generateBiMonthlyPeriods(startDate: Moment, endDate: Moment) {
-    const dates = [];
-    const start = moment(startDate);
-    const end = moment(endDate);
+function generateBiMonthlyPeriods(startDate: Moment, endDate: Moment): string[] {
+    const dates: string[] = [];
 
-    const startMonth = Math.floor(start.month() / 2) * 2;
-    const current = moment(start).month(startMonth).startOf("month");
+    const startMonth: number = Math.floor(startDate.month() / 2) * 2;
+    const monthBeginningDate: Moment = startDate.clone().month(startMonth).startOf("month");
 
-    while (current.isSameOrBefore(end)) {
-        const biMonthNum = Math.floor(current.month() / 2) + 1;
+    for (
+        let current: Moment = monthBeginningDate;
+        current.isSameOrBefore(endDate);
+        current = current.clone().add(2, "months")
+    ) {
+        const biMonthNum: number = Math.floor(current.month() / 2) + 1;
         dates.push(`${current.year()}${String(biMonthNum).padStart(2, "0")}B`);
-        current.add(2, "months");
     }
 
     return dates;
 }
 
-function generateQuarterlyNovPeriods(startDate: Moment, endDate: Moment) {
-    const dates = [];
-    const start = moment(startDate);
-    const end = moment(endDate);
+function generateQuarterlyNovPeriods(startDate: Moment, endDate: Moment): string[] {
+    const dates: string[] = [];
 
-    const current = start.add(2, "months").startOf("quarter").subtract(2, "months");
+    const quarterStartDate: Moment = startDate.clone().add(2, "months").startOf("quarter").subtract(2, "months");
 
-    while (current.isSameOrBefore(end)) {
-        const year = current.year();
+    for (
+        let current: Moment = quarterStartDate;
+        current.isSameOrBefore(endDate);
+        current = current.clone().add(3, "months")
+    ) {
+        const year: number = current.year();
         if (current.month() >= 10) {
             dates.push(`${year + 1}NovQ${1}`);
         } else {
-            const quarter = Math.floor((current.month() + 2) / 3) + 1;
+            const quarter: number = Math.floor((current.month() + 2) / 3) + 1;
             dates.push(`${year}NovQ${quarter}`);
         }
-        current.add(3, "months");
     }
 
     return dates;
 }
 
-function generateSixMonthlyPeriods(startDate: Moment, endDate: Moment) {
-    const dates = [];
-    const start = moment(startDate);
-    const end = moment(endDate);
+function generateSixMonthlyPeriods(startDate: Moment, endDate: Moment): string[] {
+    const dates: string[] = [];
 
-    const startMonth = start.month() < 6 ? 0 : 6;
-    const current = moment(start).month(startMonth).startOf("month");
+    const startMonth: number = startDate.month() < 6 ? 0 : 6;
+    const sixMonthlyStart: Moment = startDate.clone().month(startMonth).startOf("month");
 
-    while (current.isSameOrBefore(end)) {
-        const half = current.month() < 6 ? 1 : 2;
+    for (
+        let current: Moment = sixMonthlyStart;
+        current.isSameOrBefore(endDate);
+        current = current.clone().add(6, "months")
+    ) {
+        const half: number = current.month() < 6 ? 1 : 2;
         dates.push(`${current.year()}S${half}`);
-        current.add(6, "months");
     }
 
     return dates;
 }
 
-function generateSixMonthlyAprilPeriods(startDate: Moment, endDate: Moment) {
-    const dates = [];
-    const start = moment(startDate);
-    const end = moment(endDate);
+function generateSixMonthlyAprilPeriods(startDate: Moment, endDate: Moment): string[] {
+    const dates: string[] = [];
 
-    const year = start.month() >= 3 ? start.year() : start.year() - 1;
-    const current = moment({ year: year, month: 3, date: 1 });
+    const year: number = startDate.month() >= 3 ? startDate.year() : startDate.year() - 1;
+    const sixMonthlyStart: Moment = moment({ year: year, month: 3, date: 1 });
 
-    while (current.isSameOrBefore(end)) {
-        const periodEnd = moment(current).add(6, "months").subtract(1, "day");
-        if (periodEnd.isSameOrAfter(start)) {
-            const displayYear = current.year();
+    for (
+        let current: Moment = sixMonthlyStart;
+        current.isSameOrBefore(endDate);
+        current = current.clone().add(6, "months")
+    ) {
+        const periodEnd: Moment = current.clone().add(6, "months").subtract(1, "day");
+        if (periodEnd.isSameOrAfter(startDate)) {
+            const displayYear: number = current.year();
             const semester = current.month() === 3 ? 1 : 2;
             dates.push(`${displayYear}AprilS${semester}`);
         }
-        current.add(6, "months");
     }
 
     return dates;
 }
 
-function generateSixMonthlyNovPeriods(startDate: Moment, endDate: Moment) {
-    const dates = [];
-    const start = moment(startDate);
-    const end = moment(endDate);
+function generateSixMonthlyNovPeriods(startDate: Moment, endDate: Moment): string[] {
+    const dates: string[] = [];
 
-    let current;
-    if (start.month() >= 5) {
-        current = moment({ year: start.year(), month: 4, date: 1 });
-    } else {
-        current = moment({ year: start.year() - 1, month: 10, date: 1 });
-    }
+    const sixMonthlyStart: Moment =
+        startDate.month() >= 5
+            ? moment({ year: startDate.year(), month: 4, date: 1 })
+            : moment({ year: startDate.year() - 1, month: 10, date: 1 });
 
-    while (current.isSameOrBefore(end)) {
-        const periodEnd = moment(current).add(6, "months").subtract(1, "day");
+    for (
+        let current: Moment = sixMonthlyStart;
+        current.isSameOrBefore(endDate);
+        current = current.clone().add(6, "months")
+    ) {
+        const periodEnd: Moment = current.clone().add(6, "months").subtract(1, "day");
 
-        if (periodEnd.isSameOrAfter(start)) {
-            const isNovStart = current.month() === 10;
-            const semester = isNovStart ? 1 : 2;
-            const displayYear = isNovStart ? current.year() + 1 : current.year();
+        if (periodEnd.isSameOrAfter(startDate)) {
+            const isNovStart: boolean = current.month() === 10;
+            const semester: number = isNovStart ? 1 : 2;
+            const displayYear: number = isNovStart ? current.year() + 1 : current.year();
 
             dates.push(`${displayYear}NovS${semester}`);
         }
-
-        current.add(6, "months");
     }
 
     return dates;
 }
 
 type FinancialType = "FinancialApril" | "FinancialJuly" | "FinancialOct" | "FinancialNov";
-function generateFinancialPeriods(startDate: Moment, endDate: Moment, financialType: FinancialType) {
-    const dates = [];
-    const monthName = financialType.replace("Financial", "");
-    const startMonthIndex = moment().month(monthName).month();
-    const start = moment(startDate);
-    const end = moment(endDate);
+function generateFinancialPeriods(startDate: Moment, endDate: Moment, financialType: FinancialType): string[] {
+    const dates: string[] = [];
+    const monthName: string = financialType.replace("Financial", "");
+    const startMonthIndex: number = moment().month(monthName).month();
 
-    const firstYear = start.year();
-    const lastYear = end.year();
+    const firstYear: number = startDate.year();
+    const lastYear: number = endDate.year();
 
     for (let year = firstYear; year <= lastYear; year++) {
-        const periodStart = moment({ year, month: startMonthIndex, date: 1 });
-        const periodEnd = moment(periodStart).add(1, "year").subtract(1, "day");
+        const periodStart: Moment = moment({ year, month: startMonthIndex, date: 1 });
+        const periodEnd: Moment = periodStart.clone().add(1, "year").subtract(1, "day");
 
-        if (periodStart.isSameOrAfter(start) && periodEnd.isSameOrBefore(end)) {
+        if (periodStart.isSameOrAfter(startDate) && periodEnd.isSameOrBefore(endDate)) {
             dates.push(`${year}${monthName}`);
         }
     }
