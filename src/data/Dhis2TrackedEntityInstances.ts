@@ -466,8 +466,11 @@ function getMultiTextValue(options: {
 }
 
 async function getExistingTeis(api: D2Api): Promise<Ref[]> {
+    const apiVersion = await getVersion(api);
+    const ouModeParam = buildOrgUnitMode(apiVersion, "CAPTURE");
+
     const query = {
-        ouMode: "CAPTURE",
+        ...ouModeParam,
         pageSize: 1000,
         totalPages: true,
         fields: "trackedEntity",

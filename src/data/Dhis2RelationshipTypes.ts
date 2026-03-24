@@ -29,7 +29,8 @@ export function buildOrgUnitMode(apiVersion: string, ouMode: RelationshipOrgUnit
     //issue: v42 - orgUnitMode and orgUnits; v41 - orgUnitMode/ouMode and orgUnit; v38-40 ouMode; ouMode to be deprecated
     //can't use both orgUnitMode and ouMode in v41
     if (!isOuReq) {
-        return { ouMode };
+        if (majorVersion >= 42) return { orgUnitMode: ouMode };
+        else return { ouMode };
     } else if (orgUnits && orgUnits.length > 0) {
         const orgUnitsParam = buildOrgUnitsParameter(majorVersion, orgUnits);
         if (majorVersion >= 42) return { orgUnitMode: ouMode, orgUnits: orgUnitsParam };
