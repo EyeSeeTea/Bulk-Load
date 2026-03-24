@@ -9,7 +9,7 @@ interface Options {
 }
 
 export function buildAllPossiblePeriods(
-    periodType: DataFormPeriod,
+    periodType: DataFormPeriod | undefined,
     startDate: Moment | undefined,
     endDate: Moment | undefined
 ): string[] {
@@ -21,6 +21,8 @@ export function buildAllPossiblePeriods(
     let format: string;
 
     switch (periodType) {
+        case undefined:
+            return [];
         case "Daily":
             unit = "days";
             format = "YYYYMMDD";

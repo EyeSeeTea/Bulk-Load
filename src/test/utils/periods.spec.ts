@@ -2,6 +2,40 @@ import moment from "moment";
 import { describe, it, expect } from "@jest/globals";
 import { buildAllPossiblePeriods } from "../../webapp/utils/periods";
 
+// Input validation
+describe("buildAllPossiblePeriods - Input validation", () => {
+    it("returns empty array if startDate is missing", () => {
+        const result = buildAllPossiblePeriods("Monthly", undefined, moment("2024-12-31"));
+        expect(result).toEqual([]);
+    });
+
+    it("returns empty array if endDate is missing", () => {
+        const result = buildAllPossiblePeriods("Monthly", moment("2024-01-01"), undefined);
+        expect(result).toEqual([]);
+    });
+
+    it("returns empty array if both dates are missing", () => {
+        const result = buildAllPossiblePeriods("Monthly", undefined, undefined);
+        expect(result).toEqual([]);
+    });
+
+    it("returns empty array if startDate is after endDate", () => {
+        const result = buildAllPossiblePeriods("Monthly", moment("2024-12-31"), moment("2024-01-01"));
+        expect(result).toEqual([]);
+    });
+
+    it("returns empty array if periodType is undefined", () => {
+        const result = buildAllPossiblePeriods(undefined, moment("2024-01-01"), moment("2024-12-31"));
+        expect(result).toEqual([]);
+    });
+
+    it("throws error for unsupported period type", () => {
+        expect(() =>
+            buildAllPossiblePeriods("UnsupportedType" as any, moment("2024-01-01"), moment("2024-12-31"))
+        ).toThrow("Unsupported period type");
+    });
+});
+
 // Daily
 describe("buildAllPossiblePeriods - Daily", () => {
     it("generates daily periods", () => {
