@@ -1,6 +1,7 @@
 import _ from "lodash";
 import { DhisInstance } from "../domain/entities/DhisInstance";
 import { D2Api } from "../types/d2-api";
+import { memoizeAsync } from "./cache";
 
 export function getMajorVersion(version: string): number {
     const apiVersion = _.get(version.split("."), 1);
@@ -16,7 +17,7 @@ export function getD2APiFromInstance(instance: DhisInstance) {
     });
 }
 
-export async function getVersion(api: D2Api): Promise<string> {
+export const getVersion = memoizeAsync(async (api: D2Api): Promise<string> => {
     const { version } = await api.system.info.getData();
     return version;
-}
+});
