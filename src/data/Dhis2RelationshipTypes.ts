@@ -11,13 +11,17 @@ import { promiseMap } from "../utils/promises";
 import { getUid } from "./dhis2-uid";
 import { getTrackedEntities, TrackedEntityGetRequest } from "./Dhis2TrackedEntityInstances";
 import { TrackerRelationship, RelationshipItem, TrackedEntitiesApiRequest } from "../domain/entities/TrackedEntity";
-import { buildOrgUnitsParameter } from "../domain/entities/OrgUnit";
 import { EventsAPIResponse } from "../domain/entities/DhisDataPackage";
 import { getVersion, getMajorVersion } from "../utils/d2-api";
 
 type RelationshipTypesById = Record<Id, Pick<D2RelationshipType, "id" | "toConstraint" | "fromConstraint">>;
 
 export type RelationshipOrgUnitFilter = TrackedEntityOURequestApi["ouMode"];
+
+function buildOrgUnitsParameter(apiVersion: number, orgUnitsIds: Ref[]): string {
+    const separator = apiVersion >= 42 ? "," : ";";
+    return orgUnitsIds.map(({ id }) => id).join(separator);
+}
 
 export function buildOrgUnitMode(apiVersion: string, ouMode: RelationshipOrgUnitFilter, orgUnits?: Ref[]) {
     const majorVersion = getMajorVersion(apiVersion);
