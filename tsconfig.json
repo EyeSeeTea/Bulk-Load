@@ -19,6 +19,7 @@
         "strictNullChecks": true,
         "noUncheckedIndexedAccess": true,
         "experimentalDecorators": true,
+        "types": ["vitest/globals", "@testing-library/jest-dom"],
         "noFallthroughCasesInSwitch": true,
         "lib": ["dom", "dom.iterable", "esnext"]
     },

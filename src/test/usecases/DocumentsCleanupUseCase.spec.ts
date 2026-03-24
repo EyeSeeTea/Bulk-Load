@@ -2,25 +2,26 @@ import { DocumentRepository } from "../../domain/repositories/DocumentRepository
 import { HistoryRepository } from "../../domain/repositories/HistoryRepository";
 import { DocumentsCleanupUseCase } from "../../domain/usecases/DocumentsCleanupUseCase";
 import { User } from "../../domain/entities/User";
+import { vi, type Mocked } from "vitest";
 
 describe("DocumentsCleanupUseCase", () => {
-    let fileRepository: jest.Mocked<DocumentRepository>;
-    let historyRepository: jest.Mocked<HistoryRepository>;
+    let fileRepository: Mocked<DocumentRepository>;
+    let historyRepository: Mocked<HistoryRepository>;
     let useCase: DocumentsCleanupUseCase;
     let mockUser: User;
 
     beforeEach(() => {
         fileRepository = {
-            upload: jest.fn(),
-            delete: jest.fn(),
-            download: jest.fn(),
+            upload: vi.fn(),
+            delete: vi.fn(),
+            download: vi.fn(),
         };
         historyRepository = {
-            get: jest.fn(),
-            getDetails: jest.fn(),
-            save: jest.fn(),
-            updateSummaries: jest.fn(),
-            delete: jest.fn(),
+            get: vi.fn(),
+            getDetails: vi.fn(),
+            save: vi.fn(),
+            updateSummaries: vi.fn(),
+            delete: vi.fn(),
         };
         mockUser = {
             id: "user123",

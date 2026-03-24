@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 /// <reference types="vite/client" />
 import { type Plugin, UserConfig, defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
@@ -32,6 +33,13 @@ export default ({ mode }): UserConfig => {
     return defineConfig({
         base: "", // Relative paths (DHIS2 serves the app from a subpath)
         plugins,
+        test: {
+            environment: "jsdom",
+            include: ["**/*.spec.{ts,tsx}"],
+            setupFiles: "./src/tests/setup.js",
+            exclude: ["node_modules", "src/tests/playwright"],
+            globals: true,
+        },
         resolve: {
             alias: {
                 $: path.resolve(__dirname, "./src"),
