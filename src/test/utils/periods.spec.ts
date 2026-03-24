@@ -42,6 +42,11 @@ describe("buildAllPossiblePeriods - Daily", () => {
         const result = buildAllPossiblePeriods("Daily", moment("2024-01-27"), moment("2024-02-02"));
         expect(result).toEqual(["20240127", "20240128", "20240129", "20240130", "20240131", "20240201", "20240202"]);
     });
+
+    it("includes leap day in range", () => {
+        const result = buildAllPossiblePeriods("Daily", moment("2024-02-28"), moment("2024-03-01"));
+        expect(result).toEqual(["20240228", "20240229", "20240301"]);
+    });
 });
 
 // Weekly variants
@@ -73,6 +78,16 @@ describe("buildAllPossiblePeriods - Weekly variants", () => {
     it("WeeklySunday generates Sun-based weeks", () => {
         const result = buildAllPossiblePeriods("WeeklySunday", moment("2024-01-01"), moment("2024-01-31"));
         expect(result).toEqual(["2023SunW52", "2024SunW1", "2024SunW2", "2024SunW3", "2024SunW4"]);
+    });
+
+    it("Weekly uses ISO week year", () => {
+        const result = buildAllPossiblePeriods("Weekly", moment("2019-12-30"), moment("2020-01-05"));
+        expect(result).toEqual(["2020W1"]);
+    });
+
+    it("includes week 53 in years that have 53 ISO weeks", () => {
+        const result = buildAllPossiblePeriods("Weekly", moment("2020-12-28"), moment("2021-01-03"));
+        expect(result).toEqual(["2020W53"]);
     });
 });
 
@@ -169,6 +184,11 @@ describe("buildAllPossiblePeriods - BiWeekly", () => {
     it("generates biweekly periods across multiple years", () => {
         const result = buildAllPossiblePeriods("BiWeekly", moment("2024-12-01"), moment("2025-01-31"));
         expect(result).toEqual(["2024BiW24", "2024BiW25", "2024BiW26", "2025BiW1", "2025BiW2", "2025BiW3"]);
+    });
+
+    it("generates BiW27 period in a 53 ISO week year", () => {
+        const result = buildAllPossiblePeriods("BiWeekly", moment("2020-12-14"), moment("2021-01-17"));
+        expect(result).toEqual(["2020BiW26", "2020BiW27", "2021BiW1"]);
     });
 });
 
