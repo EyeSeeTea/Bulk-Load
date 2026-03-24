@@ -54,7 +54,7 @@ export default ({ mode }): UserConfig => {
             "process.env.NODE_ENV": JSON.stringify(isBuild ? "production" : "development"),
             // styled-jsx bundles assume CommonJS where `__dirname` exists.
             // In the browser (ESM) it isn't defined, so we provide a safe value.
-            "__dirname": JSON.stringify(""),
+            __dirname: JSON.stringify(""),
         },
     });
 };
@@ -110,4 +110,3 @@ function getDhIs2ProxyPlugin(env: Record<string, string>): Plugin {
         },
     };
 }
-

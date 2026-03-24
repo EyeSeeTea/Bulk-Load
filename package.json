@@ -61,7 +61,7 @@
         "prettify": "prettier \"./**/*.{js,jsx,json,css,ts,tsx}\" --write",
         "extract-pot": "yarn d2-i18n-extract -p src/ -o i18n/",
         "localize": "yarn update-po && d2-i18n-generate -n bulk-load -p ./i18n/ -o ./src/locales/",
-        "update-po": "yarn extract-pot && for pofile in i18n/*.po; do msgmerge --backup=off -U $pofile i18n/en.pot; done",
+        "update-po": "yarn extract-pot && find i18n/ -name '*.po' -exec msgmerge --backup=off -U {} i18n/en.pot \\;",
         "manifest": "d2-manifest package.json build/manifest.webapp",
         "cy:verify": "cypress verify",
         "check-uncommited": "test -z \"$(git status -uno --porcelain)\"",
