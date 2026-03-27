@@ -20,6 +20,7 @@ import {
     TemplateTrackerProgramPackage,
 } from "../entities/Template";
 import { ExcelReader } from "../helpers/ExcelReader";
+import { MULTI_TEXT_OPTION_DELIMITER } from "../helpers/ExcelBuilder";
 import { ExcelRepository } from "../repositories/ExcelRepository";
 import { InstanceRepository } from "../repositories/InstanceRepository";
 import { TemplateRepository } from "../repositories/TemplateRepository";
@@ -315,6 +316,28 @@ export class ImportTemplateUseCase implements UseCase {
             .first();
     }
 
+    private getMultiTextDataElementDelimiter(template: Template): Maybe<string> {
+        if (template.type !== "custom") return undefined;
+
+        return _(template.dataSources)
+            .map(dataSource => {
+                if (typeof dataSource === "function") {
+                    return undefined;
+                } else if (
+                    dataSource.type !== "row" &&
+                    dataSource.type !== "rowTrackedEvent" &&
+                    dataSource.type !== "column" &&
+                    dataSource.type !== "cell"
+                ) {
+                    return undefined;
+                } else {
+                    return dataSource.multiTextDataElementDelimiter;
+                }
+            })
+            .compact()
+            .first();
+    }
+
     private shouldDeleteAggregatedData(strategy: DuplicateImportStrategy): boolean {
         return strategy === "IMPORT";
     }
@@ -377,13 +400,17 @@ export class ImportTemplateUseCase implements UseCase {
         const trackedEntityPackage =
             dataPackage.type === "trackerPrograms" ? this.formatTrackedEntityInstances(dataPackage, dataForm) : {};
 
+        const multiTextDataElementDelimiter = this.getMultiTextDataElementDelimiter(template);
+
         return {
             ...dataPackage,
             ...trackedEntityPackage,
             dataEntries: dataPackage.dataEntries.map(({ dataValues, ...dataEntry }) => {
                 return {
                     ...dataEntry,
-                    dataValues: _.compact(dataValues.map(value => formatDataValue(value, dataForm))),
+                    dataValues: _.compact(
+                        dataValues.map(value => formatDataValue(value, dataForm, multiTextDataElementDelimiter))
+                    ),
                 };
             }),
         };
@@ -725,7 +752,11 @@ function getOptionValue(originalValue: string, options?: DataOption[]): Maybe<Da
     return options.find(({ id, name }) => originalValue === id || originalValue === name);
 }
 
-function formatDataValue(item: TemplateDataPackageDataValue, dataForm: DataForm): Maybe<TemplateDataPackageDataValue> {
+function formatDataValue(
+    item: TemplateDataPackageDataValue,
+    dataForm: DataForm,
+    multiTextDataElementDelimiter: Maybe<string>
+): Maybe<TemplateDataPackageDataValue> {
     const dataElement = dataForm.dataElements.find(({ id }) => item.dataElement === id);
     const booleanValue = getBooleanValue(item);
 
@@ -735,6 +766,17 @@ function formatDataValue(item: TemplateDataPackageDataValue, dataForm: DataForm)
 
     if (dataElement?.valueType === "TRUE_ONLY") {
         return booleanValue ? { ...item, value: true } : undefined;
+    }
+
+    if (dataElement?.valueType === "MULTI_TEXT" && multiTextDataElementDelimiter && isString(item.value)) {
+        const optionNames = item.value.split(multiTextDataElementDelimiter).map(name => name.trim());
+        const value = optionNames
+            .map(name => {
+                const option = getOptionValue(name, dataElement.options);
+                return option?.code ?? name;
+            })
+            .join(MULTI_TEXT_OPTION_DELIMITER);
+        return { ...item, value };
     }
 
     const optionValue = isString(item.value) ? getOptionValue(item.value, dataElement?.options) : undefined;

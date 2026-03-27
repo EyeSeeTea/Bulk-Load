@@ -217,6 +217,7 @@ export interface TrackerEventRowDataSource {
     sortBy?: string;
     onlyLastEvent?: boolean;
     dataElementProcessingRules?: DataProcessingRule[];
+    multiTextDataElementDelimiter?: string;
 }
 
 export interface RowDataSource extends BaseDataSource {
@@ -233,6 +234,7 @@ export interface RowDataSource extends BaseDataSource {
         longitude: ColumnRef | CellRef | ValueRef;
     };
     geometry?: ColumnRef | CellRef | ValueRef;
+    multiTextDataElementDelimiter?: string;
 }
 
 export interface TeiRowDataSource {
@@ -262,6 +264,7 @@ export interface ColumnDataSource extends BaseDataSource {
     categoryOption?: ColumnRef;
     attribute?: RowRef | CellRef;
     eventId?: RowRef | CellRef;
+    multiTextDataElementDelimiter?: string;
 }
 
 export interface CellDataSource extends BaseDataSource {
@@ -273,6 +276,7 @@ export interface CellDataSource extends BaseDataSource {
     categoryOption?: CellRef | ValueRef;
     attribute?: CellRef | ValueRef;
     eventId?: CellRef | ValueRef;
+    multiTextDataElementDelimiter?: string;
 }
 
 interface DataFormRef {
