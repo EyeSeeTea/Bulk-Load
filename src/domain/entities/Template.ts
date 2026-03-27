@@ -162,7 +162,7 @@ export interface Range {
 }
 
 type BaseDataProcessingRule = {
-    type: "coalesce";
+    type: "coalesce" | "override";
     condition: "onExport";
     description?: string;
 };
@@ -170,11 +170,18 @@ type BaseDataProcessingRule = {
 export type DataProcessingRuleCoalesce = BaseDataProcessingRule & {
     type: "coalesce";
     condition: "onExport";
-    destination: ColumnRef;
+    destination: ColumnRef | RowRef;
     targetIds: Id[]; // attribute or data element id
 };
 
-type DataProcessingRule = DataProcessingRuleCoalesce;
+export type DataProcessingRuleOverride = BaseDataProcessingRule & {
+    type: "override";
+    condition: "onExport";
+    destination: ColumnRef | RowRef;
+    target: ColumnRef | RowRef;
+};
+
+type DataProcessingRule = DataProcessingRuleCoalesce | DataProcessingRuleOverride;
 
 interface BaseDataSource {
     type: DataSourceType;
@@ -235,6 +242,7 @@ export interface RowDataSource extends BaseDataSource {
     };
     geometry?: ColumnRef | CellRef | ValueRef;
     multiTextDataElementDelimiter?: string;
+    dataElementProcessingRules?: DataProcessingRule[];
 }
 
 export interface TeiRowDataSource {
@@ -265,6 +273,7 @@ export interface ColumnDataSource extends BaseDataSource {
     attribute?: RowRef | CellRef;
     eventId?: RowRef | CellRef;
     multiTextDataElementDelimiter?: string;
+    dataElementProcessingRules?: DataProcessingRule[];
 }
 
 export interface CellDataSource extends BaseDataSource {
@@ -277,6 +286,7 @@ export interface CellDataSource extends BaseDataSource {
     attribute?: CellRef | ValueRef;
     eventId?: CellRef | ValueRef;
     multiTextDataElementDelimiter?: string;
+    dataElementProcessingRules?: DataProcessingRule[];
 }
 
 interface DataFormRef {
@@ -582,4 +592,8 @@ function mapFromProgramData(entry: ProgramPackageData): TemplateDataPackageData 
 
 export function isDataProcessingRuleCoalesce(rule: DataProcessingRule): rule is DataProcessingRuleCoalesce {
     return rule.type === "coalesce";
+}
+
+export function isDataProcessingRuleOverride(rule: DataProcessingRule): rule is DataProcessingRuleOverride {
+    return rule.type === "override";
 }

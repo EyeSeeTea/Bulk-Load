@@ -12,7 +12,6 @@ import {
     DataSource,
     DataSourceValue,
     DownloadCustomizationOptions,
-    isDataProcessingRuleCoalesce,
     RowDataSource,
     setDataEntrySheet,
     setSheet,
@@ -220,12 +219,11 @@ export class ExcelBuilder {
                 })
             );
 
-            const coalesceDataProcessRules =
-                dataSource.attributeDataProcessingRules?.filter(isDataProcessingRuleCoalesce);
-
-            const attributeDetails = DataProcessingService.coalesceValues({
+            const attributeDetails = DataProcessingService.applyRules({
                 dataDetails: _.compact(allAttributeDetails),
-                dataProcessingRules: coalesceDataProcessRules,
+                dataProcessingRules: dataSource.attributeDataProcessingRules?.filter(
+                    rule => rule.condition === "onExport"
+                ),
             });
 
             await Promise.all(
@@ -376,12 +374,11 @@ export class ExcelBuilder {
                 })
             );
 
-            const coalesceDataProcessRules =
-                dataSource.dataElementProcessingRules?.filter(isDataProcessingRuleCoalesce);
-
-            const dataElementDetails = DataProcessingService.coalesceValues({
+            const dataElementDetails = DataProcessingService.applyRules({
                 dataDetails: dataElementsToProcess,
-                dataProcessingRules: coalesceDataProcessRules,
+                dataProcessingRules: dataSource.dataElementProcessingRules?.filter(
+                    rule => rule.condition === "onExport"
+                ),
             });
 
             //TODO extract "_<VALUE" as a helper since it's used multiple times in multiple files
@@ -533,6 +530,7 @@ export class ExcelBuilder {
                 }
             }
 
+            const dataElementsToProcess: DataToProcess[] = [];
             for (const cell of cells) {
                 const dataElementCell = await this.findRelative(template, dataSource.dataElement, cell);
 
@@ -551,8 +549,23 @@ export class ExcelBuilder {
                         dv => dv.dataElement === dataElement && (!dv.category || dv.category === category)
                     ) ?? {};
 
-                if (value) await this.excelRepository.writeCell(template.id, cell, value);
+                if (value && dataElement) {
+                    dataElementsToProcess.push({ cell, id: dataElement, value });
+                }
             }
+
+            const dataElementDetails = DataProcessingService.applyRules({
+                dataDetails: dataElementsToProcess,
+                dataProcessingRules: dataSource.dataElementProcessingRules?.filter(
+                    rule => rule.condition === "onExport"
+                ),
+            });
+
+            await Promise.all(
+                dataElementDetails.map(({ cell, value }) =>
+                    this.excelRepository.writeCell(template.id, cell, value)
+                )
+            );
 
             rowStart += 1;
         }
