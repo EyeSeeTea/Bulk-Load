@@ -11,7 +11,13 @@ import Settings from "../../webapp/logic/settings";
 import { getGeneratedTemplateId, SheetBuilder } from "../../webapp/logic/sheetBuilder";
 import { DataForm, DataFormType, dataFormTypeMap } from "../entities/DataForm";
 import { Id, Ref } from "../entities/ReferenceObject";
-import { getDataFormRef, hasMultiTextDataElementDelimiter, Template, templateFromDataPackage, TemplateType } from "../entities/Template";
+import {
+    getDataFormRef,
+    hasMultiTextDataElementDelimiter,
+    Template,
+    templateFromDataPackage,
+    TemplateType,
+} from "../entities/Template";
 import { ExcelBuilder } from "../helpers/ExcelBuilder";
 import { ExcelRepository } from "../repositories/ExcelRepository";
 import { InstanceRepository } from "../repositories/InstanceRepository";
