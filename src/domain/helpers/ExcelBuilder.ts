@@ -530,45 +530,109 @@ export class ExcelBuilder {
                 }
             }
 
+            const dataElementsToProcess = await this.resolveDataElementValues(template, dataSource, cells, dataValues);
+
+            await this.applyRulesAndWrite(template, dataSource, dataElementsToProcess);
+
+            rowStart += 1;
+        }
+
+        if (dataSource.range.rowEnd !== undefined && rowStart <= dataSource.range.rowEnd) {
+            await this.fillUnmappedRows(template, dataSource, payload, rowStart, dataSource.range.rowEnd);
+        }
+    }
+
+    // When a datasource range has more rows than data entries
+    // (e.g. dataset custom templates where each row maps to a different data element via a mapping sheet),
+    // the main fillRows loop only covers the first N rows.
+    // This method fills the remaining rows by searching ALL entries for matching data values.
+    private async fillUnmappedRows(
+        template: Template,
+        dataSource: RowDataSource,
+        payload: TemplateDataPackage,
+        nextRow: number,
+        rangeRowEnd: number
+    ) {
+        const allDataValues = payload.dataEntries.flatMap(e => e.dataValues);
+        const dataValueByDECOC = _.keyBy(allDataValues, dv => `${dv.dataElement}:${dv.category ?? ""}`);
+
+        for (let row = nextRow; row <= rangeRowEnd; row++) {
+            const cells = await this.excelRepository.getCellsInRange(template.id, {
+                ...dataSource.range,
+                rowStart: row,
+                rowEnd: row,
+            });
+
             const dataElementsToProcess: DataToProcess[] = [];
             for (const cell of cells) {
-                const dataElementCell = await this.findRelative(template, dataSource.dataElement, cell);
+                const resolved = await this.resolveCellDataElement(template, dataSource, cell);
+                if (!resolved) continue;
 
-                const categoryCell = await this.findRelative(template, dataSource.categoryOption, cell);
+                const { dataElement, category } = resolved;
+                const value = dataValueByDECOC[`${dataElement}:${category ?? ""}`]?.value;
 
-                const dataElement = dataElementCell
-                    ? removeCharacters(await this.excelRepository.readCell(template.id, dataElementCell))
-                    : undefined;
-
-                const category = categoryCell
-                    ? removeCharacters(await this.excelRepository.readCell(template.id, categoryCell))
-                    : undefined;
-
-                const { value } =
-                    dataValues.find(
-                        dv => dv.dataElement === dataElement && (!dv.category || dv.category === category)
-                    ) ?? {};
-
-                if (value && dataElement) {
+                if (value !== undefined) {
                     dataElementsToProcess.push({ cell, id: dataElement, value });
                 }
             }
 
-            const dataElementDetails = DataProcessingService.applyRules({
-                dataDetails: dataElementsToProcess,
-                dataProcessingRules: dataSource.dataElementProcessingRules?.filter(
-                    rule => rule.condition === "onExport"
-                ),
-            });
-
-            await Promise.all(
-                dataElementDetails.map(({ cell, value }) =>
-                    this.excelRepository.writeCell(template.id, cell, value)
-                )
-            );
-
-            rowStart += 1;
+            await this.applyRulesAndWrite(template, dataSource, dataElementsToProcess);
         }
+    }
+
+    private async resolveCellDataElement(
+        template: Template,
+        dataSource: RowDataSource,
+        cell: CellRef
+    ): Promise<Maybe<{ dataElement: string; category: Maybe<string> }>> {
+        const dataElementCell = await this.findRelative(template, dataSource.dataElement, cell);
+        if (!dataElementCell) return undefined;
+
+        const dataElement = removeCharacters(await this.excelRepository.readCell(template.id, dataElementCell));
+        if (!dataElement) return undefined;
+
+        const categoryCell = await this.findRelative(template, dataSource.categoryOption, cell);
+        const category = categoryCell
+            ? removeCharacters(await this.excelRepository.readCell(template.id, categoryCell))
+            : undefined;
+
+        return { dataElement: String(dataElement), category: category ? String(category) : undefined };
+    }
+
+    private async resolveDataElementValues(
+        template: Template,
+        dataSource: RowDataSource,
+        cells: CellRef[],
+        dataValues: TemplateDataPackageData["dataValues"]
+    ): Promise<DataToProcess[]> {
+        const results = await promiseMap(cells, async (cell): Promise<Maybe<DataToProcess>> => {
+            const resolved = await this.resolveCellDataElement(template, dataSource, cell);
+            if (!resolved) return undefined;
+
+            const { dataElement, category } = resolved;
+            const { value } =
+                dataValues.find(dv => dv.dataElement === dataElement && (!dv.category || dv.category === category)) ??
+                {};
+
+            return value ? { cell, id: dataElement, value } : undefined;
+        });
+
+        return _.compact(results);
+    }
+
+    private async applyRulesAndWrite(
+        template: Template,
+        dataSource: RowDataSource,
+        dataElementsToProcess: DataToProcess[]
+    ): Promise<void> {
+        const dataElementDetails = DataProcessingService.applyRules({
+            dataDetails: dataElementsToProcess,
+            dataProcessingRules: dataSource.dataElementProcessingRules?.filter(rule => rule.condition === "onExport"),
+        });
+
+        await Promise.all(
+            dataElementDetails.map(({ cell, value }) => this.excelRepository.writeCell(template.id, cell, value))
+        );
     }
 
     private async findRelative(template: Template, ref?: SheetRef | ValueRef, relative?: CellRef) {
