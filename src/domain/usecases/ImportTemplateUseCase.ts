@@ -11,6 +11,7 @@ import { Either } from "../entities/Either";
 import { OrgUnit } from "../entities/OrgUnit";
 import { ErrorMessage, SynchronizationResult } from "../entities/SynchronizationResult";
 import {
+    hasMultiTextDataElementDelimiter,
     Template,
     TemplateDataPackage,
     TemplateDataPackageData,
@@ -320,20 +321,8 @@ export class ImportTemplateUseCase implements UseCase {
         if (template.type !== "custom") return undefined;
 
         return _(template.dataSources)
-            .map(dataSource => {
-                if (typeof dataSource === "function") {
-                    return undefined;
-                } else if (
-                    dataSource.type !== "row" &&
-                    dataSource.type !== "rowTrackedEvent" &&
-                    dataSource.type !== "column" &&
-                    dataSource.type !== "cell"
-                ) {
-                    return undefined;
-                } else {
-                    return dataSource.multiTextDataElementDelimiter;
-                }
-            })
+            .filter(hasMultiTextDataElementDelimiter)
+            .map(ds => ds.multiTextDataElementDelimiter)
             .compact()
             .first();
     }

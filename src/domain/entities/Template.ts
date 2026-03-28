@@ -590,6 +590,20 @@ function mapFromProgramData(entry: ProgramPackageData): TemplateDataPackageData 
     };
 }
 
+type DataSourceWithMultiTextDelimiter = RowDataSource | TrackerEventRowDataSource | ColumnDataSource | CellDataSource;
+
+export function hasMultiTextDataElementDelimiter(
+    dataSource: DataSource
+): dataSource is DataSourceWithMultiTextDelimiter {
+    return (
+        typeof dataSource !== "function" &&
+        (dataSource.type === "row" ||
+            dataSource.type === "rowTrackedEvent" ||
+            dataSource.type === "column" ||
+            dataSource.type === "cell")
+    );
+}
+
 export function isDataProcessingRuleCoalesce(rule: DataProcessingRule): rule is DataProcessingRuleCoalesce {
     return rule.type === "coalesce";
 }

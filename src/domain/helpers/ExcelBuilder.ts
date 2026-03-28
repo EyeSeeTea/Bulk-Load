@@ -20,6 +20,7 @@ import {
     Template,
     TemplateDataPackage,
     TemplateDataPackageData,
+    TemplateDataValue,
     templateFromDataPackage,
     TemplateTrackerProgramPackage,
     TrackerEventRowDataSource,
@@ -35,6 +36,8 @@ import { ModulesRepositories } from "../repositories/ModulesRepositories";
 import { Maybe } from "../../types/utils";
 import { DataElementDisaggregationsMappingRepository } from "../repositories/DataElementDisaggregationsMappingRepository";
 import { DataProcessingService, DataToProcess } from "./DataProcessingService";
+import { DataElement, DataForm } from "../entities/DataForm";
+import { Id } from "../entities/ReferenceObject";
 
 const dateFormatPattern = "yyyy-MM-dd";
 
@@ -46,7 +49,12 @@ export class ExcelBuilder {
         private dataElementDisaggregationsMappingRepository: DataElementDisaggregationsMappingRepository
     ) {}
 
-    public async populateTemplate(template: Template, payload: DataPackage, settings: Settings): Promise<void> {
+    public async populateTemplate(
+        template: Template,
+        payload: DataPackage,
+        settings: Settings,
+        dataForm?: DataForm
+    ): Promise<void> {
         const { dataSources = [] } = template;
         const dataSourceValues = await this.getDataSourceValues(template, dataSources);
         const metadata =
@@ -54,21 +62,33 @@ export class ExcelBuilder {
                 ? await this.instanceRepository.getBuilderMetadata(payload.trackedEntityInstances)
                 : emptyBuilderMetadata;
         const templatePayload = templateFromDataPackage(payload);
+        const dataElementById = _.keyBy(dataForm?.dataElements ?? [], de => de.id);
+        const multiTextLookup: MultiTextLookup = {
+            dataElementById,
+            optionByCodeByDe: _.mapValues(dataElementById, de => _.keyBy(de.options, o => o.code)),
+        };
 
         for (const dataSource of dataSourceValues) {
             if (!dataSource.skipPopulate) {
                 switch (dataSource.type) {
                     case "cell":
-                        await this.fillCells(template, dataSource, templatePayload);
+                        await this.fillCells(template, dataSource, templatePayload, multiTextLookup);
                         break;
                     case "row":
-                        await this.fillRows(template, dataSource, templatePayload);
+                        await this.fillRows(template, dataSource, templatePayload, multiTextLookup);
                         break;
                     case "rowTei":
                         await this.fillTeiRows(template, dataSource, templatePayload);
                         break;
                     case "rowTrackedEvent":
-                        await this.fillTrackerEventRows(template, dataSource, templatePayload, metadata, settings);
+                        await this.fillTrackerEventRows(
+                            template,
+                            dataSource,
+                            templatePayload,
+                            metadata,
+                            settings,
+                            multiTextLookup
+                        );
                         break;
                     case "rowTeiRelationship":
                         await this.fillTrackerRelationshipRows(template, dataSource, payload);
@@ -102,7 +122,12 @@ export class ExcelBuilder {
         });
     }
 
-    private async fillCells(template: Template, dataSource: CellDataSource, payload: TemplateDataPackage) {
+    private async fillCells(
+        template: Template,
+        dataSource: CellDataSource,
+        payload: TemplateDataPackage,
+        multiTextLookup: MultiTextLookup
+    ) {
         const orgUnit = await this.readCellValue(template, dataSource.orgUnit);
         const dataElement = await this.readCellValue(template, dataSource.dataElement);
         const period = await this.readCellValue(template, dataSource.period);
@@ -115,7 +140,13 @@ export class ExcelBuilder {
                 .find(dv => dv.dataElement === dataElement && (!dv.category || dv.category === categoryOption)) ?? {};
 
         if (value) {
-            await this.excelRepository.writeCell(template.id, dataSource.ref, value);
+            const writeValue = this.formatDataElementValue({
+                value,
+                dataElementId: String(dataElement),
+                delimiter: dataSource.multiTextDataElementDelimiter,
+                multiTextLookup,
+            });
+            await this.excelRepository.writeCell(template.id, dataSource.ref, writeValue);
         }
     }
 
@@ -247,6 +278,21 @@ export class ExcelBuilder {
         return options.map(option => option.name).join(multiTextTeiDelimiter);
     }
 
+    private formatDataElementValue(options: {
+        value: TemplateDataValue["value"];
+        dataElementId: Id;
+        delimiter: Maybe<string>;
+        multiTextLookup: MultiTextLookup;
+    }): TemplateDataValue["value"] {
+        const { value, dataElementId, delimiter, multiTextLookup } = options;
+        const isMultiText = multiTextLookup.dataElementById[dataElementId]?.valueType === "MULTI_TEXT";
+        if (!isMultiText || !delimiter) return value;
+
+        const codes = String(value).split(MULTI_TEXT_OPTION_DELIMITER);
+        const optionByCode = multiTextLookup.optionByCodeByDe[dataElementId] ?? {};
+        return codes.map(code => optionByCode[code]?.name ?? code).join(delimiter);
+    }
+
     private async fillCell(template: Template, cellRef: CellRef, sheetRef: SheetRef, value: string | number | boolean) {
         const cell = await this.excelRepository.findRelativeCell(template.id, sheetRef, cellRef);
 
@@ -294,7 +340,8 @@ export class ExcelBuilder {
         dataSource: TrackerEventRowDataSource,
         payload: TemplateDataPackage,
         metadata: BuilderMetadata,
-        settings: Settings
+        settings: Settings,
+        multiTextLookup: MultiTextLookup
     ) {
         if (payload.type !== "trackerPrograms") return;
 
@@ -383,9 +430,17 @@ export class ExcelBuilder {
 
             //TODO extract "_<VALUE" as a helper since it's used multiple times in multiple files
             await Promise.all(
-                dataElementDetails.map(({ cell, optionId, value }) =>
-                    this.excelRepository.writeCell(template.id, cell, optionId ? `_${optionId}` : value)
-                )
+                dataElementDetails.map(({ cell, id, optionId, value }) => {
+                    const writeValue = optionId
+                        ? `_${optionId}`
+                        : this.formatDataElementValue({
+                              value,
+                              dataElementId: id,
+                              delimiter: dataSource.multiTextDataElementDelimiter,
+                              multiTextLookup,
+                          });
+                    return this.excelRepository.writeCell(template.id, cell, writeValue);
+                })
             );
 
             rowStart += 1;
@@ -479,7 +534,12 @@ export class ExcelBuilder {
         return dataEntriesTeisWithEvents;
     }
 
-    private async fillRows(template: Template, dataSource: RowDataSource, payload: TemplateDataPackage) {
+    private async fillRows(
+        template: Template,
+        dataSource: RowDataSource,
+        payload: TemplateDataPackage,
+        multiTextLookup: MultiTextLookup
+    ) {
         let { rowStart } = dataSource.range;
         for (const { id, orgUnit, period, attribute, dataValues, coordinate, geometry } of payload.dataEntries) {
             const cells = await this.excelRepository.getCellsInRange(template.id, {
@@ -532,13 +592,20 @@ export class ExcelBuilder {
 
             const dataElementsToProcess = await this.resolveDataElementValues(template, dataSource, cells, dataValues);
 
-            await this.applyRulesAndWrite(template, dataSource, dataElementsToProcess);
+            await this.applyRulesAndWrite(template, dataSource, dataElementsToProcess, multiTextLookup);
 
             rowStart += 1;
         }
 
         if (dataSource.range.rowEnd !== undefined && rowStart <= dataSource.range.rowEnd) {
-            await this.fillUnmappedRows(template, dataSource, payload, rowStart, dataSource.range.rowEnd);
+            await this.fillUnmappedRows(
+                template,
+                dataSource,
+                payload,
+                rowStart,
+                dataSource.range.rowEnd,
+                multiTextLookup
+            );
         }
     }
 
@@ -551,7 +618,8 @@ export class ExcelBuilder {
         dataSource: RowDataSource,
         payload: TemplateDataPackage,
         nextRow: number,
-        rangeRowEnd: number
+        rangeRowEnd: number,
+        multiTextLookup: MultiTextLookup
     ) {
         const allDataValues = payload.dataEntries.flatMap(e => e.dataValues);
         const dataValueByDECOC = _.keyBy(allDataValues, dv => `${dv.dataElement}:${dv.category ?? ""}`);
@@ -576,7 +644,7 @@ export class ExcelBuilder {
                 }
             }
 
-            await this.applyRulesAndWrite(template, dataSource, dataElementsToProcess);
+            await this.applyRulesAndWrite(template, dataSource, dataElementsToProcess, multiTextLookup);
         }
     }
 
@@ -623,7 +691,8 @@ export class ExcelBuilder {
     private async applyRulesAndWrite(
         template: Template,
         dataSource: RowDataSource,
-        dataElementsToProcess: DataToProcess[]
+        dataElementsToProcess: DataToProcess[],
+        multiTextLookup: MultiTextLookup
     ): Promise<void> {
         const dataElementDetails = DataProcessingService.applyRules({
             dataDetails: dataElementsToProcess,
@@ -631,7 +700,15 @@ export class ExcelBuilder {
         });
 
         await Promise.all(
-            dataElementDetails.map(({ cell, value }) => this.excelRepository.writeCell(template.id, cell, value))
+            dataElementDetails.map(({ cell, id, value }) => {
+                const writeValue = this.formatDataElementValue({
+                    value,
+                    dataElementId: id,
+                    delimiter: dataSource.multiTextDataElementDelimiter,
+                    multiTextLookup,
+                });
+                return this.excelRepository.writeCell(template.id, cell, writeValue);
+            })
         );
     }
 
@@ -678,5 +755,10 @@ export class ExcelBuilder {
         }
     }
 }
+
+type MultiTextLookup = {
+    dataElementById: Record<Id, DataElement>;
+    optionByCodeByDe: Record<Id, Record<string, { name: string }>>;
+};
 
 export const MULTI_TEXT_OPTION_DELIMITER = ",";
