@@ -36,6 +36,7 @@ import { ModulesRepositories } from "../repositories/ModulesRepositories";
 import { Maybe } from "../../types/utils";
 import { DataElementDisaggregationsMappingRepository } from "../repositories/DataElementDisaggregationsMappingRepository";
 import { DataProcessingService, DataToProcess } from "./DataProcessingService";
+import { readCellResolvingDefinedNames } from "./ExcelCellReader";
 import { DataElement, DataForm } from "../entities/DataForm";
 import { Id } from "../entities/ReferenceObject";
 
@@ -155,7 +156,13 @@ export class ExcelBuilder {
         ref?: CellRef | ValueRef,
         options: { isFormula: boolean } = { isFormula: false }
     ): Promise<ExcelValue> {
-        return removeCharacters(await this.excelRepository.readCell(template.id, ref, { formula: options.isFormula }));
+        if (options.isFormula || !ref || ref.type === "value") {
+            return removeCharacters(
+                await this.excelRepository.readCell(template.id, ref, { formula: options.isFormula })
+            );
+        }
+
+        return removeCharacters(await readCellResolvingDefinedNames(this.excelRepository, template.id, ref));
     }
 
     private async fillTeiRows(template: Template, dataSource: TeiRowDataSource, payload: TemplateDataPackage) {
@@ -656,12 +663,12 @@ export class ExcelBuilder {
         const dataElementCell = await this.findRelative(template, dataSource.dataElement, cell);
         if (!dataElementCell) return undefined;
 
-        const dataElement = removeCharacters(await this.excelRepository.readCell(template.id, dataElementCell));
+        const dataElement = await readCellResolvingDefinedNames(this.excelRepository, template.id, dataElementCell);
         if (!dataElement) return undefined;
 
         const categoryCell = await this.findRelative(template, dataSource.categoryOption, cell);
         const category = categoryCell
-            ? removeCharacters(await this.excelRepository.readCell(template.id, categoryCell))
+            ? await readCellResolvingDefinedNames(this.excelRepository, template.id, categoryCell)
             : undefined;
 
         return { dataElement: String(dataElement), category: category ? String(category) : undefined };
