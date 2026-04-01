@@ -18,6 +18,7 @@ import {
     ErrorMessage,
     SynchronizationResult,
     SynchronizationStats,
+    SynchronizationStatus,
 } from "../../../domain/entities/SynchronizationResult";
 import i18n from "../../../utils/i18n";
 import { getStatusColor } from "../../utils/statusConfig";
@@ -45,7 +46,7 @@ const useStyles = makeStyles(theme => ({
     },
 }));
 
-export const formatStatusTag = (value: string) => {
+export const formatStatusTag = (value: SynchronizationStatus) => {
     const text = _.startCase(_.toLower(value));
     return <b style={{ color: getStatusColor(value) }}>{text}</b>;
 };

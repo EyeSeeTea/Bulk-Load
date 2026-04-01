@@ -28,7 +28,7 @@ function getBadgeConfig(status: SynchronizationStatus) {
         case "NETWORK ERROR":
             return { ...base, label: i18n.t("Network error") };
         case "PENDING":
-            return { ...base, color: colors.grey, label: i18n.t("Import pending") };
+            return { ...base, label: i18n.t("Import pending") };
         default: {
             const _exhaustive: never = status;
             return _exhaustive;

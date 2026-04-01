@@ -12,8 +12,8 @@ const legacyColorAliases: Record<string, string> = {
     OK: colors.positive,
 };
 
-export function getStatusColor(status: string): string {
-    return legacyColorAliases[status] ?? getStatusConfig(status as SynchronizationStatus).color;
+export function getStatusColor(status: SynchronizationStatus): string {
+    return legacyColorAliases[status] ?? getStatusConfig(status).color;
 }
 
 export function getStatusConfig(status: SynchronizationStatus): StatusConfig {
