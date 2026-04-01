@@ -474,7 +474,7 @@ export class InstanceDhisRepository implements InstanceRepository {
             };
         }
 
-        const chunks = _.chunk(dataValues, 3000);
+        const chunks = _.chunk(dataValues, 1000);
 
         const chunkResults = await promiseMap(chunks, async chunk => {
             const { response } = await this.api.dataValues
