@@ -258,23 +258,20 @@ msgstr ""
 msgid "All"
 msgstr "Todos"
 
-#, fuzzy
 msgid "Import successful"
-msgstr "Importar datos"
+msgstr "Importación exitosa"
 
 msgid "Import with warnings"
 msgstr ""
 
-#, fuzzy
 msgid "Import with errors"
-msgstr "Importar solo los datos nuevos"
+msgstr "Importación con errores"
 
 msgid "Network error"
 msgstr ""
 
-#, fuzzy
 msgid "Import pending"
-msgstr "Importados"
+msgstr "Importación pendiente"
 
 msgid ""
 "There has been an error. You can either retry or contact your administrator "

@@ -261,23 +261,20 @@ msgstr ""
 msgid "All"
 msgstr "Все"
 
-#, fuzzy
 msgid "Import successful"
-msgstr "Импортные данные"
+msgstr ""
 
 msgid "Import with warnings"
 msgstr ""
 
-#, fuzzy
 msgid "Import with errors"
-msgstr "Импортировать только новые записи"
+msgstr ""
 
 msgid "Network error"
 msgstr ""
 
-#, fuzzy
 msgid "Import pending"
-msgstr "Импортировано"
+msgstr ""
 
 msgid ""
 "There has been an error. You can either retry or contact your administrator "
