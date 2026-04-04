@@ -36,7 +36,7 @@ import { ModulesRepositories } from "../repositories/ModulesRepositories";
 import { Maybe } from "../../types/utils";
 import { DataElementDisaggregationsMappingRepository } from "../repositories/DataElementDisaggregationsMappingRepository";
 import { DataProcessingService, DataToProcess } from "./DataProcessingService";
-import { readCellResolvingDefinedNames } from "./ExcelCellReader";
+import { readCellResolvingDefinedNames } from "./readCell";
 import { DataElement, DataForm } from "../entities/DataForm";
 import { Id } from "../entities/ReferenceObject";
 

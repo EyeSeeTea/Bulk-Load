@@ -5,7 +5,7 @@ import moment from "moment";
 import { isDefined } from "../../utils";
 import { promiseMap } from "../../utils/promises";
 import { removeCharacters } from "../../utils/string";
-import { readCellResolvingDefinedNames } from "./ExcelCellReader";
+import { readCellResolvingDefinedNames } from "./readCell";
 import { DataForm, dataFormTypeMap, DataFormFeatureType } from "../entities/DataForm";
 import { buildGeometry, getGeometryFromString } from "../entities/Geometry";
 import { Relationship } from "../entities/Relationship";
