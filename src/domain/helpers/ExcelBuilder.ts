@@ -547,6 +547,61 @@ export class ExcelBuilder {
         payload: TemplateDataPackage,
         multiTextLookup: MultiTextLookup
     ) {
+        const isFixedOrgUnitPeriod =
+            template.type === "custom" && Boolean(template.fixedOrgUnit) && Boolean(template.fixedPeriod);
+
+        if (isFixedOrgUnitPeriod) {
+            return this.fillRowsByKeyLookup(template, dataSource, payload, multiTextLookup);
+        }
+
+        return this.fillRowsByDataEntry(template, dataSource, payload, multiTextLookup);
+    }
+
+    // For templates with fixedOrgUnit/fixedPeriod: one data entry with many data values,
+    // each row may map to a different DE/COC. Uses exact key lookup.
+    private async fillRowsByKeyLookup(
+        template: Template,
+        dataSource: RowDataSource,
+        payload: TemplateDataPackage,
+        multiTextLookup: MultiTextLookup
+    ) {
+        const { rowStart, rowEnd = rowStart } = dataSource.range;
+        const allDataValues = payload.dataEntries.flatMap(e => e.dataValues);
+        const dataValueByDECOC = _.keyBy(allDataValues, dv => `${dv.dataElement}:${dv.category ?? ""}`);
+
+        for (let row = rowStart; row <= rowEnd; row++) {
+            const cells = await this.excelRepository.getCellsInRange(template.id, {
+                ...dataSource.range,
+                rowStart: row,
+                rowEnd: row,
+            });
+
+            const dataElementsToProcess: DataToProcess[] = [];
+            for (const cell of cells) {
+                const resolved = await this.resolveCellDataElement(template, dataSource, cell);
+                if (!resolved) continue;
+
+                const { dataElement, category } = resolved;
+                const exactKey = `${dataElement}:${category ?? ""}`;
+                const defaultKey = `${dataElement}:`;
+                const value = dataValueByDECOC[exactKey]?.value ?? dataValueByDECOC[defaultKey]?.value;
+
+                if (value !== undefined) {
+                    dataElementsToProcess.push({ cell, id: dataElement, value });
+                }
+            }
+
+            await this.applyRulesAndWrite(template, dataSource, dataElementsToProcess, multiTextLookup);
+        }
+    }
+
+    // For templates where each row corresponds to a different data entry (orgUnit/period/event).
+    private async fillRowsByDataEntry(
+        template: Template,
+        dataSource: RowDataSource,
+        payload: TemplateDataPackage,
+        multiTextLookup: MultiTextLookup
+    ) {
         let { rowStart } = dataSource.range;
         for (const { id, orgUnit, period, attribute, dataValues, coordinate, geometry } of payload.dataEntries) {
             const cells = await this.excelRepository.getCellsInRange(template.id, {
@@ -602,56 +657,6 @@ export class ExcelBuilder {
             await this.applyRulesAndWrite(template, dataSource, dataElementsToProcess, multiTextLookup);
 
             rowStart += 1;
-        }
-
-        if (dataSource.range.rowEnd !== undefined && rowStart <= dataSource.range.rowEnd) {
-            await this.fillUnmappedRows(
-                template,
-                dataSource,
-                payload,
-                rowStart,
-                dataSource.range.rowEnd,
-                multiTextLookup
-            );
-        }
-    }
-
-    // When a datasource range has more rows than data entries
-    // (e.g. dataset custom templates where each row maps to a different data element via a mapping sheet),
-    // the main fillRows loop only covers the first N rows.
-    // This method fills the remaining rows by searching ALL entries for matching data values.
-    private async fillUnmappedRows(
-        template: Template,
-        dataSource: RowDataSource,
-        payload: TemplateDataPackage,
-        nextRow: number,
-        rangeRowEnd: number,
-        multiTextLookup: MultiTextLookup
-    ) {
-        const allDataValues = payload.dataEntries.flatMap(e => e.dataValues);
-        const dataValueByDECOC = _.keyBy(allDataValues, dv => `${dv.dataElement}:${dv.category ?? ""}`);
-
-        for (let row = nextRow; row <= rangeRowEnd; row++) {
-            const cells = await this.excelRepository.getCellsInRange(template.id, {
-                ...dataSource.range,
-                rowStart: row,
-                rowEnd: row,
-            });
-
-            const dataElementsToProcess: DataToProcess[] = [];
-            for (const cell of cells) {
-                const resolved = await this.resolveCellDataElement(template, dataSource, cell);
-                if (!resolved) continue;
-
-                const { dataElement, category } = resolved;
-                const value = dataValueByDECOC[`${dataElement}:${category ?? ""}`]?.value;
-
-                if (value !== undefined) {
-                    dataElementsToProcess.push({ cell, id: dataElement, value });
-                }
-            }
-
-            await this.applyRulesAndWrite(template, dataSource, dataElementsToProcess, multiTextLookup);
         }
     }
 
