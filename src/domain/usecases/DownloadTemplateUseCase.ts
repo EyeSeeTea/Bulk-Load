@@ -202,24 +202,24 @@ export class DownloadTemplateUseCase implements UseCase {
 
         if (theme) await builder.applyTheme(template, theme);
 
+        if (template.type === "custom" && template.fixedOrgUnit) {
+            await this.excelRepository.writeCell(
+                template.id,
+                template.fixedOrgUnit,
+                dataPackage?.dataEntries[0]?.orgUnit ?? this.getFirstValueOrEmpty(orgUnits)
+            );
+        }
+
+        if (template.type === "custom" && template.fixedPeriod) {
+            const periods = buildAllPossiblePeriods(element.periodType, populateStartDate, populateEndDate);
+            await this.excelRepository.writeCell(
+                template.id,
+                template.fixedPeriod,
+                dataPackage?.dataEntries[0]?.period ?? this.getFirstValueOrEmpty(periods)
+            );
+        }
+
         if (enablePopulate) {
-            if (template.type === "custom" && template.fixedOrgUnit) {
-                await this.excelRepository.writeCell(
-                    template.id,
-                    template.fixedOrgUnit,
-                    dataPackage?.dataEntries[0]?.orgUnit ?? this.getFirstValueOrEmpty(orgUnits)
-                );
-            }
-
-            if (template.type === "custom" && template.fixedPeriod) {
-                const periods = buildAllPossiblePeriods(element.periodType, populateStartDate, populateEndDate);
-                await this.excelRepository.writeCell(
-                    template.id,
-                    template.fixedPeriod,
-                    dataPackage?.dataEntries[0]?.period ?? this.getFirstValueOrEmpty(periods)
-                );
-            }
-
             if (dataPackage) {
                 const dataForm = await this.getDataForm(template);
                 await builder.populateTemplate(template, dataPackage, settings, dataForm);
