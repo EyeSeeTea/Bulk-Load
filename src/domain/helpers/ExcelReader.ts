@@ -5,6 +5,7 @@ import moment from "moment";
 import { isDefined } from "../../utils";
 import { promiseMap } from "../../utils/promises";
 import { removeCharacters } from "../../utils/string";
+import { readCellResolvingDefinedNames } from "./readCell";
 import { DataForm, dataFormTypeMap, DataFormFeatureType } from "../entities/DataForm";
 import { buildGeometry, getGeometryFromString } from "../entities/Geometry";
 import { Relationship } from "../entities/Relationship";
@@ -515,17 +516,7 @@ export class ExcelReader {
 
         const cell = await this.excelRepository.findRelativeCell(template.id, ref, relative);
         if (cell) {
-            const value = await this.excelRepository.readCell(template.id, cell);
-            const formula = await this.excelRepository.readCell(template.id, cell, {
-                formula: true,
-            });
-
-            const definedNames = await this.excelRepository.listDefinedNames(template.id);
-            if (typeof formula === "string" && definedNames.includes(formula.replace(/^=/, ""))) {
-                return removeCharacters(formula);
-            }
-
-            return value;
+            return readCellResolvingDefinedNames(this.excelRepository, template.id, cell);
         }
     }
 

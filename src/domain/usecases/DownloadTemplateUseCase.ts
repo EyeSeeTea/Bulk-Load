@@ -9,9 +9,15 @@ import { getExtensionFile, XLSX_EXTENSION } from "../../utils/files";
 import { promiseMap } from "../../utils/promises";
 import Settings from "../../webapp/logic/settings";
 import { getGeneratedTemplateId, SheetBuilder } from "../../webapp/logic/sheetBuilder";
-import { DataFormType, dataFormTypeMap } from "../entities/DataForm";
+import { DataForm, DataFormType, dataFormTypeMap } from "../entities/DataForm";
 import { Id, Ref } from "../entities/ReferenceObject";
-import { templateFromDataPackage, TemplateType } from "../entities/Template";
+import {
+    getDataFormRef,
+    hasMultiTextDataElementDelimiter,
+    Template,
+    templateFromDataPackage,
+    TemplateType,
+} from "../entities/Template";
 import { ExcelBuilder } from "../helpers/ExcelBuilder";
 import { ExcelRepository } from "../repositories/ExcelRepository";
 import { InstanceRepository } from "../repositories/InstanceRepository";
@@ -215,7 +221,8 @@ export class DownloadTemplateUseCase implements UseCase {
 
         if (enablePopulate) {
             if (dataPackage) {
-                await builder.populateTemplate(template, dataPackage, settings);
+                const dataForm = await this.getDataForm(template);
+                await builder.populateTemplate(template, dataPackage, settings, dataForm);
             }
         }
 
@@ -229,6 +236,20 @@ export class DownloadTemplateUseCase implements UseCase {
             const data = await this.excelRepository.toBlob(templateId);
             saveAs(data, filename);
         }
+    }
+
+    private async getDataForm(template: Template): Promise<DataForm | undefined> {
+        if (template.type !== "custom") return undefined;
+
+        const hasMultiText = template.dataSources?.some(
+            ds => hasMultiTextDataElementDelimiter(ds) && ds.multiTextDataElementDelimiter
+        );
+        if (!hasMultiText) return undefined;
+
+        const dataFormRef = getDataFormRef(template);
+        if (!dataFormRef.id) return undefined;
+
+        return (await this.instanceRepository.getDataForms({ ids: [dataFormRef.id] }))[0];
     }
 
     private getFirstValueOrEmpty(model: string[]): string {
