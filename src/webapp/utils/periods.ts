@@ -17,9 +17,9 @@ export function buildAllPossiblePeriods(
         return [];
     }
 
+    if (periodType === undefined) throw new Error("Missing period type");
+
     switch (periodType) {
-        case undefined:
-            return [];
         case "Daily":
             return generateDatesByPeriod({ startDate, endDate, format: "YYYYMMDD", unit: "days" });
         case "Monthly":
@@ -52,8 +52,12 @@ export function buildAllPossiblePeriods(
         case "FinancialNov":
             return generateFinancialPeriods(startDate, endDate, periodType);
         default:
-            throw new Error("Unsupported period type");
+            return assertNever(periodType);
     }
+}
+
+function assertNever(value: never): never {
+    throw new Error("Unsupported period type: " + value);
 }
 
 function generateDatesByPeriod(options: Options): string[] {

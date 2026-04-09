@@ -24,15 +24,16 @@ describe("buildAllPossiblePeriods - Input validation", () => {
         expect(result).toEqual([]);
     });
 
-    it("returns empty array if periodType is undefined", () => {
-        const result = buildAllPossiblePeriods(undefined, moment("2024-01-01"), moment("2024-12-31"));
-        expect(result).toEqual([]);
+    it("throws error if periodType is undefined", () => {
+        expect(() => buildAllPossiblePeriods(undefined, moment("2024-01-01"), moment("2024-12-31"))).toThrow(
+            "Missing period type"
+        );
     });
 
     it("throws error for unsupported period type", () => {
         expect(() =>
             buildAllPossiblePeriods("UnsupportedType" as any, moment("2024-01-01"), moment("2024-12-31"))
-        ).toThrow("Unsupported period type");
+        ).toThrow("Unsupported period type: UnsupportedType");
     });
 });
 
