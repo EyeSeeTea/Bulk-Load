@@ -200,8 +200,12 @@ export const TemplateSelector = ({
             } = dataSource[selectedModel]?.find(({ id }) => id === dataFormId) ?? {};
 
             if (!periodType || !isDataFormPeriod(periodType)) {
+                const periodTypeValue = periodType ? periodType : "unknown";
                 onPeriodValidationError?.(
-                    i18n.t("Selected template has unsupported period type: {{periodType}}", { periodType })
+                    i18n.t("Selected template has unsupported period type: {{periodType}}", {
+                        periodType: periodTypeValue,
+                        nsSeparator: false,
+                    })
                 );
                 setState(state => ({
                     ...state,

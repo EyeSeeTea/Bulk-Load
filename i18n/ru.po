@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2026-03-11T19:21:15.859Z\n"
+"POT-Creation-Date: 2026-04-15T09:39:22.405Z\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1049,6 +1049,9 @@ msgstr "Ответ JSON"
 
 msgid "Synchronization Results"
 msgstr "Результаты синхронизации"
+
+msgid "Selected template has unsupported period type: {{periodType}}"
+msgstr "Выбранный шаблон имеет неподдерживаемый тип периода: {{periodType}}"
 
 msgid "Select organisation unit to populate data"
 msgstr "Выберите организационную единицу для заполнения данных"

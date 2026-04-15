@@ -5,8 +5,8 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2026-03-11T19:21:15.859Z\n"
-"PO-Revision-Date: 2026-03-11T19:21:15.859Z\n"
+"POT-Creation-Date: 2026-04-15T11:34:40.806Z\n"
+"PO-Revision-Date: 2026-04-15T11:34:40.806Z\n"
 
 msgid "Events - Create/update"
 msgstr ""
@@ -931,6 +931,9 @@ msgid "JSON Response"
 msgstr ""
 
 msgid "Synchronization Results"
+msgstr ""
+
+msgid "Selected template has unsupported period type: {{periodType}}"
 msgstr ""
 
 msgid "Select organisation unit to populate data"
