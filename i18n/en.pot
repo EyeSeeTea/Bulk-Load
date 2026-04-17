@@ -5,8 +5,8 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2025-11-12T16:45:33.366Z\n"
-"PO-Revision-Date: 2025-11-12T16:45:33.366Z\n"
+"POT-Creation-Date: 2026-03-18T04:23:33.926Z\n"
+"PO-Revision-Date: 2026-03-18T04:23:33.926Z\n"
 
 msgid "Events - Create/update"
 msgstr ""
@@ -38,7 +38,22 @@ msgstr ""
 msgid "Data values - Create/update"
 msgstr ""
 
+msgid "No data values to import"
+msgstr ""
+
 msgid "Failed to import data values"
+msgstr ""
+
+msgid ""
+"{{count}} chunk(s) returned no summary — import result unknown for those "
+"records."
+msgid_plural ""
+"{{count}} chunk(s) returned no summary — import result unknown for those "
+"records."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Chunk (unknown outcome)"
 msgstr ""
 
 msgid "Service"
@@ -188,7 +203,7 @@ msgstr ""
 msgid "Default"
 msgstr ""
 
-msgid "Delete and import"
+msgid "Delete and Import"
 msgstr ""
 
 msgid "Import despite duplicates"
@@ -1308,9 +1323,6 @@ msgid ""
 "organisation unit and periods. Would you like to import only the new data "
 "values, import new values and update existing ones, or completely delete "
 "existing values before importing the data?"
-msgstr ""
-
-msgid "Delete and Import"
 msgstr ""
 
 msgid ""

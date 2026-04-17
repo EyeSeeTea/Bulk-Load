@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2025-11-12T16:45:33.366Z\n"
+"POT-Creation-Date: 2026-03-18T04:23:33.926Z\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -42,7 +42,24 @@ msgstr "Значения данных - Удалить"
 msgid "Data values - Create/update"
 msgstr "Значения данных - создание/обновление"
 
+#, fuzzy
+msgid "No data values to import"
+msgstr "значения данных"
+
 msgid "Failed to import data values"
+msgstr ""
+
+msgid ""
+"{{count}} chunk(s) returned no summary — import result unknown for those "
+"records."
+msgid_plural ""
+"{{count}} chunk(s) returned no summary — import result unknown for those "
+"records."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+msgid "Chunk (unknown outcome)"
 msgstr ""
 
 msgid "Service"
@@ -214,9 +231,8 @@ msgstr ""
 msgid "Default"
 msgstr ""
 
-#, fuzzy
-msgid "Delete and import"
-msgstr "Массовый импорт данных"
+msgid "Delete and Import"
+msgstr ""
 
 #, fuzzy
 msgid "Import despite duplicates"
@@ -1350,9 +1366,9 @@ msgid ""
 "Samaritan’s Purse, Medecins Sans Frontières (MSF), the the Norwegian Refugee "
 "Council (NRC) and the Clinton Health Access Initiative (CHAI) to support "
 "countries in strengthening the collection and use of health data by using "
-"DHIS2. The application has been developed by [EyeSeeTea SL](http://"
-"eyeseetea.com). Source code, documentation and release notes can be found at "
-"the [EyeSeetea GitHub Project Page](https://eyeseetea.github.io/Bulk-Load-"
+"DHIS2. The application has been developed by [EyeSeeTea SL](http://eyeseetea."
+"com). Source code, documentation and release notes can be found at the "
+"[EyeSeetea GitHub Project Page](https://eyeseetea.github.io/Bulk-Load-"
 "blessed/)."
 msgstr ""
 
@@ -1444,9 +1460,6 @@ msgstr ""
 "организационной единицы и периодов. Если вы продолжите, все эти значения "
 "данных будут удалены, и будут сохранены только те, которые находятся в "
 "электронной таблице. Вы уверены?"
-
-msgid "Delete and Import"
-msgstr ""
 
 msgid ""
 "All data values in the spreadsheet will be imported to the system, but any "
