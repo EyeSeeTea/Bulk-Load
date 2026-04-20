@@ -41,7 +41,23 @@ msgstr "Valores de los datos - Borrar"
 msgid "Data values - Create/update"
 msgstr "Valores de los datos - Crear/actualizar"
 
+#, fuzzy
+msgid "No data values to import"
+msgstr "valores de datos"
+
 msgid "Failed to import data values"
+msgstr ""
+
+msgid ""
+"{{count}} chunk(s) returned no summary — import result unknown for those "
+"records."
+msgid_plural ""
+"{{count}} chunk(s) returned no summary — import result unknown for those "
+"records."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Chunk (unknown outcome)"
 msgstr ""
 
 msgid "Service"
@@ -1390,19 +1406,19 @@ msgid ""
 "All data values in the spreadsheet will be imported to the system, but any "
 "data that was existing for such organisation unit and periods in the system "
 "will be deleted first, so none will be kept before doing the import."
-msgstr ""
+msgstr "Todos los valores de la hoja de cálculo se importarán al sistema, pero cualquier dato existente para dicha unidad organizativa y periodos se eliminará primero, por lo que no se conservará nada antes de realizar la importación."
 
 msgid ""
 "Import only new data values, without updating nor deleting any existing one. "
 "Only values in the spreadsheet that do not currently exist in the system "
 "will be imported"
-msgstr ""
+msgstr "Importar solo valores de datos nuevos, sin actualizar ni eliminar los existentes. Solo se importarán los valores de la hoja de cálculo que no existan actualmente en el sistema."
 
 msgid ""
 "Import new data values and also update existing ones. All data values in the "
 "spreadsheet will be imported to the system, but other data values present in "
 "the system that are not provided in the spreadsheet will be kept."
-msgstr ""
+msgstr "Importar nuevos valores de datos y actualizar los existentes. Todos los valores de la hoja de cálculo se importarán al sistema, pero se mantendrán los demás valores presentes en el sistema que no figuren en la hoja de cálculo."
 
 msgid "Warning: Your upload may result in the generation of duplicates"
 msgstr "Alerta: Su importación puede generar duplicados"

@@ -42,7 +42,24 @@ msgstr "Значения данных - Удалить"
 msgid "Data values - Create/update"
 msgstr "Значения данных - создание/обновление"
 
+#, fuzzy
+msgid "No data values to import"
+msgstr "значения данных"
+
 msgid "Failed to import data values"
+msgstr ""
+
+msgid ""
+"{{count}} chunk(s) returned no summary — import result unknown for those "
+"records."
+msgid_plural ""
+"{{count}} chunk(s) returned no summary — import result unknown for those "
+"records."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+msgid "Chunk (unknown outcome)"
 msgstr ""
 
 msgid "Service"

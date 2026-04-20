@@ -41,7 +41,23 @@ msgstr "Valores de dados - Eliminar"
 msgid "Data values - Create/update"
 msgstr "Valores dos dados - Criar/actualizar"
 
+#, fuzzy
+msgid "No data values to import"
+msgstr "valores de dados"
+
 msgid "Failed to import data values"
+msgstr ""
+
+msgid ""
+"{{count}} chunk(s) returned no summary — import result unknown for those "
+"records."
+msgid_plural ""
+"{{count}} chunk(s) returned no summary — import result unknown for those "
+"records."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Chunk (unknown outcome)"
 msgstr ""
 
 msgid "Service"
