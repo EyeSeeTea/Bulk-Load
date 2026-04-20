@@ -51,7 +51,7 @@ export interface TemplateSelectorProps {
     onChangeModel?(state: DataModelProps[]): void;
     customTemplates: CustomTemplate[];
     onUseShortNamesChange(value: boolean): void;
-    onPeriodValidationError?(message: string): void;
+    onPeriodValidationError(message: string): void;
 }
 
 export const TemplateSelector = ({
@@ -201,7 +201,7 @@ export const TemplateSelector = ({
 
             if (!periodType || !isDataFormPeriod(periodType)) {
                 const periodTypeValue = periodType ? periodType : "unknown";
-                onPeriodValidationError?.(
+                onPeriodValidationError(
                     i18n.t("Selected template has unsupported period type: {{periodType}}", {
                         periodType: periodTypeValue,
                         nsSeparator: false,
