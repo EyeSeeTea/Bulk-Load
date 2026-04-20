@@ -44,8 +44,8 @@ export function getTranslations() {
     };
 }
 
-export function isDataFormPeriod(value: any): value is DataFormPeriod {
-    return typeof value === "string" && dataFormPeriods.includes(value as DataFormPeriod);
+export function isDataFormPeriod(value: unknown): value is DataFormPeriod {
+    return typeof value === "string" && (dataFormPeriods as readonly string[]).includes(value);
 }
 
 export interface DataForm {
