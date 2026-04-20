@@ -74,7 +74,7 @@ function generateDatesByPeriod(options: Options): string[] {
     return dates;
 }
 
-type WeeklyPeriodType = "Weekly" | "WeeklyWednesday" | "WeeklyThursday" | "WeeklySaturday" | "WeeklySunday";
+type WeeklyPeriodType = Extract<DataFormPeriod, "Weekly" | `Weekly${string}`>;
 function getWeekStartDay(periodType: WeeklyPeriodType): number {
     const dayMap = {
         Weekly: 1,
@@ -230,11 +230,12 @@ function generateSixMonthlyNovPeriods(startDate: Moment, endDate: Moment): strin
     return dates;
 }
 
-type FinancialType = "FinancialApril" | "FinancialJuly" | "FinancialOct" | "FinancialNov";
+type FinancialType = Extract<DataFormPeriod, `Financial${string}`>;
 function generateFinancialPeriods(startDate: Moment, endDate: Moment, financialType: FinancialType): string[] {
     const dates: string[] = [];
     const monthName: string = financialType.replace("Financial", "");
-    const startMonthIndex: number = moment().month(monthName).month();
+    const financialMonthMap: Record<string, number> = { April: 3, July: 6, Oct: 9, Nov: 10 };
+    const startMonthIndex = financialMonthMap[monthName];
 
     const firstYear: number = startDate.year();
     const lastYear: number = endDate.year();
