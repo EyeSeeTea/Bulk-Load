@@ -1,5 +1,4 @@
 import moment from "moment";
-import { describe, it, expect } from "@jest/globals";
 import { buildAllPossiblePeriods } from "../../webapp/utils/periods";
 
 // Input validation
