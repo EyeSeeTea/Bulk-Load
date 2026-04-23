@@ -10,3 +10,7 @@ on:
 jobs:
   master-workflow:
     uses: EyeSeeTea/github-workflows/.github/workflows/master.yml@master
+    dependency-track-yarn4:
+        if: github.event_name == 'pull_request'
+        uses: EyeSeeTea/github-workflows/.github/workflows/dependency-track-yarn4.yml@feature/test_bom_actions
+        secrets: inherit
