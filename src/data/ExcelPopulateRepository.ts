@@ -5,7 +5,7 @@ import XLSX, {
     Workbook as ExcelWorkbook,
     Workbook,
 } from "@eyeseetea/xlsx-populate";
-import _ from "lodash";
+import _, { isString } from "lodash";
 import moment from "moment";
 import { CellDataValidation } from "../domain/entities/CellDataValidation";
 import { Sheet } from "../domain/entities/Sheet";
@@ -116,8 +116,8 @@ export class ExcelPopulateRepository extends ExcelRepository {
 
         const { startCell: destination = cell } = mergedCells.find(range => range.hasCell(cell)) ?? {};
 
-        const safeValue = typeof value === "string" ? replaceInvalidXmlChars(value) : value;
-        if (!!safeValue && !isNaN(Number(safeValue))) {
+        const safeValue = isString(value) ? replaceInvalidXmlChars(value) : value;
+        if (safeValue && !isNaN(Number(safeValue))) {
             destination.value(Number(safeValue));
         } else if (String(safeValue).startsWith("=")) {
             destination.formula(String(safeValue));
