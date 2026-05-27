@@ -137,6 +137,7 @@ class DownloadCustomization {
             this.getClearedOutCellsByCategories(metadata),
             this.getMatchingIndicatorsCells(metadata),
             this.getMatchingIndicatorsFormulaCells(metadata),
+            this.getMatchingIndicatorsValueFormulaCells(metadata),
         ];
 
         return { cells: _.flatten(cellGroups) };
@@ -186,6 +187,32 @@ class DownloadCustomization {
                 value: `=IFERROR(VLOOKUP(C${row - 1}, ${lookupRange}, 2, FALSE), "")`,
             })
         );
+    }
+
+    private getMatchingIndicatorsValueFormulaCells(metadata: NRCModuleMetadata): Cell[] {
+        const dataElementIds = new Set(metadata.dataElements.map(de => de.id));
+        const validMatchingsCount = metadata.indicatorMatchings.filter(
+            m => dataElementIds.has(m.source) && dataElementIds.has(m.target)
+        ).length;
+
+        if (validMatchingsCount === 0) return [];
+
+        const sourcesRange = `${this.sheets.matchingIndicators}!$A$1:$A$${validMatchingsCount}`;
+        const firstFormulaRow = this.initialDataEntryRow + 1;
+
+        return _.range(firstFormulaRow, this.dataEntryLastRow + 1).map(row => {
+            const prevSourceMatch = `MATCH(C${row - 1}, ${sourcesRange}, 0)`;
+            const grandparentSourceMatch = `MATCH(C${row - 2}, ${sourcesRange}, 0)`;
+            const formula = `=IF(AND(C${row}<>"", ISNUMBER(${prevSourceMatch}), ISNA(${grandparentSourceMatch}), F${
+                row - 1
+            }<>""), F${row - 1}, "")`;
+            return cell({
+                sheet: this.sheets.dataEntry,
+                column: "F",
+                row: row,
+                value: formula,
+            });
+        });
     }
 
     private getDataSetCells(metadata: NRCModuleMetadata) {

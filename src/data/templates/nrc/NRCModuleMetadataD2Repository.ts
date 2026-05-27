@@ -237,7 +237,7 @@ export class NRCModuleMetadataD2Repository implements NRCModuleMetadataRepositor
         if (!dataSetCategories.projects) {
             return undefined;
         } else if (this.isCreatedByDataSetConfigurationApp(dataSet)) {
-            const categoryOptionCode = dataSet.code ? dataSet.code.replace(/Data Set$/, "").trim() : undefined;
+            const categoryOptionCode = this.getProjectFromDataSet(dataSet);
 
             const res = await this.api.metadata
                 .get({
@@ -268,6 +268,16 @@ export class NRCModuleMetadataD2Repository implements NRCModuleMetadataRepositor
                 .getData();
 
             return res.objects;
+        }
+    }
+
+    private getProjectFromDataSet(dataSet: D2DataSet): Maybe<string> {
+        if (dataSet.code) {
+            return dataSet.code.replace(/Data Set$/, "").trim();
+        } else if (dataSet.name) {
+            return dataSet.name.replace(/DataSet$/, "").trim();
+        } else {
+            return undefined;
         }
     }
 
