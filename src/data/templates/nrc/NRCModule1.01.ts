@@ -60,7 +60,10 @@ class DownloadCustomization {
         dataEntry: "Data Entry",
         validation: "Validation",
         metadata: "Metadata",
+        matchingIndicators: "MatchingIndicators",
     };
+
+    dataEntryLastRow = 1000;
 
     constructor(
         private id: Id,
@@ -72,6 +75,7 @@ class DownloadCustomization {
     async execute() {
         await this.createSheet(this.sheets.validation);
         await this.createSheet(this.sheets.metadata);
+        await this.createSheet(this.sheets.matchingIndicators);
 
         const metadata = await this.moduleRepository.get({
             currentUser: this.options.currentUser,
@@ -131,9 +135,57 @@ class DownloadCustomization {
             this.getCategoryOptionComboCells(metadata),
             this.getDataSetCells(metadata),
             this.getClearedOutCellsByCategories(metadata),
+            this.getMatchingIndicatorsCells(metadata),
+            this.getMatchingIndicatorsFormulaCells(metadata),
         ];
 
         return { cells: _.flatten(cellGroups) };
+    }
+
+    private getMatchingIndicatorsCells(metadata: NRCModuleMetadata): Cell[] {
+        const dataElementIds = new Set(metadata.dataElements.map(de => de.id));
+        const validMatchings = metadata.indicatorMatchings.filter(
+            m => dataElementIds.has(m.source) && dataElementIds.has(m.target)
+        );
+
+        return validMatchings.flatMap((matching, idx) => {
+            const row = idx + 1;
+            return [
+                cell({
+                    sheet: this.sheets.matchingIndicators,
+                    column: "A",
+                    row: row,
+                    value: referenceToId(matching.source),
+                }),
+                cell({
+                    sheet: this.sheets.matchingIndicators,
+                    column: "B",
+                    row: row,
+                    value: referenceToId(matching.target),
+                }),
+            ];
+        });
+    }
+
+    private getMatchingIndicatorsFormulaCells(metadata: NRCModuleMetadata): Cell[] {
+        const dataElementIds = new Set(metadata.dataElements.map(de => de.id));
+        const validMatchingsCount = metadata.indicatorMatchings.filter(
+            m => dataElementIds.has(m.source) && dataElementIds.has(m.target)
+        ).length;
+
+        if (validMatchingsCount === 0) return [];
+
+        const lookupRange = `${this.sheets.matchingIndicators}!$A$1:$B$${validMatchingsCount}`;
+        const firstFormulaRow = this.initialDataEntryRow + 1;
+
+        return _.range(firstFormulaRow, this.dataEntryLastRow + 1).map(row =>
+            cell({
+                sheet: this.sheets.dataEntry,
+                column: "C",
+                row: row,
+                value: `=IFERROR(VLOOKUP(C${row - 1}, ${lookupRange}, 2, FALSE), "")`,
+            })
+        );
     }
 
     private getDataSetCells(metadata: NRCModuleMetadata) {
@@ -341,6 +393,7 @@ class DownloadCustomization {
 
         excelRepository.protectSheet(this.id, this.sheets.validation, this.password);
         excelRepository.protectSheet(this.id, this.sheets.metadata, this.password);
+        excelRepository.protectSheet(this.id, this.sheets.matchingIndicators, this.password);
     }
 
     private hideIdCells(excelRepository: ExcelRepository) {

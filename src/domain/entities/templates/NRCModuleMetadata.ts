@@ -5,6 +5,7 @@ export interface NRCModuleMetadata {
     dataElements: DataElement[];
     organisationUnits: OrganisationUnits[];
     periods: Period[];
+    indicatorMatchings: IndicatorMatching[];
     categoryCombo: {
         categories: {
             projects?: { categoryOptions: CategoryOption[] };
@@ -14,6 +15,11 @@ export interface NRCModuleMetadata {
 
         categoryOptionCombos: Array<{ id: Id; name: string; categoryOptions: Ref[] }>;
     };
+}
+
+export interface IndicatorMatching {
+    source: Id;
+    target: Id;
 }
 
 export type CategoryOption = NamedRef;
