@@ -5,7 +5,7 @@ import XLSX, {
     Workbook as ExcelWorkbook,
     Workbook,
 } from "@eyeseetea/xlsx-populate";
-import _, { isString } from "lodash";
+import _ from "lodash";
 import moment from "moment";
 import { CellDataValidation } from "../domain/entities/CellDataValidation";
 import { Sheet } from "../domain/entities/Sheet";
@@ -24,7 +24,7 @@ import { ExcelRepository, ExcelValue, LoadOptions, ReadCellOptions } from "../do
 import i18n from "../utils/i18n";
 import { cache } from "../utils/cache";
 import { fromBase64 } from "../utils/files";
-import { removeCharacters, replaceInvalidXmlChars } from "../utils/string";
+import { isString, removeCharacters, replaceInvalidXmlChars } from "../utils/string";
 import { Maybe } from "../types/utils";
 
 export class ExcelPopulateRepository extends ExcelRepository {
