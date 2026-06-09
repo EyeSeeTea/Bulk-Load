@@ -12,7 +12,6 @@ import {
     DataSource,
     DataSourceValue,
     DownloadCustomizationOptions,
-    isDataProcessingRuleCoalesce,
     RowDataSource,
     setDataEntrySheet,
     setSheet,
@@ -21,6 +20,7 @@ import {
     Template,
     TemplateDataPackage,
     TemplateDataPackageData,
+    TemplateDataValue,
     templateFromDataPackage,
     TemplateTrackerProgramPackage,
     TrackerEventRowDataSource,
@@ -36,6 +36,9 @@ import { ModulesRepositories } from "../repositories/ModulesRepositories";
 import { Maybe } from "../../types/utils";
 import { DataElementDisaggregationsMappingRepository } from "../repositories/DataElementDisaggregationsMappingRepository";
 import { DataProcessingService, DataToProcess } from "./DataProcessingService";
+import { readCellResolvingDefinedNames } from "./readCell";
+import { DataElement, DataForm } from "../entities/DataForm";
+import { Id } from "../entities/ReferenceObject";
 
 const dateFormatPattern = "yyyy-MM-dd";
 
@@ -47,7 +50,12 @@ export class ExcelBuilder {
         private dataElementDisaggregationsMappingRepository: DataElementDisaggregationsMappingRepository
     ) {}
 
-    public async populateTemplate(template: Template, payload: DataPackage, settings: Settings): Promise<void> {
+    public async populateTemplate(
+        template: Template,
+        payload: DataPackage,
+        settings: Settings,
+        dataForm?: DataForm
+    ): Promise<void> {
         const { dataSources = [] } = template;
         const dataSourceValues = await this.getDataSourceValues(template, dataSources);
         const metadata =
@@ -55,21 +63,33 @@ export class ExcelBuilder {
                 ? await this.instanceRepository.getBuilderMetadata(payload.trackedEntityInstances)
                 : emptyBuilderMetadata;
         const templatePayload = templateFromDataPackage(payload);
+        const dataElementById = _.keyBy(dataForm?.dataElements ?? [], de => de.id);
+        const multiTextLookup: MultiTextLookup = {
+            dataElementById,
+            optionByCodeByDe: _.mapValues(dataElementById, de => _.keyBy(de.options, o => o.code)),
+        };
 
         for (const dataSource of dataSourceValues) {
             if (!dataSource.skipPopulate) {
                 switch (dataSource.type) {
                     case "cell":
-                        await this.fillCells(template, dataSource, templatePayload);
+                        await this.fillCells(template, dataSource, templatePayload, multiTextLookup);
                         break;
                     case "row":
-                        await this.fillRows(template, dataSource, templatePayload);
+                        await this.fillRows(template, dataSource, templatePayload, multiTextLookup);
                         break;
                     case "rowTei":
                         await this.fillTeiRows(template, dataSource, templatePayload);
                         break;
                     case "rowTrackedEvent":
-                        await this.fillTrackerEventRows(template, dataSource, templatePayload, metadata, settings);
+                        await this.fillTrackerEventRows(
+                            template,
+                            dataSource,
+                            templatePayload,
+                            metadata,
+                            settings,
+                            multiTextLookup
+                        );
                         break;
                     case "rowTeiRelationship":
                         await this.fillTrackerRelationshipRows(template, dataSource, payload);
@@ -103,7 +123,12 @@ export class ExcelBuilder {
         });
     }
 
-    private async fillCells(template: Template, dataSource: CellDataSource, payload: TemplateDataPackage) {
+    private async fillCells(
+        template: Template,
+        dataSource: CellDataSource,
+        payload: TemplateDataPackage,
+        multiTextLookup: MultiTextLookup
+    ) {
         const orgUnit = await this.readCellValue(template, dataSource.orgUnit);
         const dataElement = await this.readCellValue(template, dataSource.dataElement);
         const period = await this.readCellValue(template, dataSource.period);
@@ -116,7 +141,13 @@ export class ExcelBuilder {
                 .find(dv => dv.dataElement === dataElement && (!dv.category || dv.category === categoryOption)) ?? {};
 
         if (value) {
-            await this.excelRepository.writeCell(template.id, dataSource.ref, value);
+            const writeValue = this.formatDataElementValue({
+                value,
+                dataElementId: String(dataElement),
+                delimiter: dataSource.multiTextDataElementDelimiter,
+                multiTextLookup,
+            });
+            await this.excelRepository.writeCell(template.id, dataSource.ref, writeValue);
         }
     }
 
@@ -125,7 +156,13 @@ export class ExcelBuilder {
         ref?: CellRef | ValueRef,
         options: { isFormula: boolean } = { isFormula: false }
     ): Promise<ExcelValue> {
-        return removeCharacters(await this.excelRepository.readCell(template.id, ref, { formula: options.isFormula }));
+        if (options.isFormula || !ref || ref.type === "value") {
+            return removeCharacters(
+                await this.excelRepository.readCell(template.id, ref, { formula: options.isFormula })
+            );
+        }
+
+        return removeCharacters(await readCellResolvingDefinedNames(this.excelRepository, template.id, ref));
     }
 
     private async fillTeiRows(template: Template, dataSource: TeiRowDataSource, payload: TemplateDataPackage) {
@@ -220,12 +257,11 @@ export class ExcelBuilder {
                 })
             );
 
-            const coalesceDataProcessRules =
-                dataSource.attributeDataProcessingRules?.filter(isDataProcessingRuleCoalesce);
-
-            const attributeDetails = DataProcessingService.coalesceValues({
+            const attributeDetails = DataProcessingService.applyRules({
                 dataDetails: _.compact(allAttributeDetails),
-                dataProcessingRules: coalesceDataProcessRules,
+                dataProcessingRules: dataSource.attributeDataProcessingRules?.filter(
+                    rule => rule.condition === "onExport"
+                ),
             });
 
             await Promise.all(
@@ -247,6 +283,21 @@ export class ExcelBuilder {
         const options =
             attributeValue?.attribute.optionSet?.options.filter(option => multiTextValues?.includes(option.code)) ?? [];
         return options.map(option => option.name).join(multiTextTeiDelimiter);
+    }
+
+    private formatDataElementValue(options: {
+        value: TemplateDataValue["value"];
+        dataElementId: Id;
+        delimiter: Maybe<string>;
+        multiTextLookup: MultiTextLookup;
+    }): TemplateDataValue["value"] {
+        const { value, dataElementId, delimiter, multiTextLookup } = options;
+        const isMultiText = multiTextLookup.dataElementById[dataElementId]?.valueType === "MULTI_TEXT";
+        if (!isMultiText || !delimiter) return value;
+
+        const codes = String(value).split(MULTI_TEXT_OPTION_DELIMITER);
+        const optionByCode = multiTextLookup.optionByCodeByDe[dataElementId] ?? {};
+        return codes.map(code => optionByCode[code]?.name ?? code).join(delimiter);
     }
 
     private async fillCell(template: Template, cellRef: CellRef, sheetRef: SheetRef, value: string | number | boolean) {
@@ -296,7 +347,8 @@ export class ExcelBuilder {
         dataSource: TrackerEventRowDataSource,
         payload: TemplateDataPackage,
         metadata: BuilderMetadata,
-        settings: Settings
+        settings: Settings,
+        multiTextLookup: MultiTextLookup
     ) {
         if (payload.type !== "trackerPrograms") return;
 
@@ -376,19 +428,26 @@ export class ExcelBuilder {
                 })
             );
 
-            const coalesceDataProcessRules =
-                dataSource.dataElementProcessingRules?.filter(isDataProcessingRuleCoalesce);
-
-            const dataElementDetails = DataProcessingService.coalesceValues({
+            const dataElementDetails = DataProcessingService.applyRules({
                 dataDetails: dataElementsToProcess,
-                dataProcessingRules: coalesceDataProcessRules,
+                dataProcessingRules: dataSource.dataElementProcessingRules?.filter(
+                    rule => rule.condition === "onExport"
+                ),
             });
 
             //TODO extract "_<VALUE" as a helper since it's used multiple times in multiple files
             await Promise.all(
-                dataElementDetails.map(({ cell, optionId, value }) =>
-                    this.excelRepository.writeCell(template.id, cell, optionId ? `_${optionId}` : value)
-                )
+                dataElementDetails.map(({ cell, id, optionId, value }) => {
+                    const writeValue = optionId
+                        ? `_${optionId}`
+                        : this.formatDataElementValue({
+                              value,
+                              dataElementId: id,
+                              delimiter: dataSource.multiTextDataElementDelimiter,
+                              multiTextLookup,
+                          });
+                    return this.excelRepository.writeCell(template.id, cell, writeValue);
+                })
             );
 
             rowStart += 1;
@@ -482,7 +541,67 @@ export class ExcelBuilder {
         return dataEntriesTeisWithEvents;
     }
 
-    private async fillRows(template: Template, dataSource: RowDataSource, payload: TemplateDataPackage) {
+    private async fillRows(
+        template: Template,
+        dataSource: RowDataSource,
+        payload: TemplateDataPackage,
+        multiTextLookup: MultiTextLookup
+    ) {
+        const isFixedOrgUnitPeriod =
+            template.type === "custom" && Boolean(template.fixedOrgUnit) && Boolean(template.fixedPeriod);
+
+        if (isFixedOrgUnitPeriod) {
+            return this.fillRowsByKeyLookup(template, dataSource, payload, multiTextLookup);
+        }
+
+        return this.fillRowsByDataEntry(template, dataSource, payload, multiTextLookup);
+    }
+
+    // For templates with fixedOrgUnit/fixedPeriod: one data entry with many data values,
+    // each row may map to a different DE/COC. Uses exact key lookup.
+    private async fillRowsByKeyLookup(
+        template: Template,
+        dataSource: RowDataSource,
+        payload: TemplateDataPackage,
+        multiTextLookup: MultiTextLookup
+    ) {
+        const { rowStart, rowEnd = rowStart } = dataSource.range;
+        const allDataValues = payload.dataEntries.flatMap(e => e.dataValues);
+        const dataValueByDECOC = _.keyBy(allDataValues, dv => `${dv.dataElement}:${dv.category ?? ""}`);
+
+        for (let row = rowStart; row <= rowEnd; row++) {
+            const cells = await this.excelRepository.getCellsInRange(template.id, {
+                ...dataSource.range,
+                rowStart: row,
+                rowEnd: row,
+            });
+
+            const dataElementsToProcess: DataToProcess[] = [];
+            for (const cell of cells) {
+                const resolved = await this.resolveCellDataElement(template, dataSource, cell);
+                if (!resolved) continue;
+
+                const { dataElement, category } = resolved;
+                const exactKey = `${dataElement}:${category ?? ""}`;
+                const defaultKey = `${dataElement}:`;
+                const value = dataValueByDECOC[exactKey]?.value ?? dataValueByDECOC[defaultKey]?.value;
+
+                if (value !== undefined) {
+                    dataElementsToProcess.push({ cell, id: dataElement, value });
+                }
+            }
+
+            await this.applyRulesAndWrite(template, dataSource, dataElementsToProcess, multiTextLookup);
+        }
+    }
+
+    // For templates where each row corresponds to a different data entry (orgUnit/period/event).
+    private async fillRowsByDataEntry(
+        template: Template,
+        dataSource: RowDataSource,
+        payload: TemplateDataPackage,
+        multiTextLookup: MultiTextLookup
+    ) {
         let { rowStart } = dataSource.range;
         for (const { id, orgUnit, period, attribute, dataValues, coordinate, geometry } of payload.dataEntries) {
             const cells = await this.excelRepository.getCellsInRange(template.id, {
@@ -533,29 +652,76 @@ export class ExcelBuilder {
                 }
             }
 
-            for (const cell of cells) {
-                const dataElementCell = await this.findRelative(template, dataSource.dataElement, cell);
+            const dataElementsToProcess = await this.resolveDataElementValues(template, dataSource, cells, dataValues);
 
-                const categoryCell = await this.findRelative(template, dataSource.categoryOption, cell);
-
-                const dataElement = dataElementCell
-                    ? removeCharacters(await this.excelRepository.readCell(template.id, dataElementCell))
-                    : undefined;
-
-                const category = categoryCell
-                    ? removeCharacters(await this.excelRepository.readCell(template.id, categoryCell))
-                    : undefined;
-
-                const { value } =
-                    dataValues.find(
-                        dv => dv.dataElement === dataElement && (!dv.category || dv.category === category)
-                    ) ?? {};
-
-                if (value) await this.excelRepository.writeCell(template.id, cell, value);
-            }
+            await this.applyRulesAndWrite(template, dataSource, dataElementsToProcess, multiTextLookup);
 
             rowStart += 1;
         }
+    }
+
+    private async resolveCellDataElement(
+        template: Template,
+        dataSource: RowDataSource,
+        cell: CellRef
+    ): Promise<Maybe<{ dataElement: string; category: Maybe<string> }>> {
+        const dataElementCell = await this.findRelative(template, dataSource.dataElement, cell);
+        if (!dataElementCell) return undefined;
+
+        const dataElement = await readCellResolvingDefinedNames(this.excelRepository, template.id, dataElementCell);
+        if (!dataElement) return undefined;
+
+        const categoryCell = await this.findRelative(template, dataSource.categoryOption, cell);
+        const category = categoryCell
+            ? await readCellResolvingDefinedNames(this.excelRepository, template.id, categoryCell)
+            : undefined;
+
+        return { dataElement: String(dataElement), category: category ? String(category) : undefined };
+    }
+
+    private async resolveDataElementValues(
+        template: Template,
+        dataSource: RowDataSource,
+        cells: CellRef[],
+        dataValues: TemplateDataPackageData["dataValues"]
+    ): Promise<DataToProcess[]> {
+        const results = await promiseMap(cells, async (cell): Promise<Maybe<DataToProcess>> => {
+            const resolved = await this.resolveCellDataElement(template, dataSource, cell);
+            if (!resolved) return undefined;
+
+            const { dataElement, category } = resolved;
+            const { value } =
+                dataValues.find(dv => dv.dataElement === dataElement && (!dv.category || dv.category === category)) ??
+                {};
+
+            return value ? { cell, id: dataElement, value } : undefined;
+        });
+
+        return _.compact(results);
+    }
+
+    private async applyRulesAndWrite(
+        template: Template,
+        dataSource: RowDataSource,
+        dataElementsToProcess: DataToProcess[],
+        multiTextLookup: MultiTextLookup
+    ): Promise<void> {
+        const dataElementDetails = DataProcessingService.applyRules({
+            dataDetails: dataElementsToProcess,
+            dataProcessingRules: dataSource.dataElementProcessingRules?.filter(rule => rule.condition === "onExport"),
+        });
+
+        await Promise.all(
+            dataElementDetails.map(({ cell, id, value }) => {
+                const writeValue = this.formatDataElementValue({
+                    value,
+                    dataElementId: id,
+                    delimiter: dataSource.multiTextDataElementDelimiter,
+                    multiTextLookup,
+                });
+                return this.excelRepository.writeCell(template.id, cell, writeValue);
+            })
+        );
     }
 
     private async findRelative(template: Template, ref?: SheetRef | ValueRef, relative?: CellRef) {
@@ -601,5 +767,10 @@ export class ExcelBuilder {
         }
     }
 }
+
+type MultiTextLookup = {
+    dataElementById: Record<Id, DataElement>;
+    optionByCodeByDe: Record<Id, Record<string, { name: string }>>;
+};
 
 export const MULTI_TEXT_OPTION_DELIMITER = ",";
