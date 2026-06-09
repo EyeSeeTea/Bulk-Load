@@ -274,6 +274,21 @@ msgstr ""
 msgid "All"
 msgstr "Todos"
 
+msgid "Import successful"
+msgstr "Importación exitosa"
+
+msgid "Import with warnings"
+msgstr ""
+
+msgid "Import with errors"
+msgstr "Importación con errores"
+
+msgid "Network error"
+msgstr ""
+
+msgid "Import pending"
+msgstr "Importación pendiente"
+
 msgid ""
 "There has been an error. You can either retry or contact your administrator "
 "if you think there has been an un recoverable error"
@@ -1306,9 +1321,9 @@ msgid ""
 "Samaritan’s Purse, Medecins Sans Frontières (MSF), the the Norwegian Refugee "
 "Council (NRC) and the Clinton Health Access Initiative (CHAI) to support "
 "countries in strengthening the collection and use of health data by using "
-"DHIS2. The application has been developed by [EyeSeeTea SL](http://eyeseetea."
-"com). Source code, documentation and release notes can be found at the "
-"[EyeSeetea GitHub Project Page](https://eyeseetea.github.io/Bulk-Load-"
+"DHIS2. The application has been developed by [EyeSeeTea SL](http://"
+"eyeseetea.com). Source code, documentation and release notes can be found at "
+"the [EyeSeetea GitHub Project Page](https://eyeseetea.github.io/Bulk-Load-"
 "blessed/)."
 msgstr ""
 
