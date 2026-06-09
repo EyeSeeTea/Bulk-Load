@@ -1,6 +1,5 @@
-import { D2Api } from "../types/d2-api";
 import { DhisInstance } from "../domain/entities/DhisInstance";
-import { D2ApiDefault, DataStore } from "../types/d2-api";
+import { D2ApiDefault, DataStore, D2Api } from "../types/d2-api";
 import { dataStoreNamespace } from "./StorageDataStoreRepository";
 import { Id } from "../domain/entities/ReferenceObject";
 import { DocumentDeleteOptions, DocumentRepository } from "../domain/repositories/DocumentRepository";
