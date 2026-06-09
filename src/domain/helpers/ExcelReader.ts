@@ -137,7 +137,7 @@ export class ExcelReader {
         const values = await promiseMap(cells, async cell => {
             const value = cell ? await this.readCellValue(template, cell) : undefined;
             const optionId = await this.excelRepository.readCell(template.id, cell, { formula: true });
-            if (!isDefined(value)) return undefined;
+            if (!isDefined(value) || value === "") return undefined;
 
             const orgUnit = await this.readCellValue(template, dataSource.orgUnit, cell);
 
