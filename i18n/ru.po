@@ -42,7 +42,24 @@ msgstr "Значения данных - Удалить"
 msgid "Data values - Create/update"
 msgstr "Значения данных - создание/обновление"
 
+#, fuzzy
+msgid "No data values to import"
+msgstr "значения данных"
+
 msgid "Failed to import data values"
+msgstr ""
+
+msgid ""
+"{{count}} chunk(s) returned no summary — import result unknown for those "
+"records."
+msgid_plural ""
+"{{count}} chunk(s) returned no summary — import result unknown for those "
+"records."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+msgid "Chunk (unknown outcome)"
 msgstr ""
 
 msgid "Service"
@@ -214,9 +231,8 @@ msgstr ""
 msgid "Default"
 msgstr ""
 
-#, fuzzy
-msgid "Delete and import"
-msgstr "Массовый импорт данных"
+msgid "Delete and Import"
+msgstr ""
 
 #, fuzzy
 msgid "Import despite duplicates"
@@ -261,6 +277,21 @@ msgstr ""
 
 msgid "All"
 msgstr "Все"
+
+msgid "Import successful"
+msgstr ""
+
+msgid "Import with warnings"
+msgstr ""
+
+msgid "Import with errors"
+msgstr ""
+
+msgid "Network error"
+msgstr ""
+
+msgid "Import pending"
+msgstr ""
 
 msgid ""
 "There has been an error. You can either retry or contact your administrator "
@@ -499,8 +530,20 @@ msgstr "Фильтр столбцов для программ"
 msgid "Data elements and attributes to include/exclude for programs"
 msgstr "Элементы данных и атрибуты для включения/исключения для программ"
 
+msgid "Duplicate"
+msgstr "Дубликат"
+
 msgid "Duplicate detection"
 msgstr "Обнаружение дубликатов"
+
+msgid "Event date time difference for events (programs)"
+msgstr "Разница во времени даты события для событий (программ)"
+
+msgid "Duplicate detection filter for events (programs)"
+msgstr "Фильтр обнаружения дубликатов для событий (программ)"
+
+msgid "Data elements used for duplicates identification"
+msgstr "Элементы данных, используемые для выявления дубликатов"
 
 #, fuzzy
 msgid "Template configuration"
@@ -520,15 +563,6 @@ msgstr ""
 
 msgid "Show populate in custom forms"
 msgstr ""
-
-msgid "Event date time difference for events (programs)"
-msgstr "Разница во времени даты события для событий (программ)"
-
-msgid "Duplicate detection filter for events (programs)"
-msgstr "Фильтр обнаружения дубликатов для событий (программ)"
-
-msgid "Data elements used for duplicates identification"
-msgstr "Элементы данных, используемые для выявления дубликатов"
 
 msgid "Permissions"
 msgstr "Разрешения"
@@ -1447,9 +1481,6 @@ msgstr ""
 "организационной единицы и периодов. Если вы продолжите, все эти значения "
 "данных будут удалены, и будут сохранены только те, которые находятся в "
 "электронной таблице. Вы уверены?"
-
-msgid "Delete and Import"
-msgstr ""
 
 msgid ""
 "All data values in the spreadsheet will be imported to the system, but any "

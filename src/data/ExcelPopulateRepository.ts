@@ -22,9 +22,8 @@ import {
 import { ThemeStyle } from "../domain/entities/Theme";
 import { ExcelRepository, ExcelValue, LoadOptions, ReadCellOptions } from "../domain/repositories/ExcelRepository";
 import i18n from "../utils/i18n";
-import { cache } from "../utils/cache";
 import { fromBase64 } from "../utils/files";
-import { removeCharacters } from "../utils/string";
+import { isString, removeCharacters, replaceInvalidXmlChars } from "../utils/string";
 import { Maybe } from "../types/utils";
 
 export class ExcelPopulateRepository extends ExcelRepository {
@@ -116,14 +115,15 @@ export class ExcelPopulateRepository extends ExcelRepository {
 
         const { startCell: destination = cell } = mergedCells.find(range => range.hasCell(cell)) ?? {};
 
-        if (!!value && !isNaN(Number(value))) {
-            destination.value(Number(value));
-        } else if (String(value).startsWith("=")) {
-            destination.formula(String(value));
+        const safeValue = isString(value) ? replaceInvalidXmlChars(value) : value;
+        if (safeValue && !isNaN(Number(safeValue))) {
+            destination.value(Number(safeValue));
+        } else if (String(safeValue).startsWith("=")) {
+            destination.formula(String(safeValue));
         } else if (definedName) {
             destination.formula(`=${definedName}`);
         } else {
-            destination.value(value);
+            destination.value(safeValue);
         }
     }
 
@@ -338,7 +338,6 @@ export class ExcelPopulateRepository extends ExcelRepository {
         }
     }
 
-    @cache()
     public async getSheetRowsCount(id: string, sheetId: string | number): Promise<number | undefined> {
         const workbook = await this.getWorkbook(id);
         const sheet = workbook.sheet(sheetId);
@@ -356,7 +355,6 @@ export class ExcelPopulateRepository extends ExcelRepository {
         return lastRowWithValues ? lastRowWithValues.rowNumber() : 0;
     }
 
-    @cache()
     public async getSheetFinalColumn(id: string, sheetId: string | number): Promise<string | undefined> {
         const workbook = await this.getWorkbook(id);
         const sheet = workbook.sheet(sheetId);

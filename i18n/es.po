@@ -41,7 +41,23 @@ msgstr "Valores de los datos - Borrar"
 msgid "Data values - Create/update"
 msgstr "Valores de los datos - Crear/actualizar"
 
+#, fuzzy
+msgid "No data values to import"
+msgstr "valores de datos"
+
 msgid "Failed to import data values"
+msgstr ""
+
+msgid ""
+"{{count}} chunk(s) returned no summary — import result unknown for those "
+"records."
+msgid_plural ""
+"{{count}} chunk(s) returned no summary — import result unknown for those "
+"records."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Chunk (unknown outcome)"
 msgstr ""
 
 msgid "Service"
@@ -211,9 +227,8 @@ msgstr ""
 msgid "Default"
 msgstr ""
 
-#, fuzzy
-msgid "Delete and import"
-msgstr "Importación de datos"
+msgid "Delete and Import"
+msgstr "Borrar e Importar"
 
 #, fuzzy
 msgid "Import despite duplicates"
@@ -258,6 +273,21 @@ msgstr ""
 
 msgid "All"
 msgstr "Todos"
+
+msgid "Import successful"
+msgstr "Importación exitosa"
+
+msgid "Import with warnings"
+msgstr ""
+
+msgid "Import with errors"
+msgstr "Importación con errores"
+
+msgid "Network error"
+msgstr ""
+
+msgid "Import pending"
+msgstr "Importación pendiente"
 
 msgid ""
 "There has been an error. You can either retry or contact your administrator "
@@ -493,8 +523,22 @@ msgstr "Filtrar las columnas de los programas"
 msgid "Data elements and attributes to include/exclude for programs"
 msgstr "Elementos de datos y atributos a incluir/excluir para los programas"
 
+msgid "Duplicate"
+msgstr "Duplicado"
+
 msgid "Duplicate detection"
 msgstr "Detección de duplicados"
+
+msgid "Event date time difference for events (programs)"
+msgstr ""
+"Diferencia aceptada entre las fechas de los eventos para la identificación "
+"de duplicados para eventos (programas)"
+
+msgid "Duplicate detection filter for events (programs)"
+msgstr "Filtro de detección de duplicados para eventos (programas)"
+
+msgid "Data elements used for duplicates identification"
+msgstr "Elementos de datos usados para identificar los duplicados"
 
 msgid "Template configuration"
 msgstr "Acceso a la configuración de plantillas"
@@ -513,17 +557,6 @@ msgstr ""
 
 msgid "Show populate in custom forms"
 msgstr ""
-
-msgid "Event date time difference for events (programs)"
-msgstr ""
-"Diferencia aceptada entre las fechas de los eventos para la identificación "
-"de duplicados para eventos (programas)"
-
-msgid "Duplicate detection filter for events (programs)"
-msgstr "Filtro de detección de duplicados para eventos (programas)"
-
-msgid "Data elements used for duplicates identification"
-msgstr "Elementos de datos usados para identificar los duplicados"
 
 msgid "Permissions"
 msgstr "Permisos"
@@ -1387,26 +1420,23 @@ msgstr ""
 "remplazarán por aquellos presentes en el archivo. ¿Está seguro que desea "
 "continuar?"
 
-msgid "Delete and Import"
-msgstr ""
-
 msgid ""
 "All data values in the spreadsheet will be imported to the system, but any "
 "data that was existing for such organisation unit and periods in the system "
 "will be deleted first, so none will be kept before doing the import."
-msgstr ""
+msgstr "Todos los valores de la hoja de cálculo se importarán al sistema, pero cualquier dato existente para dicha unidad organizativa y periodos se eliminará primero, por lo que no se conservará nada antes de realizar la importación."
 
 msgid ""
 "Import only new data values, without updating nor deleting any existing one. "
 "Only values in the spreadsheet that do not currently exist in the system "
 "will be imported"
-msgstr ""
+msgstr "Importar solo valores de datos nuevos, sin actualizar ni eliminar los existentes. Solo se importarán los valores de la hoja de cálculo que no existan actualmente en el sistema."
 
 msgid ""
 "Import new data values and also update existing ones. All data values in the "
 "spreadsheet will be imported to the system, but other data values present in "
 "the system that are not provided in the spreadsheet will be kept."
-msgstr ""
+msgstr "Importar nuevos valores de datos y actualizar los existentes. Todos los valores de la hoja de cálculo se importarán al sistema, pero se mantendrán los demás valores presentes en el sistema que no figuren en la hoja de cálculo."
 
 msgid "Warning: Your upload may result in the generation of duplicates"
 msgstr "Alerta: Su importación puede generar duplicados"
@@ -1472,7 +1502,3 @@ msgstr ""
 
 msgid "Settings saved"
 msgstr "Configuración guardada"
-
-#, fuzzy
-#~ msgid "Pending"
-#~ msgstr "Encabezamientos"

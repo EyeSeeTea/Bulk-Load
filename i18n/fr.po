@@ -41,7 +41,23 @@ msgstr ""
 msgid "Data values - Create/update"
 msgstr ""
 
+#, fuzzy
+msgid "No data values to import"
+msgstr "valeurs de données"
+
 msgid "Failed to import data values"
+msgstr ""
+
+msgid ""
+"{{count}} chunk(s) returned no summary — import result unknown for those "
+"records."
+msgid_plural ""
+"{{count}} chunk(s) returned no summary — import result unknown for those "
+"records."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Chunk (unknown outcome)"
 msgstr ""
 
 msgid "Service"
@@ -205,9 +221,8 @@ msgstr ""
 msgid "Default"
 msgstr ""
 
-#, fuzzy
-msgid "Delete and import"
-msgstr "Importation de données en masse"
+msgid "Delete and Import"
+msgstr "SUPPRIMER ET IMPORTER"
 
 #, fuzzy
 msgid "Import despite duplicates"
@@ -252,6 +267,21 @@ msgstr ""
 
 msgid "All"
 msgstr "Tout"
+
+msgid "Import successful"
+msgstr ""
+
+msgid "Import with warnings"
+msgstr ""
+
+msgid "Import with errors"
+msgstr ""
+
+msgid "Network error"
+msgstr ""
+
+msgid "Import pending"
+msgstr ""
 
 msgid ""
 "There has been an error. You can either retry or contact your administrator "
@@ -478,8 +508,20 @@ msgstr ""
 msgid "Data elements and attributes to include/exclude for programs"
 msgstr ""
 
+msgid "Duplicate"
+msgstr "Doublon"
+
 msgid "Duplicate detection"
 msgstr "Détection des doublons"
+
+msgid "Event date time difference for events (programs)"
+msgstr "Décalage de la date de l'événement pour les programmes des événements"
+
+msgid "Duplicate detection filter for events (programs)"
+msgstr ""
+
+msgid "Data elements used for duplicates identification"
+msgstr "Éléments de données utilisés pour l'identification des doublons"
 
 #, fuzzy
 msgid "Template configuration"
@@ -499,15 +541,6 @@ msgstr ""
 
 msgid "Show populate in custom forms"
 msgstr ""
-
-msgid "Event date time difference for events (programs)"
-msgstr "Décalage de la date de l'événement pour les programmes des événements"
-
-msgid "Duplicate detection filter for events (programs)"
-msgstr ""
-
-msgid "Data elements used for duplicates identification"
-msgstr "Éléments de données utilisés pour l'identification des doublons"
 
 msgid "Permissions"
 msgstr "Autorisations"
@@ -1409,26 +1442,31 @@ msgstr ""
 "valeurs de données seront supprimées et seules celles de la feuille de "
 "calcul seront enregistrées. Êtes-vous sur de vouloir continuer?"
 
-msgid "Delete and Import"
-msgstr ""
-
 msgid ""
 "All data values in the spreadsheet will be imported to the system, but any "
 "data that was existing for such organisation unit and periods in the system "
 "will be deleted first, so none will be kept before doing the import."
 msgstr ""
+"Toutes les données de la feuille de calcul seront importées dans le système,"
+"mais les données existantes pour ces unités d'organisation et ces périodes seront d'abord supprimées"
+"; aucune donnée existante ne sera donc conservée avant l'importation."
 
 msgid ""
 "Import only new data values, without updating nor deleting any existing one. "
 "Only values in the spreadsheet that do not currently exist in the system "
 "will be imported"
 msgstr ""
+"Importer uniquement les nouvelles valeurs, sans mettre à jour ni supprimer les données existantes."
+"Seules les valeurs de la feuille de calcul qui n'existent pas encore dans le système seront importées."
 
 msgid ""
 "Import new data values and also update existing ones. All data values in the "
 "spreadsheet will be imported to the system, but other data values present in "
 "the system that are not provided in the spreadsheet will be kept."
 msgstr ""
+"Importer les nouvelles valeurs et mettre à jour les valeurs existantes."
+"Toutes les données de la feuille de calcul seront importées,"
+"mais les autres valeurs présentes dans le système et absentes de la feuille de calcul seront conservées."
 
 msgid "Warning: Your upload may result in the generation of duplicates"
 msgstr ""

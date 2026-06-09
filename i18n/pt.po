@@ -41,7 +41,23 @@ msgstr "Valores de dados - Eliminar"
 msgid "Data values - Create/update"
 msgstr "Valores dos dados - Criar/actualizar"
 
+#, fuzzy
+msgid "No data values to import"
+msgstr "valores de dados"
+
 msgid "Failed to import data values"
+msgstr ""
+
+msgid ""
+"{{count}} chunk(s) returned no summary — import result unknown for those "
+"records."
+msgid_plural ""
+"{{count}} chunk(s) returned no summary — import result unknown for those "
+"records."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Chunk (unknown outcome)"
 msgstr ""
 
 msgid "Service"
@@ -213,9 +229,8 @@ msgstr ""
 msgid "Default"
 msgstr ""
 
-#, fuzzy
-msgid "Delete and import"
-msgstr "Importação de dados em massa"
+msgid "Delete and Import"
+msgstr ""
 
 #, fuzzy
 msgid "Import despite duplicates"
@@ -260,6 +275,21 @@ msgstr ""
 
 msgid "All"
 msgstr "Tudo"
+
+msgid "Import successful"
+msgstr ""
+
+msgid "Import with warnings"
+msgstr ""
+
+msgid "Import with errors"
+msgstr ""
+
+msgid "Network error"
+msgstr ""
+
+msgid "Import pending"
+msgstr ""
 
 msgid ""
 "There has been an error. You can either retry or contact your administrator "
@@ -499,8 +529,20 @@ msgstr "Filtrar colunas para programas"
 msgid "Data elements and attributes to include/exclude for programs"
 msgstr "Elementos de dados e atributos a incluir/excluir para programas"
 
+msgid "Duplicate"
+msgstr "Duplicado"
+
 msgid "Duplicate detection"
-msgstr "Detecção duplicada"
+msgstr "Detecção de duplicados"
+
+msgid "Event date time difference for events (programs)"
+msgstr "Diferença de data e hora do evento de eventos (programas)"
+
+msgid "Duplicate detection filter for events (programs)"
+msgstr "Filtro de detecção duplicado para eventos (programas)"
+
+msgid "Data elements used for duplicates identification"
+msgstr "Elementos de dados usados para identificação de duplicatas"
 
 #, fuzzy
 msgid "Template configuration"
@@ -520,15 +562,6 @@ msgstr ""
 
 msgid "Show populate in custom forms"
 msgstr ""
-
-msgid "Event date time difference for events (programs)"
-msgstr "Diferença de data e hora do evento de eventos (programas)"
-
-msgid "Duplicate detection filter for events (programs)"
-msgstr "Filtro de detecção duplicado para eventos (programas)"
-
-msgid "Data elements used for duplicates identification"
-msgstr "Elementos de dados usados para identificação de duplicatas"
 
 msgid "Permissions"
 msgstr "Permissões"
@@ -1443,9 +1476,6 @@ msgstr ""
 "unidade e períodos da organização. Se você continuar, todos esses valores de "
 "dados serão excluídos e remplazados pelos dados da planilha. Tem certeza que "
 "deseja continuar?"
-
-msgid "Delete and Import"
-msgstr ""
 
 msgid ""
 "All data values in the spreadsheet will be imported to the system, but any "
