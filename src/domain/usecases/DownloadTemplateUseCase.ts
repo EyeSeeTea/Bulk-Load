@@ -95,12 +95,20 @@ export class DownloadTemplateUseCase implements UseCase {
         const element = await getElement(api, type, id);
         const name = element.displayName ?? element.name;
 
+        const orgUnitIds =
+            _.isEmpty(orgUnits) && settings.orgUnitSelection === "import"
+                ? _.intersection(
+                      currentUser.orgUnits.map(orgUnit => orgUnit.id),
+                      element.organisationUnits.map((orgUnit: Ref) => orgUnit.id)
+                  )
+                : orgUnits;
+
         async function getGenerateFile(maxTeiRows?: number) {
             const result = await getElementMetadata({
                 api,
                 element,
                 downloadRelationships,
-                orgUnitIds: orgUnits,
+                orgUnitIds,
                 startDate: startDate?.toDate(),
                 endDate: endDate?.toDate(),
                 populateStartDate: populateStartDate?.toDate(),
