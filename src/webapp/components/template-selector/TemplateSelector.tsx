@@ -77,7 +77,7 @@ export const TemplateSelector = ({
         {
             startDate: moment().add("-1", "year").startOf("year"),
             endDate: moment().add("-1", "year").endOf("year"),
-            relationshipsOuFilter: "SELECTED",
+            relationshipsOuFilter: settings.orgUnitSelection === "import" ? "CAPTURE" : "SELECTED",
             populate: false,
             downloadRelationships: true,
             filterTEIEnrollmentDate: false,
