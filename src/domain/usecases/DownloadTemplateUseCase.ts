@@ -21,6 +21,7 @@ import { UsersRepository } from "../repositories/UsersRepository";
 import { buildAllPossiblePeriods } from "../../webapp/utils/periods";
 import { applyFilter } from "../entities/TemplateFilter";
 import { DataElementDisaggregationsMappingRepository } from "../repositories/DataElementDisaggregationsMappingRepository";
+import { getCaptureOrgUnitIdsForDataForm } from "./utils/orgUnits";
 
 export interface DownloadTemplateProps {
     type: DataFormType;
@@ -97,10 +98,7 @@ export class DownloadTemplateUseCase implements UseCase {
 
         const orgUnitIds =
             _.isEmpty(orgUnits) && settings.orgUnitSelection === "import"
-                ? _.intersection(
-                      currentUser.orgUnits.map(orgUnit => orgUnit.id),
-                      element.organisationUnits.map((orgUnit: Ref) => orgUnit.id)
-                  )
+                ? getCaptureOrgUnitIdsForDataForm(element.organisationUnits, currentUser.orgUnits)
                 : orgUnits;
 
         async function getGenerateFile(maxTeiRows?: number) {
