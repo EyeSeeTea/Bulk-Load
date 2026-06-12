@@ -24,6 +24,7 @@ export const colors = {
     warning: "#F19C02",
     positive: "#3D9305",
     info: "#EAF4FF",
+    defaultStatus: "#3e2723",
 };
 
 export const palette = {
@@ -63,6 +64,7 @@ export const palette = {
         warning: colors.warning,
         positive: colors.positive,
         info: colors.info,
+        default: colors.defaultStatus,
     },
     background: {
         paper: colors.white,

@@ -34,6 +34,9 @@ bak
 # IntelliJ
 .idea/*
 
+# personal session notes
+.journal
+
 # Yarn 4
 .yarn/cache
 .yarn/install-state.gz

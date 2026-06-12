@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2026-03-11T19:21:15.859Z\n"
+"POT-Creation-Date: 2025-11-19T17:15:26.356Z\n"
 "Language: pt\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -41,7 +41,23 @@ msgstr "Valores de dados - Eliminar"
 msgid "Data values - Create/update"
 msgstr "Valores dos dados - Criar/actualizar"
 
+#, fuzzy
+msgid "No data values to import"
+msgstr "valores de dados"
+
 msgid "Failed to import data values"
+msgstr ""
+
+msgid ""
+"{{count}} chunk(s) returned no summary — import result unknown for those "
+"records."
+msgid_plural ""
+"{{count}} chunk(s) returned no summary — import result unknown for those "
+"records."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Chunk (unknown outcome)"
 msgstr ""
 
 msgid "Service"
@@ -259,6 +275,21 @@ msgstr ""
 
 msgid "All"
 msgstr "Tudo"
+
+msgid "Import successful"
+msgstr ""
+
+msgid "Import with warnings"
+msgstr ""
+
+msgid "Import with errors"
+msgstr ""
+
+msgid "Network error"
+msgstr ""
+
+msgid "Import pending"
+msgstr ""
 
 msgid ""
 "There has been an error. You can either retry or contact your administrator "
@@ -679,6 +710,12 @@ msgstr[1] ""
 #, fuzzy
 msgid "Are you sure you want to remove the selected templates"
 msgstr "Tem certeza de que deseja excluir os temas selecionados"
+
+msgid "Cannot determine file extension for template"
+msgstr ""
+
+msgid "Unsupported file extension for template"
+msgstr ""
 
 msgid "Cannot download spreadsheet for template"
 msgstr ""

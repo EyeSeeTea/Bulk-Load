@@ -28,7 +28,11 @@ import { DhisInstance } from "../domain/entities/DhisInstance";
 import { Locale } from "../domain/entities/Locale";
 import { OrgUnit } from "../domain/entities/OrgUnit";
 import { NamedRef, Ref } from "../domain/entities/ReferenceObject";
-import { SynchronizationResult } from "../domain/entities/SynchronizationResult";
+import {
+    SynchronizationResult,
+    SynchronizationStats,
+    SynchronizationStatus,
+} from "../domain/entities/SynchronizationResult";
 import { Program, TrackedEntityInstance } from "../domain/entities/TrackedEntityInstance";
 import {
     BuilderMetadata,
@@ -45,6 +49,7 @@ import {
     D2TrackedEntityType,
     DataStore,
     DataValueSetsGetResponse,
+    DataValueSetsPostResponse,
     Id,
     SelectedPick,
     D2SharingSchema,
@@ -457,13 +462,28 @@ export class InstanceDhisRepository implements InstanceRepository {
         const title =
             importStrategy === "DELETE" ? i18n.t("Data values - Delete") : i18n.t("Data values - Create/update");
 
-        const { response } = await this.api.dataValues
-            .postSetAsync({ importStrategy }, { dataSet: dataSetId, dataValues })
-            .getData();
+        if (dataValues.length === 0) {
+            return {
+                title,
+                status: "SUCCESS",
+                message: i18n.t("No data values to import"),
+                stats: [{ imported: 0, deleted: 0, updated: 0, ignored: 0 }],
+                errors: [],
+                rawResponse: {},
+            };
+        }
 
-        const importSummary = await this.api.system.waitFor(response.jobType, response.id).getData();
+        const chunks = _.chunk(dataValues, 1000);
 
-        if (!importSummary) {
+        const chunkResults = await promiseMap(chunks, async chunk => {
+            const { response } = await this.api.dataValues
+                .postSetAsync({ importStrategy }, { dataSet: dataSetId, dataValues: chunk })
+                .getData();
+
+            return this.api.system.waitFor(response.jobType, response.id).getData();
+        });
+
+        if (chunkResults.every(r => !r)) {
             return {
                 title,
                 status: "ERROR",
@@ -474,19 +494,69 @@ export class InstanceDhisRepository implements InstanceRepository {
             };
         }
 
-        const { status, description, conflicts, importCount } = importSummary;
-        const { imported, deleted, updated, ignored } = importCount;
-        const errors = conflicts?.map(({ object, value }) => ({ id: object, message: value, details: "" })) ?? [];
+        const { mergedStatus, mergedDescription, mergedImportCount, nullChunkStats, summaries } =
+            this.mergeChunkResults(chunks, chunkResults);
+
+        const allConflicts = _.flatMap(summaries, s => s.conflicts ?? []);
+        const errors = allConflicts.map(({ object, value }) => ({ id: object, message: value, details: "" }));
         const errorDetails = await getMetadataDetailsFromErrors(this.api, errors);
 
         return {
             title,
-            status,
-            message: description,
-            stats: [{ imported, deleted, updated, ignored }],
+            status: mergedStatus,
+            message: mergedDescription,
+            stats: [mergedImportCount, ...nullChunkStats],
             errors: errorDetails,
-            rawResponse: importSummary,
+            rawResponse: summaries,
         };
+    }
+
+    private mergeChunkResults(chunks: AggregatedDataValue[][], chunkResults: Array<DataValueSetsPostResponse | null>) {
+        const emptyChunkCount = chunkResults.filter(r => !r).length;
+        const hasEmptySummaries = emptyChunkCount > 0;
+        const summaries = _.compact(chunkResults);
+
+        const uniqueStatuses = _.uniq(summaries.map(s => s.status));
+        const mergedStatus: SynchronizationStatus =
+            hasEmptySummaries || uniqueStatuses.length !== 1 ? "WARNING" : uniqueStatuses[0] ?? "WARNING";
+
+        const mergedDescription = [
+            ..._.uniq(summaries.map(s => s.description).filter(Boolean)),
+            ...(hasEmptySummaries
+                ? [
+                      i18n.t("{{count}} chunk(s) returned no summary — import result unknown for those records.", {
+                          count: emptyChunkCount,
+                      }),
+                  ]
+                : []),
+        ].join(" / ");
+
+        const mergedImportCount = summaries.reduce(
+            (acc, s) => ({
+                imported: acc.imported + s.importCount.imported,
+                deleted: acc.deleted + s.importCount.deleted,
+                updated: acc.updated + s.importCount.updated,
+                ignored: acc.ignored + s.importCount.ignored,
+            }),
+            { imported: 0, deleted: 0, updated: 0, ignored: 0 }
+        );
+
+        // Add a dedicated stat row per null chunk with total to unknown outcomes are explicitly.
+        const nullChunkStats: SynchronizationStats[] = hasEmptySummaries
+            ? chunkResults
+                  .map((result, i) => ({ result, chunk: chunks[i] }))
+                  .filter(({ result }) => !result)
+                  .map(({ chunk }) => ({
+                      type: i18n.t("Chunk (unknown outcome)"),
+                      imported: 0,
+                      deleted: 0,
+                      updated: 0,
+                      ignored: 0,
+                      total: chunk?.length ?? 0,
+                  }))
+            : [];
+
+        return { mergedStatus, mergedDescription, mergedImportCount, nullChunkStats, summaries };
     }
 
     // TODO: Review when data validation comes in

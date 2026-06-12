@@ -25,7 +25,7 @@ import { useAppContext } from "../../contexts/app-context";
 import { FormMode, CustomTemplateEditDialog } from "./TemplateEditDialog";
 import { downloadFile } from "../../utils/download";
 import { DataForm, DataFormType, dataFormTypes, getTranslations } from "../../../domain/entities/DataForm";
-import { fromBase64, xlsxMimeType } from "../../../utils/files";
+import { fromBase64, getExtensionFile, MIME_TYPES_BY_EXTENSION } from "../../../utils/files";
 import { useDataForms } from "../../hooks/useDataForms";
 import { Select, SelectProps } from "../select/Select";
 import { getGeneratedTemplateId } from "../../logic/sheetBuilder";
@@ -134,10 +134,21 @@ export default function TemplateListTable(props: TemplateListTableProps) {
             const row = rows.find(row => row.id === templateId);
 
             if (template) {
+                const extensionFile = getExtensionFile(template.file.name);
+                if (!extensionFile) {
+                    snackbar.error(i18n.t("Cannot determine file extension for template"));
+                    return;
+                }
+                const fileMimeType = MIME_TYPES_BY_EXTENSION[extensionFile];
+                if (!fileMimeType) {
+                    snackbar.error(i18n.t("Unsupported file extension for template"));
+                    return;
+                }
+
                 downloadFile({
-                    filename: template.id + ".xlsx",
+                    filename: `${template.id}.${extensionFile}`,
                     data: await fromBase64(template.file.contents),
-                    mimeType: xlsxMimeType,
+                    mimeType: fileMimeType,
                 });
             } else if (row) {
                 compositionRoot.templates.download(api, {

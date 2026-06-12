@@ -28,8 +28,9 @@ import { TrackedEntitiesApiRequest, TrackedEntitiesResponse, TrackedEntity } fro
 import { Params } from "@eyeseetea/d2-api/api/common";
 import { ImportDataPackageOptions } from "../domain/repositories/InstanceRepository";
 import { MULTI_TEXT_OPTION_DELIMITER } from "../domain/helpers/ExcelBuilder";
+import { getVersion } from "../utils/d2-api";
 
-export interface GetOptions {
+type GetOptions = {
     api: D2Api;
     program: Ref;
     orgUnits: Ref[];
@@ -37,7 +38,7 @@ export interface GetOptions {
     enrollmentStartDate?: Moment;
     enrollmentEndDate?: Moment;
     relationshipsOuFilter?: RelationshipOrgUnitFilter;
-}
+};
 
 type TrackerParams = Params & Omit<TeiGetRequest, "ou" | "ouMode">;
 
@@ -60,6 +61,8 @@ export async function getTrackedEntityInstances(options: GetOptions): Promise<Tr
     } = options;
     if (_.isEmpty(orgUnits)) return [];
 
+    const apiVersion = await getVersion(api);
+
     const program = await getProgram(api, options.program.id);
     if (!program) return [];
 
@@ -79,6 +82,7 @@ export async function getTrackedEntityInstances(options: GetOptions): Promise<Tr
         for (let page = 1; ; page++) {
             const { pageCount, instances } = await getTeisFromApi({
                 api,
+                apiVersion,
                 program,
                 orgUnits,
                 page,
@@ -462,8 +466,11 @@ function getMultiTextValue(options: {
 }
 
 async function getExistingTeis(api: D2Api): Promise<Ref[]> {
+    const apiVersion = await getVersion(api);
+    const ouModeParam = buildOrgUnitMode(apiVersion, "CAPTURE");
+
     const query = {
-        ouMode: "CAPTURE",
+        ...ouModeParam,
         pageSize: 1000,
         totalPages: true,
         fields: "trackedEntity",
@@ -504,6 +511,7 @@ type TeiKey = KeysOfUnion<TrackedEntitiesApiRequest>;
 
 async function getTeisFromApi(options: {
     api: D2Api;
+    apiVersion: string;
     program: Program;
     orgUnits: Ref[];
     page: number;
@@ -512,7 +520,8 @@ async function getTeisFromApi(options: {
     enrollmentEndDate?: Moment;
     ouMode: RelationshipOrgUnitFilter;
 }): Promise<TrackedEntitiesResponse> {
-    const { api, program, orgUnits, page, pageSize, enrollmentStartDate, enrollmentEndDate, ouMode } = options;
+    const { api, apiVersion, program, orgUnits, page, pageSize, enrollmentStartDate, enrollmentEndDate, ouMode } =
+        options;
 
     const fields: TeiKey[] = [
         "trackedEntity",
@@ -524,7 +533,7 @@ async function getTeisFromApi(options: {
         "geometry",
     ];
 
-    const ouModeQuery = buildOrgUnitMode(ouMode, orgUnits);
+    const ouModeQuery = buildOrgUnitMode(apiVersion, ouMode, orgUnits);
 
     const filters: TrackedEntityGetRequest = {
         ...ouModeQuery,
