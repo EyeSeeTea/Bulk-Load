@@ -142,41 +142,46 @@ class DownloadCustomization {
         return { cells: _.flatten(cellGroups) };
     }
 
-    private getMatchingIndicatorsCells(metadata: NRCModuleMetadata): Cell[] {
+    // Returns the matching pairs in BOTH directions (source→target and target→source).
+    private getMatchingPairs(metadata: NRCModuleMetadata): Array<{ from: Id; to: Id }> {
         const dataElementIds = new Set(metadata.dataElements.map(de => de.id));
         const validMatchings = metadata.indicatorMatchings.filter(
             m => dataElementIds.has(m.source) && dataElementIds.has(m.target)
         );
 
-        return validMatchings.flatMap((matching, idx) => {
+        return validMatchings.flatMap(matching => [
+            { from: matching.source, to: matching.target },
+            { from: matching.target, to: matching.source },
+        ]);
+    }
+
+    private getMatchingIndicatorsCells(metadata: NRCModuleMetadata): Cell[] {
+        return this.getMatchingPairs(metadata).flatMap((pair, idx) => {
             const row = idx + 1;
             return [
                 cell({
                     sheet: this.sheets.matchingIndicators,
                     column: "A",
                     row: row,
-                    value: referenceToId(matching.source),
+                    value: referenceToId(pair.from),
                 }),
                 cell({
                     sheet: this.sheets.matchingIndicators,
                     column: "B",
                     row: row,
-                    value: referenceToId(matching.target),
+                    value: referenceToId(pair.to),
                 }),
             ];
         });
     }
 
     private getMatchedRowsCells(metadata: NRCModuleMetadata): Cell[] {
-        const dataElementIds = new Set(metadata.dataElements.map(de => de.id));
-        const validMatchingsCount = metadata.indicatorMatchings.filter(
-            m => dataElementIds.has(m.source) && dataElementIds.has(m.target)
-        ).length;
+        const matchingRowsCount = this.getMatchingPairs(metadata).length;
 
-        if (validMatchingsCount === 0) return [];
+        if (matchingRowsCount === 0) return [];
 
-        const sourcesRange = `${this.sheets.matchingIndicators}!$A$1:$A$${validMatchingsCount}`;
-        const lookupRange = `${this.sheets.matchingIndicators}!$A$1:$B$${validMatchingsCount}`;
+        const sourcesRange = `${this.sheets.matchingIndicators}!$A$1:$A$${matchingRowsCount}`;
+        const lookupRange = `${this.sheets.matchingIndicators}!$A$1:$B$${matchingRowsCount}`;
 
         return this.getSourceRows().flatMap(sourceRow => {
             const targetRow = sourceRow + 1;
