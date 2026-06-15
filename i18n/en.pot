@@ -969,6 +969,9 @@ msgstr ""
 msgid "Synchronization Results"
 msgstr ""
 
+msgid "Selected template has unsupported period type: {{periodType}}"
+msgstr ""
+
 msgid "Select organisation unit to populate data"
 msgstr ""
 

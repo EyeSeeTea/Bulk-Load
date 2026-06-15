@@ -7,6 +7,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { RelationshipOrgUnitFilter } from "../../../data/Dhis2RelationshipTypes";
 import { CustomTemplate, DataFormTemplate, TemplateType } from "../../../domain/entities/Template";
 import { Theme } from "../../../domain/entities/Theme";
+import { isDataFormPeriod } from "../../../domain/entities/DataForm";
 import { DownloadTemplateProps } from "../../../domain/usecases/DownloadTemplateUseCase";
 import i18n from "../../../utils/i18n";
 import { PartialBy } from "../../../types/utils";
@@ -50,6 +51,7 @@ export interface TemplateSelectorProps {
     onChangeModel?(state: DataModelProps[]): void;
     customTemplates: CustomTemplate[];
     onUseShortNamesChange(value: boolean): void;
+    onPeriodValidationError(message: string): void;
 }
 
 export const TemplateSelector = ({
@@ -59,6 +61,7 @@ export const TemplateSelector = ({
     onChangeModel,
     customTemplates,
     onUseShortNamesChange,
+    onPeriodValidationError,
 }: TemplateSelectorProps) => {
     const classes = useStyles();
     const { api, compositionRoot } = useAppContext();
@@ -195,6 +198,28 @@ export const TemplateSelector = ({
                 type,
                 readAccess = false,
             } = dataSource[selectedModel]?.find(({ id }) => id === dataFormId) ?? {};
+
+            if (!periodType || !isDataFormPeriod(periodType)) {
+                const periodTypeValue = periodType ? periodType : "unknown";
+                onPeriodValidationError(
+                    i18n.t("Selected template has unsupported period type: {{periodType}}", {
+                        periodType: periodTypeValue,
+                        nsSeparator: false,
+                    })
+                );
+                setState(state => ({
+                    ...state,
+                    id: undefined,
+                    type: undefined,
+                    templateId: undefined,
+                    templateType: undefined,
+                    populate: false,
+                }));
+                clearPopulateDates();
+                setSelectedOrgUnits([]);
+                return;
+            }
+
             setUserHasReadAccess(readAccess);
 
             if (periodType === "Yearly") {

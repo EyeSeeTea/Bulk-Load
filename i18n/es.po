@@ -1030,6 +1030,9 @@ msgstr "Respuesta JSON"
 msgid "Synchronization Results"
 msgstr "Resultados de la sincronización"
 
+msgid "Selected template has unsupported period type: {{periodType}}"
+msgstr "La plantilla seleccionada tiene el tipo de período no soportado: {{periodType}}"
+
 msgid "Select organisation unit to populate data"
 msgstr "Seleccione la unidad de organización para rellenar los datos"
 
