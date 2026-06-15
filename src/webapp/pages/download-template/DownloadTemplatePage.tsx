@@ -31,6 +31,8 @@ export default function DownloadTemplatePage({ settings, themes, customTemplates
             template;
 
         if (
+            type === "trackerPrograms" &&
+            populate &&
             (template.relationshipsOuFilter === "SELECTED" ||
                 template.relationshipsOuFilter === "CHILDREN" ||
                 template.relationshipsOuFilter === "DESCENDANTS") &&

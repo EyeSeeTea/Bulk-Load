@@ -23,3 +23,11 @@ export interface SynchronizationResult {
     errors?: ErrorMessage[];
     rawResponse: object;
 }
+
+export function computeOverallSyncStatus(results: Pick<SynchronizationResult, "status">[]): SynchronizationStatus {
+    const priority: SynchronizationStatus[] = ["NETWORK ERROR", "ERROR", "WARNING", "SUCCESS"];
+    for (const status of priority) {
+        if (results.some(r => r.status === status)) return status;
+    }
+    return "PENDING";
+}
