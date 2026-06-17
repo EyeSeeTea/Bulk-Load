@@ -1,3 +1,4 @@
+import _ from "lodash";
 import { Id } from "./ReferenceObject";
 import { generateUid } from "d2/uid";
 import { SynchronizationResult, computeOverallSyncStatus } from "./SynchronizationResult";

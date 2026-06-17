@@ -1,6 +1,5 @@
 import { LoadingProvider, SnackbarProvider } from "@eyeseetea/d2-ui-components";
-import "@testing-library/jest-dom/extend-expect";
-import { act, render, screen } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
 import _ from "lodash";
 import { getCompositionRoot } from "../CompositionRoot";
 import { AppContext } from "../webapp/contexts/app-context";
@@ -21,8 +20,9 @@ const compositionRoot = getCompositionRoot({
 });
 
 const renderComponent = async () => {
+    let view: ReturnType<typeof render> | undefined;
     await act(async () => {
-        render(
+        view = render(
             <AppContext.Provider value={{ api, d2: {}, compositionRoot }}>
                 <LoadingProvider>
                     <SnackbarProvider>
@@ -39,6 +39,7 @@ const renderComponent = async () => {
             </AppContext.Provider>
         );
     });
+    return view as ReturnType<typeof render>;
 };
 
 describe("ImportTemplatePage", () => {
@@ -47,11 +48,11 @@ describe("ImportTemplatePage", () => {
     });
 
     test("Renders correctly", async () => {
-        await renderComponent();
+        const view = await renderComponent();
 
-        expect(screen.getByRole("heading", { name: "Template" })).toBeInTheDocument();
-        expect(screen.getByRole("heading", { name: "Advanced template properties" })).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: "Download template" })).toBeInTheDocument();
+        expect(view.getByRole("heading", { name: "Template" })).toBeInTheDocument();
+        expect(view.getByRole("heading", { name: "Advanced template properties" })).toBeInTheDocument();
+        expect(view.getByRole("button", { name: "Download template" })).toBeInTheDocument();
     });
 });
 
