@@ -18,22 +18,22 @@ $ yarn install
 Start the development server:
 
 ```
-$ PORT=8081 REACT_APP_DHIS2_BASE_URL="http://localhost:8080" yarn start
+$ PORT=8081 VITE_DHIS2_BASE_URL="http://localhost:8080" VITE_DHIS2_AUTH="" yarn start
 ```
 
 Now in your browser, go to `http://localhost:8081`.
 
 Notes:
 
--   Requests to DHIS2 will be transparently proxied (see `src/setupProxy.js`) from `http://localhost:8081/dhis2/path` to `http://localhost:8080/path` to avoid CORS and cross-domain problems.
+-   Requests to DHIS2 will be transparently proxied from `http://localhost:8081/dhis2/path` to `http://localhost:8080/path` (see `vite.config.ts`) to avoid CORS and cross-domain problems.
 
--   The optional environment variable `REACT_APP_DHIS2_AUTH=USERNAME:PASSWORD` forces some credentials to be used by the proxy. This variable is usually not set, so the app has the same user logged in at `REACT_APP_DHIS2_BASE_URL`.
+-   The optional environment variable `VITE_DHIS2_AUTH=USERNAME:PASSWORD` forces some credentials to be used by the proxy. This variable is usually not set, so the app has the same user logged in at `VITE_DHIS2_BASE_URL`.
 
--   The optional environment variable `REACT_APP_PROXY_LOG_LEVEL` can be helpful to debug the proxyfied requests (accepts: "warn" | "debug" | "info" | "error" | "silent")
+-   The optional environment variable `VITE_PROXY_LOG_LEVEL` can be helpful to debug the proxied requests (accepts: "warn" | "debug" | "info" | "error" | "silent")
 
 -   Create a file `.env.local` (copy it from `.env`) to customize environment variables so you can simply run `yarn start`.
 
--   [why-did-you-render](https://github.com/welldone-software/why-did-you-render) is installed, but it does not work when using standard react scripts (`yarn start`). Instead, use `yarn craco-start` to debug re-renders with WDYR. Note that hot reloading does not work out-of-the-box with [craco](https://github.com/gsoft-inc/craco).
+-   [why-did-you-render](https://github.com/welldone-software/why-did-you-render) is loaded in development to help debug re-renders.
 
 ## Tests
 
@@ -41,21 +41,6 @@ Notes:
 
 ```
 $ yarn test
-```
-
-### Integration tests (Cypress)
-
-Create the required users for testing (`cypress/support/App.ts`) in your instance and run:
-
-```
-$ export CYPRESS_EXTERNAL_API="http://localhost:8080"
-$ export CYPRESS_ROOT_URL=http://localhost:8081
-
-# non-interactive
-$ yarn cy:e2e:run
-
-# interactive UI
-$ yarn cy:e2e:open
 ```
 
 ## Build app ZIP

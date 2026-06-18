@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load App\n"
-"POT-Creation-Date: 2026-03-18T04:23:33.926Z\n"
+"POT-Creation-Date: 2025-11-19T17:15:26.356Z\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -267,6 +267,21 @@ msgstr ""
 
 msgid "All"
 msgstr "Tout"
+
+msgid "Import successful"
+msgstr ""
+
+msgid "Import with warnings"
+msgstr ""
+
+msgid "Import with errors"
+msgstr ""
+
+msgid "Network error"
+msgstr ""
+
+msgid "Import pending"
+msgstr ""
 
 msgid ""
 "There has been an error. You can either retry or contact your administrator "
@@ -674,6 +689,12 @@ msgstr[1] ""
 msgid "Are you sure you want to remove the selected templates"
 msgstr "Voulez-vous vraiment supprimer les thèmes sélectionnés"
 
+msgid "Cannot determine file extension for template"
+msgstr ""
+
+msgid "Unsupported file extension for template"
+msgstr ""
+
 msgid "Cannot download spreadsheet for template"
 msgstr ""
 
@@ -1027,6 +1048,9 @@ msgstr ""
 
 msgid "Synchronization Results"
 msgstr ""
+
+msgid "Selected template has unsupported period type: {{periodType}}"
+msgstr "Modèle sélectionné avec un type de période non supporté: {{periodType}}"
 
 msgid "Select organisation unit to populate data"
 msgstr ""

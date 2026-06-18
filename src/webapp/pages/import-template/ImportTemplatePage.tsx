@@ -12,6 +12,7 @@ import { SynchronizationResult } from "../../../domain/entities/SynchronizationR
 import { ImportTemplateUseCaseParams } from "../../../domain/usecases/ImportTemplateUseCase";
 import i18n from "../../../utils/i18n";
 import ModalDialog, { ModalDialogProps } from "../../components/modal-dialog/ModalDialog";
+import { ImportResultBadge } from "../../components/import-result-badge/ImportResultBadge";
 import SyncSummaryDialog from "../../components/sync-summary/SyncSummaryDialog";
 import { useAppContext } from "../../contexts/app-context";
 import { orgUnitListParams } from "../../utils/template";
@@ -43,6 +44,8 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
     const [importState, setImportState] = useState<ImportState>();
     const [messages, setMessages] = useState<string[]>([]);
     const [dialogProps, updateDialog] = useState<ModalDialogProps>();
+    const [syncResults, setSyncResults] = useState<SynchronizationResult[] | null>(null);
+    const [isSyncDialogOpen, setIsSyncDialogOpen] = useState(false);
 
     useEffect(() => {
         compositionRoot.orgUnits.getUserRoots().then(setOrgUnitTreeRootIds);
@@ -57,6 +60,8 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
         setMessages([]);
         setSelectedOrgUnits([]);
         setOrgUnitTreeFilter([]);
+        setSyncResults(null);
+        setIsSyncDialogOpen(false);
 
         const file = files[0];
         if (!file) {
@@ -118,6 +123,7 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
             success: syncResults => {
                 loading.reset();
                 setSyncResults(syncResults);
+                setIsSyncDialogOpen(true);
             },
             error: error => {
                 loading.reset();
@@ -290,18 +296,18 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
         }
     };
 
+    const closeSyncDialog = useCallback(() => setIsSyncDialogOpen(false), []);
+    const openSyncDialog = useCallback(() => setIsSyncDialogOpen(true), []);
+
     const onOverwriteOrgUnitsChange = useCallback((_event, overwriteOrgUnits) => {
         setOverwriteOrgUnits(overwriteOrgUnits);
     }, []);
-
-    const [syncResults, setSyncResults] = useState<SynchronizationResult[] | null>(null);
-    const hideSyncResults = useCallback(() => setSyncResults(null), [setSyncResults]);
 
     return (
         <React.Fragment>
             {dialogProps && <ModalDialog isOpen={true} maxWidth={"xl"} {...dialogProps} />}
 
-            {syncResults && <SyncSummaryDialog results={syncResults} onClose={hideSyncResults} />}
+            {syncResults && isSyncDialogOpen && <SyncSummaryDialog results={syncResults} onClose={closeSyncDialog} />}
 
             <h3>{i18n.t("Bulk data import")}</h3>
 
@@ -344,11 +350,13 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
                 )}
             </Dropzone>
 
+            {syncResults && <ImportResultBadge results={syncResults} onClick={openSyncDialog} />}
+
             {importState?.dataForm && (
                 <div
                     style={{
-                        marginTop: 35,
-                        marginBottom: 15,
+                        marginTop: "1em",
+                        marginBottom: "1em",
                         marginLeft: 0,
                         fontSize: "1.2em",
                     }}

@@ -1,6 +1,7 @@
+import _ from "lodash";
 import { Id } from "./ReferenceObject";
 import { generateUid } from "d2/uid";
-import { SynchronizationResult } from "./SynchronizationResult";
+import { SynchronizationResult, computeOverallSyncStatus } from "./SynchronizationResult";
 import { Maybe } from "../../types/utils";
 import { ImportTemplateError } from "../usecases/ImportTemplateUseCase";
 import { isAdmin, User } from "./User";
@@ -117,17 +118,8 @@ export class HistoryEntry {
         if (!this.syncResults || this.syncResults.length === 0) {
             return "ERROR";
         }
-        const hasError = this.syncResults.some(
-            result => result.status === "ERROR" || result.status === "NETWORK ERROR"
-        );
-        if (hasError) {
-            return "ERROR";
-        }
-        const hasWarning = this.syncResults.some(result => result.status === "WARNING");
-        if (hasWarning) {
-            return "WARNING";
-        }
-        return "SUCCESS";
+        const status = computeOverallSyncStatus(this.syncResults);
+        return status === "NETWORK ERROR" || status === "PENDING" ? "ERROR" : status;
     }
 
     public toDetails(): HistoryEntryDetails {

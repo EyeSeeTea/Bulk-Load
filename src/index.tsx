@@ -5,7 +5,7 @@ import { init } from "d2";
 import _ from "lodash";
 import React from "react";
 import ReactDOM from "react-dom";
-import { D2Api } from "./types/d2-api";
+import type { D2Api } from "./types/d2-api";
 import { getD2APiFromInstance } from "./utils/d2-api";
 import App from "./webapp/components/app/App";
 import "./webapp/utils/wdyr";
@@ -50,9 +50,11 @@ async function main() {
 
         const userSettings = await api.get<{ keyUiLocale: string }>("/userSettings").getData();
         configI18n(userSettings);
+        type ProviderProps = React.ComponentProps<typeof Provider>;
+        const config: ProviderProps["config"] = { baseUrl, apiVersion: 30 };
 
         ReactDOM.render(
-            <Provider config={{ baseUrl, apiVersion: 30 }}>
+            <Provider config={config} plugin={false} parentAlertsAdd={() => {}} showAlertsInPlugin={false}>
                 <App d2={d2 as object} api={api} />
             </Provider>,
             document.getElementById("root")

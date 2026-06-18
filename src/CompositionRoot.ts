@@ -45,7 +45,7 @@ import { HistoryCleanupUseCase } from "./domain/usecases/HistoryCleanupUseCase";
 import { GetHistoryEntriesUseCase } from "./domain/usecases/GetHistoryEntriesUseCase";
 import { GetHistoryEntryDetailsUseCase } from "./domain/usecases/GetHistoryEntryDetailsUseCase";
 import { DownloadDocumentUseCase } from "./domain/usecases/DownloadDocumentUseCase";
-import { D2Api, D2ApiDefault } from "./types/d2-api";
+import { D2Api } from "./types/d2-api";
 import { GetFilteredThemesUseCase } from "./domain/usecases/GetFilteredThemesUseCase";
 import { NRCModuleMetadataD2Repository } from "./data/templates/nrc/NRCModuleMetadataD2Repository";
 import { FileD2Repository } from "./data/FileD2Repository";
@@ -65,7 +65,7 @@ export interface CompositionRootOptions {
 }
 
 export function getCompositionRoot({ appConfig, dhisInstance, mockApi, importSource = "zip" }: CompositionRootOptions) {
-    const api = mockApi ?? new D2ApiDefault({ baseUrl: dhisInstance.url });
+    const api = mockApi ?? new D2Api({ baseUrl: dhisInstance.url });
     const instance: InstanceRepository = new InstanceDhisRepository(dhisInstance, mockApi);
     const config: ConfigRepository = new ConfigWebRepository(appConfig);
     const storage: StorageRepository =

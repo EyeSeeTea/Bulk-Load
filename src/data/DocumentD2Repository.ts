@@ -1,6 +1,5 @@
-import { D2Api } from "../types/d2-api";
 import { DhisInstance } from "../domain/entities/DhisInstance";
-import { D2ApiDefault, DataStore } from "../types/d2-api";
+import { DataStore, D2Api } from "../types/d2-api";
 import { dataStoreNamespace } from "./StorageDataStoreRepository";
 import { Id } from "../domain/entities/ReferenceObject";
 import { DocumentDeleteOptions, DocumentRepository } from "../domain/repositories/DocumentRepository";
@@ -13,7 +12,7 @@ export class DocumentD2Repository implements DocumentRepository {
     private readonly dataStoreKey = "documents";
 
     constructor(localInstance: DhisInstance) {
-        this.api = new D2ApiDefault({ baseUrl: localInstance.url });
+        this.api = new D2Api({ baseUrl: localInstance.url });
         this.dataStore = this.api.dataStore(dataStoreNamespace);
     }
 

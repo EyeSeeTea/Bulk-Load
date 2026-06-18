@@ -1,6 +1,6 @@
 import { DhisInstance } from "../domain/entities/DhisInstance";
 import { StorageRepository } from "../domain/repositories/StorageRepository";
-import { D2Api, D2ApiDefault, DataStore } from "../types/d2-api";
+import { D2Api, DataStore } from "../types/d2-api";
 
 export const dataStoreNamespace = "bulk-load";
 
@@ -10,7 +10,7 @@ export class StorageDataStoreRepository extends StorageRepository {
 
     constructor({ url }: DhisInstance, mockApi?: D2Api) {
         super();
-        this.api = mockApi ?? new D2ApiDefault({ baseUrl: url });
+        this.api = mockApi ?? new D2Api({ baseUrl: url });
         this.dataStore = this.api.dataStore(dataStoreNamespace);
     }
 

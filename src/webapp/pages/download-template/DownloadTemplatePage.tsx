@@ -1,6 +1,6 @@
 import { useLoading, useSnackbar } from "@eyeseetea/d2-ui-components";
 import { Button, makeStyles } from "@material-ui/core";
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import i18n from "../../../utils/i18n";
 import {
     DataModelProps,
@@ -20,6 +20,7 @@ export default function DownloadTemplatePage({ settings, themes, customTemplates
     const [_availableModels, _] = useState<DataModelProps[]>([]);
     const [orgUnitShortName, setOrgUnitShortName] = useState(false);
 
+    const handlePeriodValidationError = useCallback((message: string) => snackbar.error(message), [snackbar]);
     const handleTemplateDownloadClick = async () => {
         if (!template) {
             snackbar.info(i18n.t("You need to select at least one element to export"));
@@ -30,6 +31,8 @@ export default function DownloadTemplatePage({ settings, themes, customTemplates
             template;
 
         if (
+            type === "trackerPrograms" &&
+            populate &&
             (template.relationshipsOuFilter === "SELECTED" ||
                 template.relationshipsOuFilter === "CHILDREN" ||
                 template.relationshipsOuFilter === "DESCENDANTS") &&
@@ -80,6 +83,7 @@ export default function DownloadTemplatePage({ settings, themes, customTemplates
                 onChange={setTemplate}
                 customTemplates={customTemplates}
                 onUseShortNamesChange={setOrgUnitShortName}
+                onPeriodValidationError={handlePeriodValidationError}
             />
 
             <div className={classes.downloadTemplateRow}>

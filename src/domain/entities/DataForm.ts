@@ -10,7 +10,29 @@ export const dataFormTypeMap = {
 } as const;
 export const dataFormTypes = Object.values(dataFormTypeMap) as typeof dataFormTypeMap[keyof typeof dataFormTypeMap][];
 export type DataFormType = typeof dataFormTypes[number];
-export type DataFormPeriod = "Daily" | "Monthly" | "Yearly" | "Weekly" | "Quarterly";
+
+const dataFormPeriods = [
+    "Daily",
+    "Monthly",
+    "Yearly",
+    "Weekly",
+    "Quarterly",
+    "BiWeekly",
+    "BiMonthly",
+    "WeeklyWednesday",
+    "WeeklyThursday",
+    "WeeklySaturday",
+    "WeeklySunday",
+    "QuarterlyNov",
+    "SixMonthly",
+    "SixMonthlyApril",
+    "SixMonthlyNov",
+    "FinancialApril",
+    "FinancialJuly",
+    "FinancialOct",
+    "FinancialNov",
+] as const;
+export type DataFormPeriod = typeof dataFormPeriods[number];
 
 export function getTranslations() {
     return {
@@ -20,6 +42,10 @@ export function getTranslations() {
             trackerPrograms: i18n.t("Tracker Program"),
         }),
     };
+}
+
+export function isDataFormPeriod(value: unknown): value is DataFormPeriod {
+    return typeof value === "string" && (dataFormPeriods as readonly string[]).includes(value);
 }
 
 export interface DataForm {

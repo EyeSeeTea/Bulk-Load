@@ -1,7 +1,11 @@
 import _ from "lodash";
 import { D2Api, MetadataPick } from "../../../types/d2-api";
 import { Id, NamedRef, Ref } from "../../../domain/entities/ReferenceObject";
-import { DataElement, NRCModuleMetadata } from "../../../domain/entities/templates/NRCModuleMetadata";
+import {
+    DataElement,
+    IndicatorMatching,
+    NRCModuleMetadata,
+} from "../../../domain/entities/templates/NRCModuleMetadata";
 import { NRCModuleMetadataRepository } from "../../../domain/repositories/templates/NRCModuleMetadataRepository";
 import { User } from "../../../domain/entities/User";
 import { Maybe } from "../../../types/utils";
@@ -15,6 +19,7 @@ type DataSetCategories = {
 export class NRCModuleMetadataD2Repository implements NRCModuleMetadataRepository {
     attributeCodes = {
         createdByApp: "GL_CREATED_BY_DATASET_CONFIGURATION",
+        indicatorMatching: "GL_INDICATOR_MATCHING",
     };
 
     categoryComboCodes = {
@@ -41,6 +46,7 @@ export class NRCModuleMetadataD2Repository implements NRCModuleMetadataRepositor
             dataElements: await this.getDataElementsWithDisaggregation(dataSet),
             organisationUnits: this.getOrganisationUnits(options.currentUser, projectCategoryOptions, dataSet),
             periods: this.getPeriods(dataSet),
+            indicatorMatchings: this.getIndicatorMatchings(dataSet),
             categoryCombo: {
                 categories: {
                     projects: projectCategoryOptions ? { categoryOptions: projectCategoryOptions } : undefined,
@@ -231,7 +237,7 @@ export class NRCModuleMetadataD2Repository implements NRCModuleMetadataRepositor
         if (!dataSetCategories.projects) {
             return undefined;
         } else if (this.isCreatedByDataSetConfigurationApp(dataSet)) {
-            const categoryOptionCode = dataSet.code ? dataSet.code.replace(/Data Set$/, "").trim() : undefined;
+            const categoryOptionCode = this.getProjectFromDataSet(dataSet);
 
             const res = await this.api.metadata
                 .get({
@@ -263,6 +269,37 @@ export class NRCModuleMetadataD2Repository implements NRCModuleMetadataRepositor
 
             return res.objects;
         }
+    }
+
+    private getProjectFromDataSet(dataSet: D2DataSet): Maybe<string> {
+        if (dataSet.code) {
+            return dataSet.code.replace(/Data Set$/, "").trim();
+        } else if (dataSet.name) {
+            return dataSet.name.replace(/DataSet$/, "").trim();
+        } else {
+            return undefined;
+        }
+    }
+
+    private getIndicatorMatchings(dataSet: D2DataSet): IndicatorMatching[] {
+        const attributeValue = dataSet.attributeValues.find(av => {
+            return av.attribute.code === this.attributeCodes.indicatorMatching;
+        });
+        if (!attributeValue?.value) return [];
+
+        return _(attributeValue.value.split(";"))
+            .map(pair => pair.trim())
+            .reject(pair => pair.length === 0)
+            .map((pair): IndicatorMatching | undefined => {
+                const [target, source] = pair.split("=").map(s => s.trim());
+                if (!target || !source) {
+                    console.error(`Invalid indicator matching format: "${pair}"`);
+                    return undefined;
+                }
+                return { target, source };
+            })
+            .compact()
+            .value();
     }
 
     private isCreatedByDataSetConfigurationApp(dataSet: D2DataSet): boolean {

@@ -1,6 +1,6 @@
 module.exports = {
     collectCoverageFrom: ["src/**/*.js"],
-    testPathIgnorePatterns: ["/node_modules/", "/cypress"],
+    testPathIgnorePatterns: ["/node_modules/"],
     transformIgnorePatterns: ["/node_modules/(?!@eyeseetea/(d2-ui-components|d2-api)|axios)"],
     modulePaths: ["src"],
     moduleDirectories: ["node_modules"],

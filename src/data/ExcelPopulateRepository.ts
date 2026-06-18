@@ -23,8 +23,11 @@ import { ThemeStyle } from "../domain/entities/Theme";
 import { ExcelRepository, ExcelValue, LoadOptions, ReadCellOptions } from "../domain/repositories/ExcelRepository";
 import i18n from "../utils/i18n";
 import { fromBase64 } from "../utils/files";
-import { removeCharacters } from "../utils/string";
+import { isString, removeCharacters, replaceInvalidXmlChars } from "../utils/string";
 import { Maybe } from "../types/utils";
+
+// Common result of a spreadsheet lookup formula that does not find a value. Invalid in DHIS2.
+const NOT_AVAILABLE_VALUE = "#N/A";
 
 export class ExcelPopulateRepository extends ExcelRepository {
     private workbooks: Record<string, ExcelWorkbook> = {};
@@ -115,14 +118,15 @@ export class ExcelPopulateRepository extends ExcelRepository {
 
         const { startCell: destination = cell } = mergedCells.find(range => range.hasCell(cell)) ?? {};
 
-        if (!!value && !isNaN(Number(value))) {
-            destination.value(Number(value));
-        } else if (String(value).startsWith("=")) {
-            destination.formula(String(value));
+        const safeValue = isString(value) ? replaceInvalidXmlChars(value) : value;
+        if (safeValue && !isNaN(Number(safeValue))) {
+            destination.value(Number(safeValue));
+        } else if (String(safeValue).startsWith("=")) {
+            destination.formula(String(safeValue));
         } else if (definedName) {
             destination.formula(`=${definedName}`);
         } else {
-            destination.value(value);
+            destination.value(safeValue);
         }
     }
 
@@ -230,7 +234,7 @@ export class ExcelPopulateRepository extends ExcelRepository {
     // formulas that result to blank cells store the raw formula in the value
     // use #N/A as default value instead of blank
     private resolveNA(value: Maybe<ExcelValue>, formula: Maybe<ExcelValue>): Maybe<ExcelValue> {
-        if (value === "#N/A") return "";
+        if (value === NOT_AVAILABLE_VALUE) return "";
         return value ?? formula;
     }
 
@@ -347,7 +351,7 @@ export class ExcelPopulateRepository extends ExcelRepository {
             .dropRightWhile(row =>
                 _((row as RowWithCells)._cells)
                     .compact()
-                    .every(c => c.value() === undefined)
+                    .every(c => isBlankCellValue(c.value()))
             )
             .last();
 
@@ -601,6 +605,12 @@ function getDefinedName(workbook: XLSX.Workbook, cell: XLSX.Cell): string | unde
     } else if (isCell(element)) {
         return String(element.value());
     }
+}
+
+// Empty formula cells resolve to undefined, "" or #N/A (see resolveNA / #N/A workaround).
+// Reason: treat all three as blank so trailing empty rows don't inflate the read range.
+function isBlankCellValue(value: unknown): boolean {
+    return value === undefined || value === "" || value === NOT_AVAILABLE_VALUE;
 }
 
 function getValue(cell: Cell): ExcelValue | undefined {

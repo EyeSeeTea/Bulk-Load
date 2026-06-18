@@ -60,7 +60,10 @@ class DownloadCustomization {
         dataEntry: "Data Entry",
         validation: "Validation",
         metadata: "Metadata",
+        matchingIndicators: "MatchingIndicators",
     };
+
+    dataEntryLastRow = 1000;
 
     constructor(
         private id: Id,
@@ -72,6 +75,7 @@ class DownloadCustomization {
     async execute() {
         await this.createSheet(this.sheets.validation);
         await this.createSheet(this.sheets.metadata);
+        await this.createSheet(this.sheets.matchingIndicators);
 
         const metadata = await this.moduleRepository.get({
             currentUser: this.options.currentUser,
@@ -131,9 +135,83 @@ class DownloadCustomization {
             this.getCategoryOptionComboCells(metadata),
             this.getDataSetCells(metadata),
             this.getClearedOutCellsByCategories(metadata),
+            this.getMatchingIndicatorsCells(metadata),
+            this.getMatchedRowsCells(metadata),
         ];
 
         return { cells: _.flatten(cellGroups) };
+    }
+
+    // Returns the matching pairs in BOTH directions (source→target and target→source).
+    private getMatchingPairs(metadata: NRCModuleMetadata): Array<{ from: Id; to: Id }> {
+        const dataElementIds = new Set(metadata.dataElements.map(de => de.id));
+        const validMatchings = metadata.indicatorMatchings.filter(
+            m => dataElementIds.has(m.source) && dataElementIds.has(m.target)
+        );
+
+        return validMatchings.flatMap(matching => [
+            { from: matching.source, to: matching.target },
+            { from: matching.target, to: matching.source },
+        ]);
+    }
+
+    private getMatchingIndicatorsCells(metadata: NRCModuleMetadata): Cell[] {
+        return this.getMatchingPairs(metadata).flatMap((pair, idx) => {
+            const row = idx + 1;
+            return [
+                cell({
+                    sheet: this.sheets.matchingIndicators,
+                    column: "A",
+                    row: row,
+                    value: referenceToId(pair.from),
+                }),
+                cell({
+                    sheet: this.sheets.matchingIndicators,
+                    column: "B",
+                    row: row,
+                    value: referenceToId(pair.to),
+                }),
+            ];
+        });
+    }
+
+    private getMatchedRowsCells(metadata: NRCModuleMetadata): Cell[] {
+        const matchingRowsCount = this.getMatchingPairs(metadata).length;
+
+        if (matchingRowsCount === 0) return [];
+
+        const sourcesRange = `${this.sheets.matchingIndicators}!$A$1:$A$${matchingRowsCount}`;
+        const lookupRange = `${this.sheets.matchingIndicators}!$A$1:$B$${matchingRowsCount}`;
+
+        return this.getSourceRows().flatMap(sourceRow => {
+            const targetRow = sourceRow + 1;
+            const matched = `ISNUMBER(MATCH(C${sourceRow}, ${sourcesRange}, 0))`;
+            const complete = ["A", "B", "C", "D", "E", "F"].map(column => `${column}${sourceRow}<>""`).join(", ");
+            const gate = `AND(${matched}, ${complete})`;
+
+            const mirror = (column: string, expression: string) =>
+                cell({
+                    sheet: this.sheets.dataEntry,
+                    column: column,
+                    row: targetRow,
+                    value: `=IF(${gate}, ${expression}, "")`,
+                });
+
+            return [
+                mirror("A", `A${sourceRow}`), // orgUnit
+                mirror("B", `B${sourceRow}`), // phase of emergency
+                mirror("C", `VLOOKUP(C${sourceRow}, ${lookupRange}, 2, FALSE)`), // matched (target) indicator
+                mirror("D", `D${sourceRow}`), // disaggregation
+                mirror("E", `E${sourceRow}`), // target/actual
+                mirror("F", `F${sourceRow}`), // value
+                mirror("G", `G${sourceRow}`), // attribute id (hidden)
+                mirror("H", `H${sourceRow}`), // categoryOption id (hidden)
+            ];
+        });
+    }
+
+    private getSourceRows(): number[] {
+        return _.range(this.initialDataEntryRow, this.dataEntryLastRow, 2);
     }
 
     private getDataSetCells(metadata: NRCModuleMetadata) {
@@ -339,8 +417,38 @@ class DownloadCustomization {
 
         this.hideIdCells(excelRepository);
 
+        await this.applyDataEntryLocking();
+
         excelRepository.protectSheet(this.id, this.sheets.validation, this.password);
         excelRepository.protectSheet(this.id, this.sheets.metadata, this.password);
+        excelRepository.protectSheet(this.id, this.sheets.matchingIndicators, this.password);
+        excelRepository.protectSheet(this.id, this.sheets.dataEntry, this.password);
+    }
+
+    private async applyDataEntryLocking() {
+        const { excelRepository, id } = this;
+        const sheet = this.sheets.dataEntry;
+
+        const editableConfigCells = ["B1", "B3", "E3", "D1"];
+        for (const ref of editableConfigCells) {
+            await excelRepository.styleCell(id, { type: "cell", sheet, ref }, { locked: false });
+        }
+
+        for (const sourceRow of this.getSourceRows()) {
+            const targetRow = sourceRow + 1;
+
+            await excelRepository.styleCell(
+                id,
+                { type: "range", sheet, ref: `A${sourceRow}:F${sourceRow}` },
+                { locked: false }
+            );
+
+            await excelRepository.styleCell(
+                id,
+                { type: "range", sheet, ref: `A${targetRow}:H${targetRow}` },
+                { locked: true, fillColor: "#F2F2F2" }
+            );
+        }
     }
 
     private hideIdCells(excelRepository: ExcelRepository) {

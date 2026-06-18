@@ -1,3 +1,4 @@
+import _ from "lodash";
 import { TranslatableItem } from "./sheetBuilder";
 
 export class MetadataService {

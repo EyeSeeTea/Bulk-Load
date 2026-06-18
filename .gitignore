@@ -31,10 +31,15 @@ src/react-app-env.d.ts
 bak
 .eslintcache
 
-# cypress
-cypress/screenshots/
-cypress/videos/
-cypress/fixtures/
-
 # IntelliJ
 .idea/*
+
+# personal session notes
+.journal
+
+# Yarn 4
+.yarn/cache
+.yarn/install-state.gz
+.yarn/unplugged
+.yarn/build-state.yml
+.pnp.*
