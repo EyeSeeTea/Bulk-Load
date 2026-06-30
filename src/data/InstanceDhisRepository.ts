@@ -34,6 +34,7 @@ import {
     SynchronizationStatus,
 } from "../domain/entities/SynchronizationResult";
 import { Program, TrackedEntityInstance } from "../domain/entities/TrackedEntityInstance";
+import { ImportRowLookup } from "../domain/entities/ImportRowLookup";
 import {
     BuilderMetadata,
     GetDataFormsParams,
@@ -257,25 +258,29 @@ export class InstanceDhisRepository implements InstanceRepository {
             .value();
     }
 
-    public async deleteAggregatedData(dataPackage: DataPackage): Promise<SynchronizationResult> {
-        return this.importAggregatedData("DELETE", dataPackage);
+    public async deleteAggregatedData(
+        dataPackage: DataPackage,
+        rowLookup?: ImportRowLookup
+    ): Promise<SynchronizationResult> {
+        return this.importAggregatedData("DELETE", dataPackage, rowLookup);
     }
 
     public async importDataPackage(
         dataPackage: DataPackage,
         options: ImportDataPackageOptions
     ): Promise<SynchronizationResult[]> {
-        const { createAndUpdate } = options;
+        const { createAndUpdate, rowLookup } = options;
         switch (dataPackage.type) {
             case dataFormTypeMap.dataSets: {
                 const result = await this.importAggregatedData(
                     createAndUpdate ? "CREATE_AND_UPDATE" : "CREATE",
-                    dataPackage
+                    dataPackage,
+                    rowLookup
                 );
                 return [result];
             }
             case dataFormTypeMap.programs: {
-                return this.importEventsData(dataPackage);
+                return this.importEventsData(dataPackage, rowLookup);
             }
             case dataFormTypeMap.trackerPrograms: {
                 return this.importTrackerProgramData(dataPackage, options);
@@ -446,7 +451,8 @@ export class InstanceDhisRepository implements InstanceRepository {
 
     private async importAggregatedData(
         importStrategy: "CREATE" | "UPDATE" | "CREATE_AND_UPDATE" | "DELETE",
-        dataPackage: DataPackage
+        dataPackage: DataPackage,
+        rowLookup?: ImportRowLookup
     ): Promise<SynchronizationResult> {
         if (dataPackage.type !== dataFormTypeMap.dataSets) throw new Error("Invalid data package type");
 
@@ -499,7 +505,7 @@ export class InstanceDhisRepository implements InstanceRepository {
 
         const allConflicts = _.flatMap(summaries, s => s.conflicts ?? []);
         const errors = allConflicts.map(({ object, value }) => ({ id: object, message: value, details: "" }));
-        const errorDetails = await getMetadataDetailsFromErrors(this.api, errors);
+        const errorDetails = await getMetadataDetailsFromErrors(this.api, errors, rowLookup);
 
         return {
             title,
@@ -585,7 +591,10 @@ export class InstanceDhisRepository implements InstanceRepository {
         );
     }
 
-    private async importEventsData(dataPackage: DataPackage): Promise<SynchronizationResult[]> {
+    private async importEventsData(
+        dataPackage: DataPackage,
+        rowLookup?: ImportRowLookup
+    ): Promise<SynchronizationResult[]> {
         const events = this.buildEventsPayload(dataPackage);
 
         const programs = _(events)
@@ -612,7 +621,7 @@ export class InstanceDhisRepository implements InstanceRepository {
             };
         });
 
-        return postEvents(this.api, eventsToSave);
+        return postEvents(this.api, eventsToSave, rowLookup);
     }
 
     private async getEventProgramStage(programId: Id): Promise<Ref | undefined> {

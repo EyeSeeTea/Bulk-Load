@@ -114,6 +114,7 @@ export class ExcelReader {
                     dataValues: _.flatMap(items, ({ dataValues }) => dataValues),
                     coordinate: items[0]?.coordinate,
                     geometry: items[0]?.geometry,
+                    sheet: items[0]?.sheet,
                 };
             })
             .compact()
@@ -166,6 +167,7 @@ export class ExcelReader {
 
             return {
                 group: this.excelRepository.buildRowNumber(cell.ref),
+                sheet: String(dataSource.range.sheet),
                 dataForm: this.formatValue(dataFormId),
                 id: eventId ? this.formatValue(eventId) : undefined,
                 orgUnit: this.formatValue(orgUnit),
@@ -345,6 +347,7 @@ export class ExcelReader {
 
                 const data: TemplateDataPackageData = {
                     group: rowIdx,
+                    sheet: String(dataSource.dataValues.sheet),
                     dataForm: String(programId),
                     id: eventId ? String(eventId) : undefined,
                     orgUnit: tei.orgUnit.id,
@@ -475,6 +478,8 @@ export class ExcelReader {
                 id: String(teiId),
                 orgUnit: { id: orgUnitId },
                 disabled: false,
+                row: rowIdx,
+                sheet: String(dataSource.attributes.sheet),
                 attributeValues,
                 enrollment: {
                     enrolledAt: this.formatValue(enrollmentDate),

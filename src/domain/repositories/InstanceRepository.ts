@@ -10,6 +10,7 @@ import { OrgUnit } from "../entities/OrgUnit";
 import { Id, NamedRef } from "../entities/ReferenceObject";
 import { SynchronizationResult } from "../entities/SynchronizationResult";
 import { Program, TrackedEntityInstance } from "../entities/TrackedEntityInstance";
+import { ImportRowLookup } from "../entities/ImportRowLookup";
 
 export interface GetDataPackageParams {
     type: DataFormType;
@@ -37,7 +38,7 @@ export interface InstanceRepository {
     getDataPackage(params: GetDataPackageParams): Promise<DataPackage>;
     getLocales(): Promise<Locale[]>;
     getDefaultIds(filter?: string): Promise<string[]>;
-    deleteAggregatedData(dataPackage: DataPackage): Promise<SynchronizationResult>;
+    deleteAggregatedData(dataPackage: DataPackage, rowLookup?: ImportRowLookup): Promise<SynchronizationResult>;
     importDataPackage(dataPackage: DataPackage, options: ImportDataPackageOptions): Promise<SynchronizationResult[]>;
     getProgram(programId: Id): Promise<Program | undefined>;
     convertDataPackage(dataPackage: DataPackage): EventsPackage | AggregatedPackage;
@@ -45,7 +46,11 @@ export interface InstanceRepository {
     getDataFormPermissions(dataFormIds: Id[]): Promise<DataFormPermissions[]>;
 }
 
-export type ImportDataPackageOptions = { createAndUpdate: boolean; multiTextTeiDelimiter: Maybe<string> };
+export type ImportDataPackageOptions = {
+    createAndUpdate: boolean;
+    multiTextTeiDelimiter: Maybe<string>;
+    rowLookup?: ImportRowLookup;
+};
 
 export interface BuilderMetadata {
     orgUnits: Record<Id, NamedRef>;
