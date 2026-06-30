@@ -185,8 +185,8 @@ export class ExcelReader {
                         category: category ? this.formatValue(category) : undefined,
                         value: this.formatValue(value),
                         optionId: optionId ? removeCharacters(optionId) : undefined,
-
                         contentType: contentType,
+                        column: this.parseColumn(cell.ref),
                     },
                 ],
             };
@@ -312,6 +312,7 @@ export class ExcelReader {
             ]);
             return {
                 row: this.excelRepository.buildRowNumber(cell.ref),
+                column: this.parseColumn(cell.ref),
                 value: value,
                 optionId: optionId,
                 contentType: contentType,
@@ -343,7 +344,7 @@ export class ExcelReader {
                 // If column id does not exist on program, exclude values => Attributes
                 if (!dataForm.dataElements.find(({ id }) => id === dataElementId)) return null;
 
-                const { value, optionId, contentType } = item;
+                const { value, optionId, contentType, column } = item;
 
                 const data: TemplateDataPackageData = {
                     group: rowIdx,
@@ -364,6 +365,7 @@ export class ExcelReader {
                             value: this.formatValue(value),
                             optionId: optionId ? removeCharacters(optionId) : undefined,
                             contentType: contentType,
+                            column,
                         },
                     ],
                 };
@@ -439,6 +441,7 @@ export class ExcelReader {
 
             return {
                 row: this.excelRepository.buildRowNumber(cell.ref),
+                column: this.parseColumn(cell.ref),
                 attribute: {
                     id: attributeId,
                     valueType: dataForm.teiAttributes?.find(attribute => attribute.id === attributeId)?.valueType,
@@ -523,6 +526,10 @@ export class ExcelReader {
         if (cell) {
             return readCellResolvingDefinedNames(this.excelRepository, template.id, cell);
         }
+    }
+
+    private parseColumn(ref: string): string | undefined {
+        return /^[A-Z]+/.exec(ref)?.[0];
     }
 
     private formatValue(value: ExcelValue | undefined): string {

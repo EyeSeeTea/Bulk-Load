@@ -34,6 +34,7 @@ export interface AttributeValue {
     value: string;
     optionId?: Id;
     contentType?: ContentType;
+    column?: string;
 }
 
 export interface Program {

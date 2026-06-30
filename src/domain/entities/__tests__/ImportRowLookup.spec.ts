@@ -42,6 +42,25 @@ describe("ImportRowLookup", () => {
             expect(lookup.getLocations(["unknown"])).toEqual([]);
         });
 
+        it("carries column letter from data element values but not from row-level ids", () => {
+            const pkg: TemplateDataPackage = {
+                type: "dataSets",
+                dataEntries: [
+                    dataEntry({
+                        group: 6,
+                        sheet: "Data Entry",
+                        orgUnit: "ouB",
+                        dataValues: [{ dataElement: "deZ", category: undefined, value: 42, optionId: undefined, contentType: undefined, column: "C" }],
+                    }),
+                ],
+            };
+
+            const lookup = ImportRowLookup.fromTemplateDataPackage(pkg);
+
+            expect(lookup.getLocations(["ouB"])).toEqual([{ sheet: "Data Entry", row: 6 }]);
+            expect(lookup.getLocations(["deZ"])).toEqual([{ sheet: "Data Entry", row: 6, column: "C" }]);
+        });
+
         it("indexes the event id, attribute, programStage and option id", () => {
             const pkg: TemplateDataPackage = {
                 type: "programs",
@@ -155,6 +174,28 @@ describe("ImportRowLookup", () => {
 
         it("omits the sheet label when no sheet is known", () => {
             expect(lookup.formatLocations([{ row: 3 }])).toBe("Found in row 3 of the Excel file");
+        });
+
+        it("formats a single cell ref when column is known", () => {
+            expect(lookup.formatLocations([{ sheet: "Data Entry", row: 6, column: "C" }])).toBe(
+                "Found in sheet Data Entry, cell C6 of the Excel file"
+            );
+        });
+
+        it("formats multiple cell refs when all have columns", () => {
+            const result = lookup.formatLocations([
+                { sheet: "Data Entry", row: 9, column: "C" },
+                { sheet: "Data Entry", row: 5, column: "B" },
+            ]);
+            expect(result).toBe("Found in sheet Data Entry, cells B5, C9 of the Excel file");
+        });
+
+        it("prefers cell ref over row-only location for the same row", () => {
+            const result = lookup.formatLocations([
+                { sheet: "Data Entry", row: 6, column: "B" },
+                { sheet: "Data Entry", row: 6 },
+            ]);
+            expect(result).toBe("Found in sheet Data Entry, cell B6 of the Excel file");
         });
     });
 });

@@ -440,6 +440,7 @@ export type TemplateDataValue = {
     optionId: Maybe<string>;
     contentType: Maybe<ContentType>;
     comment?: string;
+    column?: string;
 };
 export type TemplateDataPackageData = {
     group: number | Maybe<string>;

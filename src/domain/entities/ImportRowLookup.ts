@@ -6,6 +6,7 @@ import { TemplateDataPackage } from "./Template";
 export interface RowLocation {
     sheet?: string;
     row: number;
+    column?: string;
 }
 
 const MAX_LINES_PER_SHEET = 5;
@@ -38,9 +39,10 @@ export class ImportRowLookup {
             add(entry.programStage, location);
             add(entry.trackedEntityInstance, location);
             entry.dataValues.forEach(dataValue => {
-                add(dataValue.dataElement, location);
-                add(dataValue.category, location);
-                add(dataValue.optionId, location);
+                const dvLocation: RowLocation = { ...location, column: dataValue.column };
+                add(dataValue.dataElement, dvLocation);
+                add(dataValue.category, dvLocation);
+                add(dataValue.optionId, dvLocation);
             });
         });
 
@@ -51,8 +53,9 @@ export class ImportRowLookup {
                 add(tei.id, location);
                 add(tei.orgUnit.id, location);
                 tei.attributeValues.forEach(attributeValue => {
-                    add(attributeValue.attribute.id, location);
-                    add(attributeValue.optionId, location);
+                    const avLocation: RowLocation = { ...location, column: attributeValue.column };
+                    add(attributeValue.attribute.id, avLocation);
+                    add(attributeValue.optionId, avLocation);
                 });
             });
         }
@@ -71,16 +74,34 @@ export class ImportRowLookup {
         const bySheet = _(locations)
             .groupBy(location => location.sheet ?? "")
             .map((sheetLocations, sheet) => {
-                const rows = _.sortBy(_.uniq(sheetLocations.map(location => location.row)));
-                const shown = rows.slice(0, MAX_LINES_PER_SHEET);
-                const remaining = rows.length - shown.length;
-                const linesLabel =
-                    shown.length === 1
-                        ? i18n.t("row {{lines}}", { lines: String(shown[0]) })
-                        : i18n.t("rows {{lines}}", { lines: shown.join(", ") });
-                const moreLabel = remaining > 0 ? ` ${i18n.t("and {{count}} more", { count: remaining })}` : "";
-                const lines = `${linesLabel}${moreLabel}`;
-                return sheet ? i18n.t("sheet {{sheet}}, {{lines}}", { sheet, lines }) : lines;
+                // Per row: prefer cell-level locations over row-only ones
+                const byRow = _.groupBy(sheetLocations, loc => loc.row);
+                const refined = _.flatMap(byRow, rowLocs => {
+                    const withColumn = rowLocs.filter(l => l.column);
+                    return withColumn.length > 0 ? withColumn : rowLocs;
+                });
+
+                const sortedLocs = _(refined)
+                    .uniqBy(loc => `${loc.sheet ?? ""}|${loc.row}|${loc.column ?? ""}`)
+                    .sortBy([loc => loc.row, loc => loc.column])
+                    .value();
+                const shownLocs = sortedLocs.slice(0, MAX_LINES_PER_SHEET);
+                const remaining = sortedLocs.length - shownLocs.length;
+                const allHaveColumn = shownLocs.every(l => l.column);
+                const shown = shownLocs.map(loc => (loc.column ? `${loc.column}${loc.row}` : String(loc.row)));
+                const refs = shown.length === 1 ? shown[0] : shown.join(", ");
+                const refsLabel = allHaveColumn
+                    ? shown.length === 1
+                        ? i18n.t("cell {{ref}}", { ref: refs })
+                        : i18n.t("cells {{refs}}", { refs })
+                    : shown.length === 1
+                    ? i18n.t("row {{ref}}", { ref: refs })
+                    : i18n.t("rows {{refs}}", { refs });
+                const label =
+                    remaining > 0
+                        ? `${refsLabel} ${i18n.t("and {{count}} more", { count: remaining })}`
+                        : refsLabel;
+                return sheet ? i18n.t("sheet {{sheet}}, {{lines}}", { sheet, lines: label }) : label;
             })
             .value();
 

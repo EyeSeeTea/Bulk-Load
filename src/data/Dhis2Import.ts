@@ -75,7 +75,7 @@ export async function processImportResponse(options: {
         details: "",
     }));
 
-    const detailedErrors = await getMetadataDetailsFromErrors(api, errors, rowLookup);
+    const detailedErrors = deduplicateErrors(await getMetadataDetailsFromErrors(api, errors, rowLookup));
 
     if (!bundleReport) {
         return {
@@ -221,6 +221,16 @@ type MetadataSimple = { id: string; displayFormName?: string; displayName?: stri
 type MetadataApiResponse = { system: { id: string } } & Record<string, MetadataSimple[]>;
 
 type Item = { id: string; name: string };
+
+function deduplicateErrors(errors: ErrorMessage[]): ErrorMessage[] {
+    return _(errors)
+        .groupBy(e => e.message)
+        .flatMap(group => {
+            const withDetails = group.filter(e => e.details);
+            return withDetails.length > 0 ? withDetails : group;
+        })
+        .value();
+}
 
 const getItemsFromMetadataResponse = (response: MetadataApiResponse): Item[] => {
     const entries = Object.entries(response);

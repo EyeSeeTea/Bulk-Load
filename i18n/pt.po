@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2026-06-29T11:38:42.923Z\n"
+"POT-Creation-Date: 2026-06-30T17:31:02.698Z\n"
 "Language: pt\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -111,10 +111,16 @@ msgstr "Programa"
 msgid "Tracker Program"
 msgstr "Programa"
 
-msgid "row {{lines}}"
+msgid "cell {{ref}}"
 msgstr ""
 
-msgid "rows {{lines}}"
+msgid "cells {{refs}}"
+msgstr ""
+
+msgid "row {{ref}}"
+msgstr ""
+
+msgid "rows {{refs}}"
 msgstr ""
 
 #, fuzzy

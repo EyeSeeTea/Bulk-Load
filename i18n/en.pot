@@ -5,8 +5,8 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2026-06-29T11:38:42.923Z\n"
-"PO-Revision-Date: 2026-06-29T11:38:42.924Z\n"
+"POT-Creation-Date: 2026-06-30T17:31:02.698Z\n"
+"PO-Revision-Date: 2026-06-30T17:31:02.699Z\n"
 
 msgid "Events - Create/update"
 msgstr ""
@@ -97,10 +97,16 @@ msgstr ""
 msgid "Tracker Program"
 msgstr ""
 
-msgid "row {{lines}}"
+msgid "cell {{ref}}"
 msgstr ""
 
-msgid "rows {{lines}}"
+msgid "cells {{refs}}"
+msgstr ""
+
+msgid "row {{ref}}"
+msgstr ""
+
+msgid "rows {{refs}}"
 msgstr ""
 
 msgid "and {{count}} more"
