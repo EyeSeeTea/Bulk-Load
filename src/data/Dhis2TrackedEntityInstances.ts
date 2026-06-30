@@ -274,6 +274,7 @@ async function uploadTeis(options: {
                 title: `${model} - ${title}`,
                 model: model,
                 splitStatsList: false,
+                rowLookup: importOptions.rowLookup,
             }
         );
     });

@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2025-11-19T17:15:26.356Z\n"
+"POT-Creation-Date: 2026-06-30T17:31:02.698Z\n"
 "Language: pt\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -110,6 +110,30 @@ msgstr "Programa"
 #, fuzzy
 msgid "Tracker Program"
 msgstr "Programa"
+
+msgid "cell {{ref}}"
+msgstr ""
+
+msgid "cells {{refs}}"
+msgstr ""
+
+msgid "row {{ref}}"
+msgstr ""
+
+msgid "rows {{refs}}"
+msgstr ""
+
+#, fuzzy
+msgid "and {{count}} more"
+msgid_plural "and {{count}} more"
+msgstr[0] "Excluir {{count}} temas"
+msgstr[1] ""
+
+msgid "sheet {{sheet}}, {{lines}}"
+msgstr ""
+
+msgid "Found in {{locations}} of the Excel file"
+msgstr ""
 
 msgid "Cannot read data form id"
 msgstr "Não é possível ler os dados do formulário de identificação"
@@ -1385,9 +1409,9 @@ msgid ""
 "Samaritan’s Purse, Medecins Sans Frontières (MSF), the the Norwegian Refugee "
 "Council (NRC) and the Clinton Health Access Initiative (CHAI) to support "
 "countries in strengthening the collection and use of health data by using "
-"DHIS2. The application has been developed by [EyeSeeTea SL](http://eyeseetea."
-"com). Source code, documentation and release notes can be found at the "
-"[EyeSeetea GitHub Project Page](https://eyeseetea.github.io/Bulk-Load-"
+"DHIS2. The application has been developed by [EyeSeeTea SL](http://"
+"eyeseetea.com). Source code, documentation and release notes can be found at "
+"the [EyeSeetea GitHub Project Page](https://eyeseetea.github.io/Bulk-Load-"
 "blessed/)."
 msgstr ""
 

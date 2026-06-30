@@ -5,8 +5,8 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2025-11-19T17:15:26.356Z\n"
-"PO-Revision-Date: 2025-11-19T17:15:26.356Z\n"
+"POT-Creation-Date: 2026-06-30T17:31:02.698Z\n"
+"PO-Revision-Date: 2026-06-30T17:31:02.699Z\n"
 
 msgid "Events - Create/update"
 msgstr ""
@@ -95,6 +95,29 @@ msgid "Event Program"
 msgstr ""
 
 msgid "Tracker Program"
+msgstr ""
+
+msgid "cell {{ref}}"
+msgstr ""
+
+msgid "cells {{refs}}"
+msgstr ""
+
+msgid "row {{ref}}"
+msgstr ""
+
+msgid "rows {{refs}}"
+msgstr ""
+
+msgid "and {{count}} more"
+msgid_plural "and {{count}} more"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "sheet {{sheet}}, {{lines}}"
+msgstr ""
+
+msgid "Found in {{locations}} of the Excel file"
 msgstr ""
 
 msgid "Cannot read data form id"

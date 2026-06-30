@@ -6,6 +6,7 @@ import { Ref } from "../domain/entities/ReferenceObject";
 import { ErrorMessage } from "../domain/entities/SynchronizationResult";
 import { promiseMap } from "../utils/promises";
 import { UidErrorMessage } from "./UidErrorMessage";
+import { ImportRowLookup } from "../domain/entities/ImportRowLookup";
 
 export type Status = "OK" | "ERROR";
 
@@ -61,8 +62,9 @@ export async function processImportResponse(options: {
     model: string;
     importResult: ImportReportResponse;
     splitStatsList: boolean;
+    rowLookup?: ImportRowLookup;
 }): Promise<SynchronizationResult> {
-    const { api, title, model, importResult, splitStatsList } = options;
+    const { api, title, model, importResult, splitStatsList, rowLookup } = options;
 
     const { bundleReport, status, validationReport } = importResult;
     const message = status === "OK" ? i18n.t("Import was successful") : i18n.t("Import failed");
@@ -73,7 +75,7 @@ export async function processImportResponse(options: {
         details: "",
     }));
 
-    const detailedErrors = await getMetadataDetailsFromErrors(api, errors);
+    const detailedErrors = deduplicateErrors(await getMetadataDetailsFromErrors(api, errors, rowLookup));
 
     if (!bundleReport) {
         return {
@@ -115,7 +117,7 @@ export async function processImportResponse(options: {
         title: title,
         status: status === "OK" ? "SUCCESS" : "ERROR",
         message: message,
-        errors: errors,
+        errors: detailedErrors,
         stats: stats,
         rawResponse: importResult,
     };
@@ -124,9 +126,9 @@ export async function processImportResponse(options: {
 export async function postImport(
     api: D2Api,
     postFn: () => Promise<ImportPostResponse>,
-    options: { title: string; model: string; splitStatsList: boolean }
+    options: { title: string; model: string; splitStatsList: boolean; rowLookup?: ImportRowLookup }
 ): Promise<SynchronizationResult> {
-    const { title, model, splitStatsList } = options;
+    const { title, model, splitStatsList, rowLookup } = options;
 
     try {
         const response = await postFn();
@@ -149,6 +151,7 @@ export async function postImport(
             model: model,
             importResult: trackerJobReport,
             splitStatsList,
+            rowLookup,
         });
     } catch (error: any) {
         if (error?.response?.data) {
@@ -159,6 +162,7 @@ export async function postImport(
                     model: model,
                     importResult: error.response.data,
                     splitStatsList,
+                    rowLookup,
                 });
             } else {
                 return {
@@ -178,13 +182,14 @@ async function getTrackerJobs(api: D2Api, trackerImportResponseId: Id): Promise<
     return await api.get<{ completed: boolean }[]>(`/tracker/jobs/${trackerImportResponseId}`).getData();
 }
 
-export async function getMetadataDetailsFromErrors(api: D2Api, errors: ErrorMessage[]): Promise<ErrorMessage[]> {
-    const metadataIds = errors.flatMap(error => {
-        const uids = UidErrorMessage.extractUids(error.message);
-        return { id: error.id, uids };
-    });
+export async function getMetadataDetailsFromErrors(
+    api: D2Api,
+    errors: ErrorMessage[],
+    rowLookup?: ImportRowLookup
+): Promise<ErrorMessage[]> {
+    const uidsByError = errors.map(error => UidErrorMessage.extractUids(error.message));
 
-    const allIds = _.uniq(metadataIds.flatMap(item => item.uids));
+    const allIds = _.uniq(uidsByError.flat());
 
     const allItemsDetails = await promiseMap(_.chunk(allIds, 100), async (ids): Promise<Item[]> => {
         const data = await api
@@ -197,21 +202,35 @@ export async function getMetadataDetailsFromErrors(api: D2Api, errors: ErrorMess
     });
 
     const allItems = _.flatten(allItemsDetails);
-
-    if (allItems.length === 0) return errors;
-
     const allItemsById = new Map<string, string>(allItems.map(item => [item.id, item.name]));
 
-    const errorMessages = errors.map(error => {
-        return { ...error, message: UidErrorMessage.replaceUidsInMessage(error.message, allItemsById) };
+    return errors.map((error, index) => {
+        const message =
+            allItems.length === 0 ? error.message : UidErrorMessage.replaceUidsInMessage(error.message, allItemsById);
+
+        const rowDetails = rowLookup
+            ? rowLookup.formatLocations(rowLookup.getLocations([error.id, ...(uidsByError[index] ?? [])]))
+            : "";
+        const details = rowDetails || error.details;
+
+        return { ...error, message, details };
     });
-    return errorMessages;
 }
 
 type MetadataSimple = { id: string; displayFormName?: string; displayName?: string; code?: string };
 type MetadataApiResponse = { system: { id: string } } & Record<string, MetadataSimple[]>;
 
 type Item = { id: string; name: string };
+
+function deduplicateErrors(errors: ErrorMessage[]): ErrorMessage[] {
+    return _(errors)
+        .groupBy(e => e.message)
+        .flatMap(group => {
+            const withDetails = group.filter(e => e.details);
+            return withDetails.length > 0 ? withDetails : group;
+        })
+        .value();
+}
 
 const getItemsFromMetadataResponse = (response: MetadataApiResponse): Item[] => {
     const entries = Object.entries(response);
