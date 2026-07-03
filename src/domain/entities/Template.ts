@@ -91,6 +91,9 @@ export interface CustomTemplateWithUrl extends BaseTemplate {
     description: string;
     fixedOrgUnit?: CellRef;
     fixedPeriod?: CellRef;
+    // Hidden author-set opt-in for multi org unit selection on custom dataSets.
+    // Do not combine with fixedOrgUnit, which only writes the first org unit.
+    allowMultipleOrgUnits?: boolean;
     showLanguage?: boolean;
     showPeriod?: boolean;
     downloadCustomization?: (
