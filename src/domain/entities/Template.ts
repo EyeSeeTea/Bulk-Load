@@ -94,6 +94,9 @@ export interface CustomTemplateWithUrl extends BaseTemplate {
     // Hidden author-set opt-in for multi org unit selection on custom dataSets.
     // Do not combine with fixedOrgUnit, which only writes the first org unit.
     allowMultipleOrgUnits?: boolean;
+    // Hidden author-set opt-in for the exported org unit row order. "ALPHABETICAL" = hierarchy pre-order
+    // with siblings by name. Only meaningful with multiple org units, so pair with allowMultipleOrgUnits.
+    orgUnitSort?: "ALPHABETICAL";
     showLanguage?: boolean;
     showPeriod?: boolean;
     downloadCustomization?: (
