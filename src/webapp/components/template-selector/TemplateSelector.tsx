@@ -75,7 +75,6 @@ export const TemplateSelector = ({
     const [datePickerFormat, setDatePickerFormat] = useState<PickerFormat>();
     const [userHasReadAccess, setUserHasReadAccess] = useState<boolean>(false);
     const [filterOrgUnits, setFilterOrgUnits] = useState<boolean>(true);
-    const [allowMultipleOrgUnits, setAllowMultipleOrgUnits] = useState<boolean>(false);
     const [selectedModel, setSelectedModel] = useState<string>("");
     const [state, setState] = useState<PartialBy<TemplateSelectorState, "type" | "id" | "templateId" | "templateType">>(
         {
@@ -99,6 +98,10 @@ export const TemplateSelector = ({
 
     const dataSets = dataSource?.dataSets;
     const { templateId, id } = state;
+
+    const activeCustomTemplate =
+        state.templateType === "custom" ? customTemplates.find(t => t.id === templateId) : undefined;
+    const allowMultipleOrgUnits = Boolean(activeCustomTemplate?.allowMultipleOrgUnits);
 
     const isDataSet = React.useMemo(() => {
         if (!dataSets) return false;
@@ -218,7 +221,6 @@ export const TemplateSelector = ({
                 }));
                 clearPopulateDates();
                 setSelectedOrgUnits([]);
-                setAllowMultipleOrgUnits(false);
                 return;
             }
 
@@ -238,8 +240,6 @@ export const TemplateSelector = ({
 
             const customTemplate = customTemplates.find(t => t.id === templateId);
             const templateType: TemplateType = customTemplate ? "custom" : "generated";
-
-            setAllowMultipleOrgUnits(customTemplate?.allowMultipleOrgUnits ?? false);
 
             const teiFilter =
                 templateType === "custom" && type === "trackerPrograms" && customTemplate?.filters?.teiFilters;
