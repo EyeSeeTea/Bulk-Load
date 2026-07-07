@@ -123,11 +123,10 @@ msgstr ""
 msgid "rows {{refs}}"
 msgstr ""
 
-#, fuzzy
 msgid "and {{count}} more"
 msgid_plural "and {{count}} more"
-msgstr[0] "Excluir {{count}} temas"
-msgstr[1] ""
+msgstr[0] "e mais {{count}}"
+msgstr[1] "e mais {{count}}"
 
 msgid "sheet {{sheet}}, {{lines}}"
 msgstr ""

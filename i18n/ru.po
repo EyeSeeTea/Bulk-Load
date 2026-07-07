@@ -125,13 +125,12 @@ msgstr ""
 msgid "rows {{refs}}"
 msgstr ""
 
-#, fuzzy
 msgid "and {{count}} more"
 msgid_plural "and {{count}} more"
-msgstr[0] "Удалить {{count}} темы"
-msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
+msgstr[0] "и ещё {{count}}"
+msgstr[1] "и ещё {{count}}"
+msgstr[2] "и ещё {{count}}"
+msgstr[3] "и ещё {{count}}"
 
 msgid "sheet {{sheet}}, {{lines}}"
 msgstr ""

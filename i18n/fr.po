@@ -115,11 +115,10 @@ msgstr ""
 msgid "rows {{refs}}"
 msgstr ""
 
-#, fuzzy
 msgid "and {{count}} more"
 msgid_plural "and {{count}} more"
-msgstr[0] "Supprimer {{count}} thèmes"
-msgstr[1] ""
+msgstr[0] "et {{count}} de plus"
+msgstr[1] "et {{count}} de plus"
 
 msgid "sheet {{sheet}}, {{lines}}"
 msgstr ""
