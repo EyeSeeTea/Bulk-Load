@@ -222,6 +222,8 @@ type MetadataApiResponse = { system: { id: string } } & Record<string, MetadataS
 
 type Item = { id: string; name: string };
 
+// Group by message alone and, when any copy resolved an Excel location, drop the location-less
+// copies so the same conflict is not shown twice. Grouping by `details` too would defeat this.
 function deduplicateErrors(errors: ErrorMessage[]): ErrorMessage[] {
     return _(errors)
         .groupBy(e => e.message)
