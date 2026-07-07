@@ -211,7 +211,7 @@ describe("ImportRowLookup", () => {
     });
 
     describe("formatLocations", () => {
-        const lookup = new ImportRowLookup(new Map());
+        const lookup = new ImportRowLookup({});
 
         it("returns an empty string when there are no locations", () => {
             expect(lookup.formatLocations([])).toBe("");

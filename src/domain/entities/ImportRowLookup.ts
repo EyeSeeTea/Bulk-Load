@@ -1,13 +1,17 @@
 import _ from "lodash";
 import i18n from "../../utils/i18n";
+import { Maybe } from "../../types/utils";
 import { Id } from "./ReferenceObject";
-import { TemplateDataPackage } from "./Template";
+import { TemplateDataPackage, TemplateDataPackageData } from "./Template";
+import { TrackedEntityInstance } from "./TrackedEntityInstance";
 
 export interface RowLocation {
     sheet?: string;
     row: number;
     column?: string;
 }
+
+type IdLocation = { id: Maybe<string>; location: RowLocation };
 
 const MAX_LINES_PER_SHEET = 5;
 
@@ -17,63 +21,27 @@ const MAX_LINES_PER_SHEET = 5;
  * annotated with "Found in sheet 'X', line Y".
  */
 export class ImportRowLookup {
-    constructor(private readonly locationsById: Map<Id, RowLocation[]>) {}
+    constructor(private readonly locationsById: Record<Id, RowLocation[]>) {}
 
     static fromTemplateDataPackage(dataPackage: TemplateDataPackage): ImportRowLookup {
-        const locationsById = new Map<Id, RowLocation[]>();
+        const teis = dataPackage.type === "trackerPrograms" ? dataPackage.trackedEntityInstances : [];
 
-        const add = (id: string | undefined | null, location: RowLocation): void => {
-            if (!id) return;
-            locationsById.set(id, [...(locationsById.get(id) ?? []), location]);
-        };
+        const pairs: IdLocation[] = [
+            ...dataPackage.dataEntries.flatMap(dataEntryLocations),
+            ...teis.flatMap(trackedEntityLocations),
+        ];
 
-        dataPackage.dataEntries.forEach(entry => {
-            const rawRow = typeof entry.group === "number" ? entry.group : parseInt(String(entry.group), 10);
-            const entryRow = Number.isFinite(rawRow) ? rawRow : undefined;
-
-             if (entryRow !== undefined) {
-                const location: RowLocation = { sheet: entry.sheet, row: entryRow };
-                add(entry.id, location);
-                add(entry.orgUnit, location);
-                add(entry.attribute, location);
-                add(entry.programStage, location);
-                add(entry.trackedEntityInstance, location);
-            }
-
-            entry.dataValues.forEach(dataValue => {
-                const row = dataValue.row ?? entryRow;
-                if (row === undefined) return;
-
-                const dvLocation: RowLocation = {
-                    sheet: entry.sheet,
-                    row: row,
-                    column: dataValue.column,
-                };
-                add(dataValue.dataElement, dvLocation);
-                add(dataValue.category, dvLocation);
-                add(dataValue.optionId, dvLocation);
-            });
-        });
-
-        if (dataPackage.type === "trackerPrograms") {
-            dataPackage.trackedEntityInstances.forEach(tei => {
-                if (tei.row === undefined) return;
-                const location: RowLocation = { sheet: tei.sheet, row: tei.row };
-                add(tei.id, location);
-                add(tei.orgUnit.id, location);
-                tei.attributeValues.forEach(attributeValue => {
-                    const avLocation: RowLocation = { ...location, column: attributeValue.column };
-                    add(attributeValue.attribute.id, avLocation);
-                    add(attributeValue.optionId, avLocation);
-                });
-            });
-        }
+        const locationsById = _(pairs)
+            .filter(({ id }) => Boolean(id))
+            .groupBy(({ id }) => id)
+            .mapValues(idLocations => idLocations.map(({ location }) => location))
+            .value();
 
         return new ImportRowLookup(locationsById);
     }
 
     getLocations(ids: Id[]): RowLocation[] {
-        const locations = _.compact(ids).flatMap(id => this.locationsById.get(id) ?? []);
+        const locations = _.compact(ids).flatMap(id => this.locationsById[id] ?? []);
         return _.uniqWith(locations, _.isEqual);
     }
 
@@ -108,11 +76,56 @@ export class ImportRowLookup {
                     : i18n.t("rows {{refs}}", { refs });
                 const label =
                     remaining > 0 ? `${refsLabel} ${i18n.t("and {{count}} more", { count: remaining })}` : refsLabel;
-                    
+
                 return sheet ? i18n.t("sheet {{sheet}}, {{lines}}", { sheet, lines: label }) : label;
             })
             .value();
 
         return i18n.t("Found in {{locations}} of the Excel file", { locations: bySheet.join("; ") });
     }
+}
+
+function dataEntryLocations(entry: TemplateDataPackageData): IdLocation[] {
+    const rawRow = typeof entry.group === "number" ? entry.group : parseInt(String(entry.group), 10);
+    const entryRow = Number.isFinite(rawRow) ? rawRow : undefined;
+
+    const entryPairs: IdLocation[] =
+        entryRow !== undefined
+            ? locationPairs({ sheet: entry.sheet, row: entryRow }, [
+                  entry.id,
+                  entry.orgUnit,
+                  entry.attribute,
+                  entry.programStage,
+                  entry.trackedEntityInstance,
+              ])
+            : [];
+
+    const dataValuePairs: IdLocation[] = entry.dataValues.flatMap(dataValue => {
+        const row = dataValue.row ?? entryRow;
+        if (row === undefined) return [];
+        const location: RowLocation = { sheet: entry.sheet, row, column: dataValue.column };
+        return locationPairs(location, [dataValue.dataElement, dataValue.category, dataValue.optionId]);
+    });
+
+    return [...entryPairs, ...dataValuePairs];
+}
+
+function trackedEntityLocations(tei: TrackedEntityInstance): IdLocation[] {
+    if (tei.row === undefined) return [];
+
+    const location: RowLocation = { sheet: tei.sheet, row: tei.row };
+    const teiPairs = locationPairs(location, [tei.id, tei.orgUnit.id]);
+
+    const attributePairs = tei.attributeValues.flatMap(attributeValue =>
+        locationPairs({ ...location, column: attributeValue.column }, [
+            attributeValue.attribute.id,
+            attributeValue.optionId,
+        ])
+    );
+
+    return [...teiPairs, ...attributePairs];
+}
+
+function locationPairs(location: RowLocation, ids: Maybe<string>[]): IdLocation[] {
+    return ids.map(id => ({ id, location }));
 }
