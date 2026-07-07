@@ -29,17 +29,26 @@ export class ImportRowLookup {
 
         dataPackage.dataEntries.forEach(entry => {
             const rawRow = typeof entry.group === "number" ? entry.group : parseInt(String(entry.group), 10);
-            const row = Number.isFinite(rawRow) ? rawRow : undefined;
-            if (row === undefined) return;
+            const entryRow = Number.isFinite(rawRow) ? rawRow : undefined;
 
-            const location: RowLocation = { sheet: entry.sheet, row };
-            add(entry.id, location);
-            add(entry.orgUnit, location);
-            add(entry.attribute, location);
-            add(entry.programStage, location);
-            add(entry.trackedEntityInstance, location);
+             if (entryRow !== undefined) {
+                const location: RowLocation = { sheet: entry.sheet, row: entryRow };
+                add(entry.id, location);
+                add(entry.orgUnit, location);
+                add(entry.attribute, location);
+                add(entry.programStage, location);
+                add(entry.trackedEntityInstance, location);
+            }
+
             entry.dataValues.forEach(dataValue => {
-                const dvLocation: RowLocation = { ...location, column: dataValue.column };
+                const row = dataValue.row ?? entryRow;
+                if (row === undefined) return;
+
+                const dvLocation: RowLocation = {
+                    sheet: entry.sheet,
+                    row: row,
+                    column: dataValue.column,
+                };
                 add(dataValue.dataElement, dvLocation);
                 add(dataValue.category, dvLocation);
                 add(dataValue.optionId, dvLocation);
@@ -98,9 +107,8 @@ export class ImportRowLookup {
                     ? i18n.t("row {{ref}}", { ref: refs })
                     : i18n.t("rows {{refs}}", { refs });
                 const label =
-                    remaining > 0
-                        ? `${refsLabel} ${i18n.t("and {{count}} more", { count: remaining })}`
-                        : refsLabel;
+                    remaining > 0 ? `${refsLabel} ${i18n.t("and {{count}} more", { count: remaining })}` : refsLabel;
+                    
                 return sheet ? i18n.t("sheet {{sheet}}, {{lines}}", { sheet, lines: label }) : label;
             })
             .value();

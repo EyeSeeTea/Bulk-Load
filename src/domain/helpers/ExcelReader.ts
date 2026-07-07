@@ -235,9 +235,14 @@ export class ExcelReader {
             this.excelRepository.getContentType(template.id, cell),
         ]);
 
+        const sheet = String(dataSource.ref.sheet);
+        const row = cell ? this.excelRepository.buildRowNumber(cell.ref) : undefined;
+        const column = cell ? this.parseColumn(cell.ref) : undefined;
+
         return [
             {
                 group: undefined, // TODO: Add a way for custom templates to group by event
+                sheet: sheet,
                 dataForm: String(dataFormId),
                 id: eventId ? String(eventId) : undefined,
                 orgUnit: String(orgUnit),
@@ -254,6 +259,8 @@ export class ExcelReader {
                         value: this.formatValue(value),
                         optionId: optionId ? removeCharacters(optionId) : undefined,
                         contentType: contentType,
+                        column: column,
+                        row: row,
                     },
                 ],
             },

@@ -441,6 +441,7 @@ export type TemplateDataValue = {
     contentType: Maybe<ContentType>;
     comment?: string;
     column?: string;
+    row?: number;
 };
 export type TemplateDataPackageData = {
     group: number | Maybe<string>;

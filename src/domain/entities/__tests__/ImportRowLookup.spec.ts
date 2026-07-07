@@ -30,7 +30,15 @@ describe("ImportRowLookup", () => {
                         group: 7,
                         sheet: "Data Entry",
                         orgUnit: "orgUnitA",
-                        dataValues: [{ dataElement: "deX", category: undefined, value: 1, optionId: undefined, contentType: undefined }],
+                        dataValues: [
+                            {
+                                dataElement: "deX",
+                                category: undefined,
+                                value: 1,
+                                optionId: undefined,
+                                contentType: undefined,
+                            },
+                        ],
                     }),
                 ],
             };
@@ -50,7 +58,16 @@ describe("ImportRowLookup", () => {
                         group: 6,
                         sheet: "Data Entry",
                         orgUnit: "ouB",
-                        dataValues: [{ dataElement: "deZ", category: undefined, value: 42, optionId: undefined, contentType: undefined, column: "C" }],
+                        dataValues: [
+                            {
+                                dataElement: "deZ",
+                                category: undefined,
+                                value: 42,
+                                optionId: undefined,
+                                contentType: undefined,
+                                column: "C",
+                            },
+                        ],
                     }),
                 ],
             };
@@ -70,7 +87,15 @@ describe("ImportRowLookup", () => {
                         id: "eventA",
                         attribute: "attrA",
                         programStage: "stageA",
-                        dataValues: [{ dataElement: "deY", category: "cocA", value: "v", optionId: "optA", contentType: undefined }],
+                        dataValues: [
+                            {
+                                dataElement: "deY",
+                                category: "cocA",
+                                value: "v",
+                                optionId: "optA",
+                                contentType: undefined,
+                            },
+                        ],
                     }),
                 ],
             };
@@ -105,12 +130,55 @@ describe("ImportRowLookup", () => {
         it("skips entries without a numeric row (group)", () => {
             const pkg: TemplateDataPackage = {
                 type: "programs",
-                dataEntries: [dataEntry({ group: undefined, orgUnit: "ou" }), dataEntry({ group: "custom", orgUnit: "ou" })],
+                dataEntries: [
+                    dataEntry({ group: undefined, orgUnit: "ou" }),
+                    dataEntry({ group: "custom", orgUnit: "ou" }),
+                ],
             };
 
             const lookup = ImportRowLookup.fromTemplateDataPackage(pkg);
 
             expect(lookup.getLocations(["ou"])).toEqual([]);
+        });
+
+        it("indexes cell data sources by the data value's own location (empty group)", () => {
+            const pkg: TemplateDataPackage = {
+                type: "dataSets",
+                dataEntries: [
+                    dataEntry({
+                        group: undefined,
+                        sheet: "Data Entry",
+                        orgUnit: "ouAgg",
+                        dataValues: [
+                            {
+                                dataElement: "deA",
+                                category: "cocA",
+                                value: 1,
+                                optionId: undefined,
+                                contentType: undefined,
+                                column: "C",
+                                row: 8,
+                            },
+                            {
+                                dataElement: "deB",
+                                category: undefined,
+                                value: 2,
+                                optionId: undefined,
+                                contentType: undefined,
+                                column: "D",
+                                row: 9,
+                            },
+                        ],
+                    }),
+                ],
+            };
+
+            const lookup = ImportRowLookup.fromTemplateDataPackage(pkg);
+
+            expect(lookup.getLocations(["deA"])).toEqual([{ sheet: "Data Entry", row: 8, column: "C" }]);
+            expect(lookup.getLocations(["cocA"])).toEqual([{ sheet: "Data Entry", row: 8, column: "C" }]);
+            expect(lookup.getLocations(["deB"])).toEqual([{ sheet: "Data Entry", row: 9, column: "D" }]);
+            expect(lookup.getLocations(["ouAgg"])).toEqual([]);
         });
 
         it("indexes tracked entity instances using their own row/sheet", () => {
@@ -121,9 +189,7 @@ describe("ImportRowLookup", () => {
                 disabled: false,
                 row: 12,
                 sheet: "TEI Instances",
-                attributeValues: [
-                    { attribute: { id: "attrTei", valueType: "TEXT" }, value: "x", optionId: "optTei" },
-                ],
+                attributeValues: [{ attribute: { id: "attrTei", valueType: "TEXT" }, value: "x", optionId: "optTei" }],
                 enrollment: undefined,
                 relationships: [],
                 geometry: { type: "none" },
