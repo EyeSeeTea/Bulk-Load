@@ -66,7 +66,7 @@ export class ImportRowLookup {
                 const remaining = sortedLocs.length - shownLocs.length;
                 const allHaveColumn = shownLocs.every(l => l.column);
                 const shown = shownLocs.map(loc => (loc.column ? `${loc.column}${loc.row}` : String(loc.row)));
-                const refs = shown.length === 1 ? shown[0] : shown.join(", ");
+                const refs = shown.join(", ");
                 const refsLabel = allHaveColumn
                     ? shown.length === 1
                         ? i18n.t("cell {{ref}}", { ref: refs })
