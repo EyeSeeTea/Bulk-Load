@@ -135,6 +135,7 @@ export class DownloadTemplateUseCase implements UseCase {
                 useCodesForMetadata,
                 orgUnitShortName: useShortNameInOrgUnit,
                 maxTeiRows,
+                includeMetadataCodes: template.includeMetadataCodes ?? false,
             });
 
             const workbook = await sheetBuilder.generate();

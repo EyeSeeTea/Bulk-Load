@@ -55,6 +55,7 @@ export interface SheetBuilderParams {
     useCodesForMetadata: boolean;
     orgUnitShortName: boolean;
     maxTeiRows?: number;
+    includeMetadataCodes?: boolean;
 }
 
 export class SheetBuilder {
@@ -736,6 +737,12 @@ export class SheetBuilder {
             .cell(1, 7, 2, 7, true)
             .string(i18n.t("Metadata version", { lng: this.builder.language }))
             .style(baseStyle);
+        if (this.builder.includeMetadataCodes) {
+            metadataSheet
+                .cell(1, 8, 2, 8, true)
+                .string(i18n.t("Code", { lng: this.builder.language }))
+                .style(baseStyle);
+        }
 
         let rowId = 3;
 
@@ -763,6 +770,9 @@ export class SheetBuilder {
             metadataSheet.cell(rowId, 5).string(optionSetName ?? "");
             metadataSheet.cell(rowId, 6).string(options ?? "");
             metadataSheet.cell(rowId, 7).string(`${item.version ?? ""}`);
+            if (this.builder.includeMetadataCodes) {
+                metadataSheet.cell(rowId, 8).string(item.code ?? "");
+            }
 
             if (name !== undefined) {
                 workbook.definedNameCollection.addDefinedName({

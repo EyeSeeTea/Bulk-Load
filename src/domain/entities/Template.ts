@@ -68,6 +68,7 @@ export interface GeneratedTemplate extends BaseTemplate {
     type: "generated";
     rowOffset: number;
     generateMetadata?: boolean;
+    includeMetadataCodes?: boolean;
 }
 
 export interface DownloadCustomizationOptions {
@@ -87,6 +88,7 @@ export interface ImportCustomizationOptions {
 export interface CustomTemplateWithUrl extends BaseTemplate {
     type: "custom";
     generateMetadata?: boolean;
+    includeMetadataCodes?: boolean;
     url: string;
     description: string;
     fixedOrgUnit?: CellRef;
