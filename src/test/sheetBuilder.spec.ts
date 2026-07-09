@@ -17,31 +17,29 @@ const compositionRoot = getCompositionRoot({
     mockApi: api,
 });
 
+const dataElement1Metadata = {
+    id: dataElement1.id,
+    type: "dataElements",
+    code: dataElement1.code,
+    name: "Data element 1",
+    valueType: "TEXT",
+    categoryCombo: { id: "CC_DEFAULT" },
+};
+
+const dataElement2Metadata = {
+    id: dataElement2.id,
+    type: "dataElements",
+    code: dataElement2.code,
+    name: "Data element 2",
+    valueType: "TEXT",
+    categoryCombo: { id: "CC_DEFAULT" },
+};
+
 function buildElementMetadata(): Map<string, unknown> {
     return new Map<string, unknown>([
         ["CC_DEFAULT", { id: "CC_DEFAULT", type: "categoryCombos", code: "default", categories: [] }],
-        [
-            dataElement1.id,
-            {
-                id: dataElement1.id,
-                type: "dataElements",
-                code: dataElement1.code,
-                name: "Data element 1",
-                valueType: "TEXT",
-                categoryCombo: { id: "CC_DEFAULT" },
-            },
-        ],
-        [
-            dataElement2.id,
-            {
-                id: dataElement2.id,
-                type: "dataElements",
-                code: dataElement2.code,
-                name: "Data element 2",
-                valueType: "TEXT",
-                categoryCombo: { id: "CC_DEFAULT" },
-            },
-        ],
+        [dataElement1.id, dataElement1Metadata],
+        [dataElement2.id, dataElement2Metadata],
     ]);
 }
 
@@ -76,7 +74,7 @@ function buildParams(settings: Settings, includeMetadataCodes: boolean): SheetBu
         elementMetadata,
         organisationUnits: [],
         rawMetadata: {
-            dataElements: [Array.from(elementMetadata.values())[1], Array.from(elementMetadata.values())[2]],
+            dataElements: [dataElement1Metadata, dataElement2Metadata],
             categoryOptionCombos: [],
             optionSets: [],
             programStageDataElements: [],
