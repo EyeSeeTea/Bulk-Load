@@ -169,7 +169,7 @@ export class SheetBuilder {
         const workbook = await Workbook.fromBase64Data(fileContents);
         const metadataSheet = workbook.addWorksheet("Metadata", protectedSheet);
         metadataSheet.clear();
-        this.fillMetadataSheet(metadataSheet, this.builder.orgUnitShortName || false);
+        this.fillMetadataSheet(metadataSheet, this.builder.orgUnitShortName);
         return workbook;
     }
 
@@ -714,6 +714,11 @@ export class SheetBuilder {
         const { workbook } = metadataSheet;
         const { elementMetadata: metadata, organisationUnits } = this.builder;
 
+        const codeColumn = 8;
+        const writeCode = (rowId: number, code: string | undefined) => {
+            if (this.builder.includeMetadataCodes) metadataSheet.cell(rowId, codeColumn).string(code ?? "");
+        };
+
         // Freeze and format column titles
         metadataSheet.row(2).freeze();
         metadataSheet.column(1).setWidth(30);
@@ -751,7 +756,7 @@ export class SheetBuilder {
             .style(baseStyle);
         if (this.builder.includeMetadataCodes) {
             metadataSheet
-                .cell(1, 8, 2, 8, true)
+                .cell(1, codeColumn, 2, codeColumn, true)
                 .string(i18n.t("Code", { lng: this.builder.language }))
                 .style(baseStyle);
         }
@@ -782,9 +787,7 @@ export class SheetBuilder {
             metadataSheet.cell(rowId, 5).string(optionSetName ?? "");
             metadataSheet.cell(rowId, 6).string(options ?? "");
             metadataSheet.cell(rowId, 7).string(`${item.version ?? ""}`);
-            if (this.builder.includeMetadataCodes) {
-                metadataSheet.cell(rowId, 8).string(item.code ?? "");
-            }
+            writeCode(rowId, item.code);
 
             if (name !== undefined) {
                 workbook.definedNameCollection.addDefinedName({
@@ -801,9 +804,7 @@ export class SheetBuilder {
             metadataSheet.cell(rowId, 1).string(orgUnit.id !== undefined ? orgUnit.id : "");
             metadataSheet.cell(rowId, 2).string("organisationUnit");
             metadataSheet.cell(rowId, 3).string(name ?? "");
-            if (this.builder.includeMetadataCodes) {
-                metadataSheet.cell(rowId, 8).string(orgUnit.code ?? "");
-            }
+            writeCode(rowId, orgUnit.code);
 
             if (name !== undefined)
                 workbook.definedNameCollection.addDefinedName({

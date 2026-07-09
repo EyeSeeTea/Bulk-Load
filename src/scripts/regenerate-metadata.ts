@@ -76,9 +76,11 @@ function main() {
                 dhisInstance: { type: "local", url },
                 importSource: "node",
             });
-            const settings = await Settings.build(api, compositionRoot);
-
-            const fileContents = (await readFile(args.input)).toString("base64");
+            const [settings, fileBuffer] = await Promise.all([
+                Settings.build(api, compositionRoot),
+                readFile(args.input),
+            ]);
+            const fileContents = fileBuffer.toString("base64");
             console.debug(`Regenerating Metadata for ${args.input} (form ${args.formId})`);
 
             const outputBase64 = await compositionRoot.templates.regenerateMetadata(api, {
