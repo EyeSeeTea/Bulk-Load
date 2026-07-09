@@ -55,6 +55,7 @@
         "build-folder": "rm -rf build/ && d2-manifest package.json manifest.webapp && tsc && vite build --outDir=build && yarn run manifest && cp -r i18n icon.png build",
         "build": "VITE_DHIS2_BASE_URL='' VITE_DHIS2_AUTH='' yarn build-folder && rm -f $npm_package_name.zip && cd build && zip --quiet -r ../$npm_package_name.zip *",
         "test": "yarn test-unit",
+        "regenerate-metadata": "ts-node --transpile-only --project src/scripts/tsconfig.json src/scripts/regenerate-metadata.ts",
         "test-unit": "vitest run --reporter=basic",
         "test-unit-watch": "vitest watch",
         "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
