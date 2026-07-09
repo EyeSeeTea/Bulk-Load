@@ -42,6 +42,7 @@ export interface SheetBuilderParams {
         id: string;
         displayName: string;
         translations: any;
+        code?: string;
     }[];
     rawMetadata: any;
     startDate?: Moment;
@@ -789,6 +790,9 @@ export class SheetBuilder {
             metadataSheet.cell(rowId, 1).string(orgUnit.id !== undefined ? orgUnit.id : "");
             metadataSheet.cell(rowId, 2).string("organisationUnit");
             metadataSheet.cell(rowId, 3).string(name ?? "");
+            if (this.builder.includeMetadataCodes) {
+                metadataSheet.cell(rowId, 8).string(orgUnit.code ?? "");
+            }
 
             if (name !== undefined)
                 workbook.definedNameCollection.addDefinedName({
