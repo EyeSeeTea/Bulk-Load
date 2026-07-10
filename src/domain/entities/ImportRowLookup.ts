@@ -14,6 +14,11 @@ export interface RowLocation {
 type IdLocation = { id: Maybe<string>; location: RowLocation };
 
 const MAX_LINES_PER_SHEET = 5;
+const ID_PAIR_SEPARATOR = "␟";
+
+function pairId(entityId: Maybe<string>, columnId: Maybe<string>): Maybe<string> {
+    return entityId && columnId ? `${entityId}${ID_PAIR_SEPARATOR}${columnId}` : undefined;
+}
 
 /**
  * Maps every metadata/object id present in an imported template to the Excel
@@ -41,8 +46,11 @@ export class ImportRowLookup {
     }
 
     getLocations(ids: Id[]): RowLocation[] {
-        const locations = _.compact(ids).flatMap(id => this.locationsById[id] ?? []);
-        return _.uniqWith(locations, _.isEqual);
+        const cleanIds = _.compact(ids);
+        const pairIds = _.compact(cleanIds.flatMap(entityId => cleanIds.map(columnId => pairId(entityId, columnId))));
+        const locations = [...cleanIds, ...pairIds].flatMap(id => this.locationsById[id] ?? []);
+
+        return _.uniqBy(locations, loc => `${loc.sheet ?? ""}|${loc.row}|${loc.column ?? ""}`);
     }
 
     formatLocations(locations: RowLocation[]): string {
@@ -115,13 +123,13 @@ function trackedEntityLocations(tei: TrackedEntityInstance): IdLocation[] {
 
     const location: RowLocation = { sheet: tei.sheet, row: tei.row };
     const teiPairs = locationPairs(location, [tei.id, tei.orgUnit.id]);
-
-    const attributePairs = tei.attributeValues.flatMap(attributeValue =>
-        locationPairs({ ...location, column: attributeValue.column }, [
-            attributeValue.attribute.id,
-            attributeValue.optionId,
-        ])
-    );
+    const attributePairs = tei.attributeValues.flatMap(attributeValue => {
+        const cell: RowLocation = { ...location, column: attributeValue.column };
+        return locationPairs(cell, [
+            pairId(tei.id, attributeValue.attribute.id),
+            pairId(tei.id, attributeValue.optionId),
+        ]);
+    });
 
     return [...teiPairs, ...attributePairs];
 }

@@ -189,7 +189,9 @@ describe("ImportRowLookup", () => {
                 disabled: false,
                 row: 12,
                 sheet: "TEI Instances",
-                attributeValues: [{ attribute: { id: "attrTei", valueType: "TEXT" }, value: "x", optionId: "optTei" }],
+                attributeValues: [
+                    { attribute: { id: "attrTei", valueType: "TEXT" }, value: "x", optionId: "optTei", column: "K" },
+                ],
                 enrollment: undefined,
                 relationships: [],
                 geometry: { type: "none" },
@@ -205,8 +207,47 @@ describe("ImportRowLookup", () => {
 
             expect(lookup.getLocations(["teiA"])).toEqual([{ sheet: "TEI Instances", row: 12 }]);
             expect(lookup.getLocations(["ouTei"])).toEqual([{ sheet: "TEI Instances", row: 12 }]);
-            expect(lookup.getLocations(["attrTei"])).toEqual([{ sheet: "TEI Instances", row: 12 }]);
-            expect(lookup.getLocations(["optTei"])).toEqual([{ sheet: "TEI Instances", row: 12 }]);
+            expect(lookup.getLocations(["attrTei"])).toEqual([]);
+            expect(lookup.getLocations(["optTei"])).toEqual([]);
+            expect(lookup.getLocations(["teiA", "attrTei"])).toContainEqual({
+                sheet: "TEI Instances",
+                row: 12,
+                column: "K",
+            });
+            expect(lookup.getLocations(["teiA", "optTei"])).toContainEqual({
+                sheet: "TEI Instances",
+                row: 12,
+                column: "K",
+            });
+        });
+
+        it("narrows a shared attribute to the offending cell using the tracked entity", () => {
+            const attribute = { id: "policyId", valueType: "TEXT" as const };
+            const makeTei = (id: string, row: number): TrackedEntityInstance => ({
+                program: { id: "p" },
+                id,
+                orgUnit: { id: "ou" },
+                disabled: false,
+                row,
+                sheet: "TEI Instances",
+                attributeValues: [{ attribute, value: "dup", optionId: undefined, column: "K" }],
+                enrollment: undefined,
+                relationships: [],
+                geometry: { type: "none" },
+            });
+
+            const pkg: TemplateDataPackage = {
+                type: "trackerPrograms",
+                dataEntries: [],
+                trackedEntityInstances: [makeTei("teiRow7", 7), makeTei("teiRow8", 8)],
+            };
+
+            const lookup = ImportRowLookup.fromTemplateDataPackage(pkg);
+
+            expect(lookup.formatLocations(lookup.getLocations(["teiRow8", "policyId"]))).toBe(
+                "Found in sheet TEI Instances, cell K8 of the Excel file"
+            );
+            expect(lookup.getLocations(["teiNotInTemplate", "policyId"])).toEqual([]);
         });
     });
 
