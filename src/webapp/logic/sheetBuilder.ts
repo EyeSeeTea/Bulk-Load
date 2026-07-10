@@ -162,6 +162,17 @@ export class SheetBuilder {
         return workbook;
     }
 
+    // Regenerates ONLY the Metadata sheet of an existing custom template, leaving every
+    // other sheet (custom form, dropdowns, VBA) untouched. The sheet is cleared and refilled
+    // in place — not deleted — so its codeName/VBA binding survives.
+    public async generateMetadataOnly(fileContents: string): Promise<Workbook> {
+        const workbook = await Workbook.fromBase64Data(fileContents);
+        const metadataSheet = workbook.addWorksheet("Metadata", protectedSheet);
+        metadataSheet.clear();
+        this.fillMetadataSheet(metadataSheet, this.builder.orgUnitShortName || false);
+        return workbook;
+    }
+
     private fillRelationshipSheets(relationshipsSheets: Array<[relationshipType: any, sheet: Sheet]>) {
         const { element: program } = this.builder;
 

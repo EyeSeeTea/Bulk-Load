@@ -119,4 +119,20 @@ describe("SheetBuilder", () => {
             expect(getMetadataSheetCellValue(workbook, `${codeColumn}5`)).toBeUndefined();
         });
     });
+
+    describe("generateMetadataOnly", () => {
+        it("refreshes the Metadata sheet (with Code column) while preserving other sheets", async () => {
+            const base = await new SheetBuilder(buildParams(settings, false)).generate();
+            expect(getMetadataSheetCellValue(base, `${codeColumn}1`)).toBeUndefined(); // no codes yet
+            const inputBase64 = await base.writeToBase64();
+
+            const regenerated = await new SheetBuilder(buildParams(settings, true)).generateMetadataOnly(inputBase64);
+
+            // Metadata refreshed with the Code column
+            expect(getMetadataSheetCellValue(regenerated, `${codeColumn}1`)).toEqual("Code");
+            expect(getMetadataSheetCellValue(regenerated, `${codeColumn}4`)).toEqual(dataElement1.code);
+            // Other sheets preserved (generate() also produced a Legend sheet)
+            expect(regenerated.xworkbook.sheet("Legend")).toBeTruthy();
+        });
+    });
 });
