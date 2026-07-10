@@ -9,21 +9,28 @@ import { getElement, getElementMetadata } from "./DownloadTemplateUseCase";
 export type RegenerateTemplateMetadataOptions = {
     type: DataFormType;
     id: string;
-    /** base64 contents of the input template whose Metadata sheet will be regenerated */
+    /** base64-encoded input template */
     fileContents: string;
     settings: Settings;
     language: string;
+    includeMetadataCodes: boolean;
+    useCodesForMetadata: boolean;
+    orgUnitShortName: boolean;
 };
 
-/**
- * Regenerates ONLY the Metadata sheet of an existing custom template from fresh DHIS2
- * metadata (with the Code column), leaving every other sheet (custom form, dropdowns, VBA)
- * untouched. Reusable from both the CLI script and the web app.
- */
+/** Regenerates only the Metadata sheet of a template, leaving all other sheets untouched. */
 export class RegenerateTemplateMetadataUseCase implements UseCase {
-    /** Returns the regenerated template as a base64 string (works in both Node and the browser). */
     public async execute(api: D2Api, options: RegenerateTemplateMetadataOptions): Promise<string> {
-        const { type, id, fileContents, settings, language } = options;
+        const {
+            type,
+            id,
+            fileContents,
+            settings,
+            language,
+            includeMetadataCodes,
+            useCodesForMetadata,
+            orgUnitShortName,
+        } = options;
 
         const element = await getElement(api, type, id);
         const orgUnitIds = element.organisationUnits.map((orgUnit: { id: string }) => orgUnit.id);
@@ -35,11 +42,10 @@ export class RegenerateTemplateMetadataUseCase implements UseCase {
             orgUnitIds,
             startDate: undefined,
             endDate: undefined,
-            orgUnitShortName: false,
+            orgUnitShortName,
         });
 
-        // Minimal template: SheetBuilder only reads template.type for rowOffset, and
-        // generateMetadataOnly never touches the form sheets.
+        // Minimal template: generateMetadataOnly only needs type/id, not the form sheets.
         const template: GeneratedTemplate = {
             type: "generated",
             id: "regenerate-metadata",
@@ -57,9 +63,9 @@ export class RegenerateTemplateMetadataUseCase implements UseCase {
             settings,
             downloadRelationships: false,
             splitDataEntryTabsBySection: false,
-            useCodesForMetadata: false,
-            orgUnitShortName: false,
-            includeMetadataCodes: true,
+            useCodesForMetadata,
+            orgUnitShortName,
+            includeMetadataCodes,
         });
 
         const workbook = await sheetBuilder.generateMetadataOnly(fileContents);

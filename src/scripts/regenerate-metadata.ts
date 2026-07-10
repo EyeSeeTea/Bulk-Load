@@ -1,5 +1,5 @@
 import path from "path";
-import { command, run, string, option } from "cmd-ts";
+import { command, run, string, option, flag } from "cmd-ts";
 import { readFile, writeFile } from "node:fs/promises";
 
 import { D2Api } from "./../types/d2-api";
@@ -67,6 +67,18 @@ function main() {
                 defaultValue: () => "en",
                 description: "Language for metadata names (default: en)",
             }),
+            includeCodes: flag({
+                long: "include-codes",
+                description: "Write the Code column in the Metadata sheet (default: off)",
+            }),
+            useCodes: flag({
+                long: "use-codes",
+                description: "Use codes instead of names for metadata items (default: off)",
+            }),
+            orgUnitShortName: flag({
+                long: "org-unit-short-name",
+                description: "Use each org unit's short name instead of its regular name (default: off)",
+            }),
         },
         handler: async args => {
             const url = buildDhis2Url(args.url, args.auth);
@@ -89,6 +101,9 @@ function main() {
                 fileContents,
                 settings,
                 language: args.language,
+                includeMetadataCodes: args.includeCodes,
+                useCodesForMetadata: args.useCodes,
+                orgUnitShortName: args.orgUnitShortName,
             });
 
             await writeFile(args.output, Buffer.from(outputBase64, "base64"));
