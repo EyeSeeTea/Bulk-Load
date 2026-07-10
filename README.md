@@ -71,3 +71,33 @@ npx ts-node src/scripts/import-multiple-files.ts \
     --results-path="/path/to/folder/for/json_results" \
     file1.xlsx file2.xlsx
 ```
+
+### Regenerate template metadata (from DHIS2)
+
+You can use the script `regenerate-metadata.ts` to refresh **only** the Metadata
+sheet of an existing template from fresh DHIS2 metadata, leaving every other sheet
+(custom form, dropdowns, VBA) untouched:
+
+```bash
+yarn regenerate-metadata \
+    --dhis2-url="https://play.dhis2.org" \
+    --auth="user:pass" \
+    --input=template.xlsm \
+    --output=template.regenerated.xlsm \
+    --form-id=U6z7eJniNfL \
+    --form-type=trackerPrograms \
+    --include-codes
+```
+
+| Flag | Required | Description |
+| ---- | -------- | ----------- |
+| `--dhis2-url` / `-u` | yes | DHIS2 base URL (auth can be embedded here or via `--auth`). |
+| `--auth` / `-a` | — | `"username:password"` (special characters are handled). |
+| `--input` / `-i` | yes | Path to the input template (`.xlsm`/`.xlsx`). |
+| `--output` / `-o` | yes | Path where the regenerated template is written. |
+| `--form-id` | yes | DHIS2 program/dataSet id whose metadata is used. |
+| `--form-type` | — | `trackerPrograms` \| `programs` \| `dataSets` (default `trackerPrograms`). |
+| `--language` | — | Metadata name language (default `en`). |
+| `--include-codes` | — | Write the Code column in the Metadata sheet (default off). |
+| `--use-codes` | — | Use item codes instead of names for org units, data elements, options… (default off). |
+| `--org-unit-short-name` | — | Use each org unit's short name instead of its regular name (default off). |
