@@ -336,12 +336,12 @@ export class InstanceDhisRepository implements InstanceRepository {
         };
     }
 
-    public convertDataPackage(dataPackage: DataPackage): EventsPackage | AggregatedPackage {
+    public convertDataPackage(dataPackage: DataPackage, markCompleted = false): EventsPackage | AggregatedPackage {
         switch (dataPackage.type) {
             case dataFormTypeMap.dataSets:
                 return { dataValues: this.buildAggregatedPayload(dataPackage) };
             case dataFormTypeMap.programs:
-                return { events: this.buildEventsPayload(dataPackage) };
+                return { events: this.buildEventsPayload(dataPackage, markCompleted) };
             default:
                 throw new Error(`Unsupported type ${dataPackage.type} to convert data package`);
         }
@@ -473,12 +473,17 @@ export class InstanceDhisRepository implements InstanceRepository {
             importStrategy === "DELETE" ? i18n.t("Data values - Delete") : i18n.t("Data values - Create/update");
 
         if (dataValues.length === 0) {
+            const completionErrors =
+                markCompleted && importStrategy !== "DELETE"
+                    ? await this.completeDataSetRegistrations(dataPackage)
+                    : [];
+
             return {
                 title,
-                status: "SUCCESS",
+                status: completionErrors.length > 0 ? "ERROR" : "SUCCESS",
                 message: i18n.t("No data values to import"),
                 stats: [{ imported: 0, deleted: 0, updated: 0, ignored: 0 }],
-                errors: [],
+                errors: completionErrors,
                 rawResponse: {},
             };
         }
@@ -543,24 +548,30 @@ export class InstanceDhisRepository implements InstanceRepository {
                 organisationUnit: orgUnit,
                 attributeOptionCombo: attribute,
             }))
-            .uniqBy(reg => `${reg.dataSet}.${reg.period}.${reg.organisationUnit}.${reg.attributeOptionCombo}`)
+            .uniqBy(reg => [reg.dataSet, reg.period, reg.organisationUnit, reg.attributeOptionCombo].join("-"))
             .value();
 
         if (registrations.length === 0) return [];
 
-        try {
-            await this.api
-                .post<{ status: string }>(
-                    "/completeDataSetRegistrations",
-                    {},
-                    { completeDataSetRegistrations: registrations }
-                )
-                .getData();
-            return [];
-        } catch (error: any) {
-            const message = error?.response?.data?.message ?? i18n.t("Failed to register data set(s) as completed");
-            return [{ id: "completeDataSetRegistrations", message, details: undefined }];
-        }
+        const chunks = _.chunk(registrations, 1000);
+
+        const chunkErrors = await promiseMap(chunks, async chunk => {
+            try {
+                await this.api
+                    .post<{ status: string }>(
+                        "/completeDataSetRegistrations",
+                        {},
+                        { completeDataSetRegistrations: chunk }
+                    )
+                    .getData();
+                return undefined;
+            } catch (error: any) {
+                const message = error?.response?.data?.message ?? i18n.t("Failed to register data set(s) as completed");
+                return { id: "completeDataSetRegistrations", message, details: undefined };
+            }
+        });
+
+        return _.compact(chunkErrors);
     }
 
     private mergeChunkResults(chunks: AggregatedDataValue[][], chunkResults: Array<DataValueSetsPostResponse | null>) {

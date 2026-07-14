@@ -41,7 +41,7 @@ export interface InstanceRepository {
     deleteAggregatedData(dataPackage: DataPackage, rowLookup?: ImportRowLookup): Promise<SynchronizationResult>;
     importDataPackage(dataPackage: DataPackage, options: ImportDataPackageOptions): Promise<SynchronizationResult[]>;
     getProgram(programId: Id): Promise<Program | undefined>;
-    convertDataPackage(dataPackage: DataPackage): EventsPackage | AggregatedPackage;
+    convertDataPackage(dataPackage: DataPackage, markCompleted: boolean): EventsPackage | AggregatedPackage;
     getBuilderMetadata(teis: TrackedEntityInstance[]): Promise<BuilderMetadata>;
     getDataFormPermissions(dataFormIds: Id[]): Promise<DataFormPermissions[]>;
 }

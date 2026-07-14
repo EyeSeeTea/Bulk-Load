@@ -280,7 +280,7 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
     };
 
     const downloadInvalidOrganisations = (dataPackage: TemplateDataPackage) => {
-        const object = compositionRoot.form.convertDataPackage(templateToDataPackage(dataPackage));
+        const object = compositionRoot.form.convertDataPackage(templateToDataPackage(dataPackage), markCompleted);
         const json = JSON.stringify(object, null, 4);
         const blob = new Blob([json], { type: "application/json" });
         const date = moment().format("YYYYMMDDHHmm");
