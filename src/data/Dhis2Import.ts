@@ -10,6 +10,12 @@ import { ImportRowLookup } from "../domain/entities/ImportRowLookup";
 
 export type Status = "OK" | "ERROR";
 
+export type EventStatus = "ACTIVE" | "COMPLETED";
+
+export function resolveEventStatus(markCompleted: boolean): EventStatus {
+    return markCompleted ? "COMPLETED" : "ACTIVE";
+}
+
 type ImportStats = {
     created: number;
     deleted: number;

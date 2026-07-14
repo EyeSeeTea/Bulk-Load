@@ -1,3 +1,4 @@
+import { EventStatus } from "../../data/Dhis2Import";
 import { Id } from "./ReferenceObject";
 
 export interface EventsPackage {
@@ -22,7 +23,7 @@ export interface Event {
     event?: string;
     orgUnit: string;
     program: string;
-    status: string;
+    status: EventStatus;
     occurredAt: string;
     coordinate?: {
         latitude: string;

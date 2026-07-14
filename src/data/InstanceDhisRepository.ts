@@ -29,6 +29,8 @@ import { Locale } from "../domain/entities/Locale";
 import { OrgUnit } from "../domain/entities/OrgUnit";
 import { NamedRef, Ref } from "../domain/entities/ReferenceObject";
 import {
+    computeOverallSyncStatus,
+    ErrorMessage,
     SynchronizationResult,
     SynchronizationStats,
     SynchronizationStatus,
@@ -60,7 +62,7 @@ import { promiseMap } from "../utils/promises";
 import { postEvents } from "./Dhis2Events";
 import { getProgram, getTrackedEntityInstances, updateTrackedEntityInstances } from "./Dhis2TrackedEntityInstances";
 import { Sharing } from "../domain/entities/Sharing";
-import { getMetadataDetailsFromErrors } from "./Dhis2Import";
+import { getMetadataDetailsFromErrors, resolveEventStatus } from "./Dhis2Import";
 
 export class InstanceDhisRepository implements InstanceRepository {
     private api: D2Api;
@@ -269,18 +271,19 @@ export class InstanceDhisRepository implements InstanceRepository {
         dataPackage: DataPackage,
         options: ImportDataPackageOptions
     ): Promise<SynchronizationResult[]> {
-        const { createAndUpdate, rowLookup } = options;
+        const { createAndUpdate, markCompleted, rowLookup } = options;
         switch (dataPackage.type) {
             case dataFormTypeMap.dataSets: {
                 const result = await this.importAggregatedData(
                     createAndUpdate ? "CREATE_AND_UPDATE" : "CREATE",
                     dataPackage,
-                    rowLookup
+                    rowLookup,
+                    markCompleted
                 );
                 return [result];
             }
             case dataFormTypeMap.programs: {
-                return this.importEventsData(dataPackage, rowLookup);
+                return this.importEventsData(dataPackage, markCompleted, rowLookup);
             }
             case dataFormTypeMap.trackerPrograms: {
                 return this.importTrackerProgramData(dataPackage, options);
@@ -427,13 +430,13 @@ export class InstanceDhisRepository implements InstanceRepository {
         );
     }
 
-    private buildEventsPayload(dataPackage: DataPackage): Event[] {
+    private buildEventsPayload(dataPackage: DataPackage, markCompleted = false): Event[] {
         if (dataPackage.type === dataFormTypeMap.dataSets) return [];
         return dataPackage.dataEntries.map(
             ({ id, orgUnit, period, attribute, dataValues, dataForm, coordinate, geometry }: ProgramPackageData) => ({
                 event: id,
                 program: dataForm,
-                status: "COMPLETED",
+                status: resolveEventStatus(markCompleted),
                 orgUnit,
                 occurredAt: period,
                 attributeOptionCombo: attribute,
@@ -452,7 +455,8 @@ export class InstanceDhisRepository implements InstanceRepository {
     private async importAggregatedData(
         importStrategy: "CREATE" | "UPDATE" | "CREATE_AND_UPDATE" | "DELETE",
         dataPackage: DataPackage,
-        rowLookup?: ImportRowLookup
+        rowLookup?: ImportRowLookup,
+        markCompleted = false
     ): Promise<SynchronizationResult> {
         if (dataPackage.type !== dataFormTypeMap.dataSets) throw new Error("Invalid data package type");
 
@@ -505,16 +509,58 @@ export class InstanceDhisRepository implements InstanceRepository {
 
         const allConflicts = _.flatMap(summaries, s => s.conflicts ?? []);
         const errors = allConflicts.map(({ object, value }) => ({ id: object, message: value, details: "" }));
-        const errorDetails = await getMetadataDetailsFromErrors(this.api, errors, rowLookup);
+
+        const canCompleteDataSets =
+            markCompleted && importStrategy !== "DELETE" && mergedStatus === "SUCCESS" && allConflicts.length === 0;
+
+        const [errorDetails, completionErrors] = await Promise.all([
+            getMetadataDetailsFromErrors(this.api, errors, rowLookup),
+            canCompleteDataSets ? this.completeDataSetRegistrations(dataPackage) : Promise.resolve([]),
+        ]);
+
+        const status = computeOverallSyncStatus([
+            { status: mergedStatus },
+            { status: completionErrors.length > 0 ? "ERROR" : "SUCCESS" },
+        ]);
 
         return {
             title,
-            status: mergedStatus,
+            status,
             message: mergedDescription,
             stats: [mergedImportCount, ...nullChunkStats],
-            errors: errorDetails,
+            errors: [...errorDetails, ...completionErrors],
             rawResponse: summaries,
         };
+    }
+
+    private async completeDataSetRegistrations(dataPackage: DataPackage): Promise<ErrorMessage[]> {
+        if (dataPackage.type !== dataFormTypeMap.dataSets) return [];
+
+        const registrations = _(dataPackage.dataEntries)
+            .map(({ dataForm, period, orgUnit, attribute }) => ({
+                dataSet: dataForm,
+                period,
+                organisationUnit: orgUnit,
+                attributeOptionCombo: attribute,
+            }))
+            .uniqBy(reg => `${reg.dataSet}.${reg.period}.${reg.organisationUnit}.${reg.attributeOptionCombo}`)
+            .value();
+
+        if (registrations.length === 0) return [];
+
+        try {
+            await this.api
+                .post<{ status: string }>(
+                    "/completeDataSetRegistrations",
+                    {},
+                    { completeDataSetRegistrations: registrations }
+                )
+                .getData();
+            return [];
+        } catch (error: any) {
+            const message = error?.response?.data?.message ?? i18n.t("Failed to register data set(s) as completed");
+            return [{ id: "completeDataSetRegistrations", message, details: undefined }];
+        }
     }
 
     private mergeChunkResults(chunks: AggregatedDataValue[][], chunkResults: Array<DataValueSetsPostResponse | null>) {
@@ -593,9 +639,10 @@ export class InstanceDhisRepository implements InstanceRepository {
 
     private async importEventsData(
         dataPackage: DataPackage,
+        markCompleted: boolean,
         rowLookup?: ImportRowLookup
     ): Promise<SynchronizationResult[]> {
-        const events = this.buildEventsPayload(dataPackage);
+        const events = this.buildEventsPayload(dataPackage, markCompleted);
 
         const programs = _(events)
             .groupBy(event => event.program)

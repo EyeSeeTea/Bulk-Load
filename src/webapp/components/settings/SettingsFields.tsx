@@ -115,6 +115,13 @@ export default function SettingsFields(props: SettingsFieldsProps & CustomTempla
         [settings, onChange]
     );
 
+    const setMarkCompletedOnImport = useCallback(
+        ({ value }: SelectOption) => {
+            onChange(settings.update({ markCompletedOnImport: value === "true" }));
+        },
+        [settings, onChange]
+    );
+
     const modelsInfo = useMemo(() => {
         return settings.getModelsInfo();
     }, [settings]);
@@ -137,7 +144,7 @@ export default function SettingsFields(props: SettingsFieldsProps & CustomTempla
         []
     );
 
-    const duplicateEnabledOptions: SelectOption[] = useMemo(
+    const yesNoOptions: SelectOption[] = useMemo(
         () => [
             {
                 value: "true",
@@ -306,7 +313,7 @@ export default function SettingsFields(props: SettingsFieldsProps & CustomTempla
                     <Select
                         placeholder={i18n.t("Duplicate detection")}
                         onChange={setDuplicateEnabled}
-                        options={duplicateEnabledOptions}
+                        options={yesNoOptions}
                         value={String(settings.duplicateEnabled)}
                     />
                 </div>
@@ -340,6 +347,19 @@ export default function SettingsFields(props: SettingsFieldsProps & CustomTempla
                         </ListItem>
                     </>
                 )}
+            </FormGroup>
+
+            <h3 className={classes.title}>{i18n.t("Completion status")}</h3>
+
+            <FormGroup className={classes.content} row={true}>
+                <div className={classes.fullWidth}>
+                    <Select
+                        placeholder={i18n.t("Mark data as completed on import")}
+                        onChange={setMarkCompletedOnImport}
+                        options={yesNoOptions}
+                        value={String(settings.markCompletedOnImport)}
+                    />
+                </div>
             </FormGroup>
 
             <h3 className={classes.title}>{i18n.t("Template configuration")}</h3>

@@ -200,6 +200,7 @@ export class ImportTemplateUseCase implements UseCase {
             selectedOrgUnits = [],
             duplicateStrategy = "ERROR",
             organisationUnitStrategy = "ERROR",
+            markCompleted,
             settings,
         }: ImportTemplateUseCaseParams,
         dataForm: DataForm,
@@ -258,6 +259,7 @@ export class ImportTemplateUseCase implements UseCase {
 
         const importResult = await this.instanceRepository.importDataPackage(templateToDataPackage(dataValues), {
             createAndUpdate: duplicateStrategy === "IMPORT_WITHOUT_DELETE" || duplicateStrategy === "ERROR",
+            markCompleted: markCompleted ?? settings.markCompletedOnImport,
             multiTextTeiDelimiter: this.getMultiTextTeiDelimiter(template),
             rowLookup,
         });

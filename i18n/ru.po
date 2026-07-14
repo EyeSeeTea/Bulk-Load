@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2026-06-30T17:31:02.698Z\n"
+"POT-Creation-Date: 2026-07-14T09:23:22.562Z\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -47,6 +47,9 @@ msgid "No data values to import"
 msgstr "значения данных"
 
 msgid "Failed to import data values"
+msgstr ""
+
+msgid "Failed to register data set(s) as completed"
 msgstr ""
 
 msgid ""
@@ -569,6 +572,13 @@ msgstr "Фильтр обнаружения дубликатов для собы
 
 msgid "Data elements used for duplicates identification"
 msgstr "Элементы данных, используемые для выявления дубликатов"
+
+msgid "Completion status"
+msgstr ""
+
+#, fuzzy
+msgid "Mark data as completed on import"
+msgstr "значения данных"
 
 #, fuzzy
 msgid "Template configuration"
@@ -1584,6 +1594,9 @@ msgstr "значения данных"
 
 msgid "Override import Organisation Unit"
 msgstr "Выберите импортируемое организационное подразделение"
+
+msgid "Mark imported records as completed"
+msgstr ""
 
 msgid "No capture org unit match element org units"
 msgstr "Нет захвата орг единицы соответствие элемента орг единицы"

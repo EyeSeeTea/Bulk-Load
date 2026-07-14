@@ -23,7 +23,7 @@ import {
     RelationshipMetadata,
     RelationshipOrgUnitFilter,
 } from "./Dhis2RelationshipTypes";
-import { ImportPostResponse, postImport } from "./Dhis2Import";
+import { ImportPostResponse, postImport, resolveEventStatus } from "./Dhis2Import";
 import { TrackedEntitiesApiRequest, TrackedEntitiesResponse, TrackedEntity } from "../domain/entities/TrackedEntity";
 import { Params } from "@eyeseetea/d2-api/api/common";
 import { ImportDataPackageOptions } from "../domain/repositories/InstanceRepository";
@@ -164,7 +164,14 @@ export async function updateTrackedEntityInstances(
     const program = await getProgram(api, programId);
     if (!program) throw new Error(`Program not found: ${programId}`);
 
-    const apiEvents = await getApiEvents(api, teis, dataEntries, metadata, teiSeed);
+    const apiEvents = await getApiEvents({
+        api: api,
+        teis: teis,
+        dataEntries: dataEntries,
+        metadata: metadata,
+        teiSeed: teiSeed,
+        markCompleted: importOptions.markCompleted,
+    });
     const eventsMap = _.groupBy(apiEvents, event => event.trackedEntity);
     const { preTeis, postTeis } = await splitTeis(api, teis, metadata);
     const options = { api, program, metadata, existingTeis };
@@ -302,13 +309,15 @@ async function getMetadata(api: D2Api): Promise<Metadata> {
     return { options, relationshipTypesById };
 }
 
-async function getApiEvents(
-    api: D2Api,
-    teis: TrackedEntityInstance[],
-    dataEntries: ProgramPackageData[],
-    metadata: Metadata,
-    teiSeed: string
-): Promise<Event[]> {
+async function getApiEvents(options: {
+    api: D2Api;
+    teis: TrackedEntityInstance[];
+    dataEntries: ProgramPackageData[];
+    metadata: Metadata;
+    teiSeed: string;
+    markCompleted: boolean;
+}): Promise<Event[]> {
+    const { api, teis, dataEntries, metadata, teiSeed, markCompleted } = options;
     const programByTei: Record<Id, Id> = _(teis)
         .map(tei => [tei.id, tei.program.id] as const)
         .fromPairs()
@@ -370,7 +379,7 @@ async function getApiEvents(
                 orgUnit: data.orgUnit,
                 occurredAt: data.period,
                 attributeOptionCombo: data.attribute,
-                status: "COMPLETED" as const,
+                status: resolveEventStatus(markCompleted),
                 programStage: data.programStage,
                 dataValues,
             };

@@ -131,6 +131,7 @@ export class HistoryEntry {
                 "selectedOrgUnits",
                 "duplicateStrategy",
                 "organisationUnitStrategy",
+                "markCompleted",
             ]),
         };
     }

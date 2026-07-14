@@ -5,8 +5,8 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2026-06-30T17:31:02.698Z\n"
-"PO-Revision-Date: 2026-06-30T17:31:02.699Z\n"
+"POT-Creation-Date: 2026-07-14T09:23:22.562Z\n"
+"PO-Revision-Date: 2026-07-14T09:23:22.564Z\n"
 
 msgid "Events - Create/update"
 msgstr ""
@@ -42,6 +42,9 @@ msgid "No data values to import"
 msgstr ""
 
 msgid "Failed to import data values"
+msgstr ""
+
+msgid "Failed to register data set(s) as completed"
 msgstr ""
 
 msgid ""
@@ -509,6 +512,12 @@ msgid "Duplicate detection filter for events (programs)"
 msgstr ""
 
 msgid "Data elements used for duplicates identification"
+msgstr ""
+
+msgid "Completion status"
+msgstr ""
+
+msgid "Mark data as completed on import"
 msgstr ""
 
 msgid "Template configuration"
@@ -1439,6 +1448,9 @@ msgid "data values"
 msgstr ""
 
 msgid "Override import Organisation Unit"
+msgstr ""
+
+msgid "Mark imported records as completed"
 msgstr ""
 
 msgid "No capture org unit match element org units"

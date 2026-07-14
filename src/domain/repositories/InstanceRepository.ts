@@ -48,6 +48,7 @@ export interface InstanceRepository {
 
 export type ImportDataPackageOptions = {
     createAndUpdate: boolean;
+    markCompleted: boolean;
     multiTextTeiDelimiter: Maybe<string>;
     rowLookup?: ImportRowLookup;
 };
