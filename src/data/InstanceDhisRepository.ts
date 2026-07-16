@@ -12,6 +12,7 @@ import {
 } from "../domain/entities/DataForm";
 import {
     DataPackage,
+    DataSetPackageData,
     DataSetPackageDataValue,
     ProgramPackageData,
     TrackerProgramPackage,
@@ -63,6 +64,15 @@ import { postEvents } from "./Dhis2Events";
 import { getProgram, getTrackedEntityInstances, updateTrackedEntityInstances } from "./Dhis2TrackedEntityInstances";
 import { Sharing } from "../domain/entities/Sharing";
 import { getMetadataDetailsFromErrors, resolveEventStatus } from "./Dhis2Import";
+import {
+    CompletableDataValue,
+    Registration,
+    resolveCompletableRegistrationKeys,
+    resolveRegistrations,
+} from "./Dhis2DataSetCompletion";
+import { Maybe } from "../types/utils";
+
+const bulkOperationChunkSize = 1000;
 
 export class InstanceDhisRepository implements InstanceRepository {
     private api: D2Api;
@@ -416,9 +426,14 @@ export class InstanceDhisRepository implements InstanceRepository {
     /* Private */
 
     private buildAggregatedPayload(dataPackage: DataPackage): AggregatedDataValue[] {
+        return this.buildAggregatedPayloadWithRegistration(dataPackage).map(({ dataSet: _dataSet, ...value }) => value);
+    }
+
+    private buildAggregatedPayloadWithRegistration(dataPackage: DataPackage): CompletableDataValue[] {
         if (dataPackage.type !== dataFormTypeMap.dataSets) return [];
-        return _.flatMap(dataPackage.dataEntries, ({ orgUnit, period, attribute, dataValues }) =>
+        return _.flatMap(dataPackage.dataEntries, ({ dataForm, orgUnit, period, attribute, dataValues }) =>
             dataValues.map(({ dataElement, category, value, comment }: DataSetPackageDataValue) => ({
+                dataSet: dataForm,
                 orgUnit,
                 period,
                 attributeOptionCombo: attribute,
@@ -460,7 +475,9 @@ export class InstanceDhisRepository implements InstanceRepository {
     ): Promise<SynchronizationResult> {
         if (dataPackage.type !== dataFormTypeMap.dataSets) throw new Error("Invalid data package type");
 
-        const dataValues = await this.validateAggregateImportPackage(this.buildAggregatedPayload(dataPackage));
+        const dataValues = await this.validateAggregateImportPackage(
+            this.buildAggregatedPayloadWithRegistration(dataPackage)
+        );
 
         const dataSetIds = _(dataPackage.dataEntries)
             .map(entry => entry.dataForm)
@@ -473,10 +490,9 @@ export class InstanceDhisRepository implements InstanceRepository {
             importStrategy === "DELETE" ? i18n.t("Data values - Delete") : i18n.t("Data values - Create/update");
 
         if (dataValues.length === 0) {
+            const registrations = this.resolveRegistrationsToComplete(markCompleted, importStrategy, dataPackage);
             const completionErrors =
-                markCompleted && importStrategy !== "DELETE"
-                    ? await this.completeDataSetRegistrations(dataPackage)
-                    : [];
+                registrations.length > 0 ? await this.completeDataSetRegistrations(registrations) : [];
 
             return {
                 title,
@@ -488,14 +504,18 @@ export class InstanceDhisRepository implements InstanceRepository {
             };
         }
 
-        const chunks = _.chunk(dataValues, 1000);
+        const chunks = _.chunk(dataValues, bulkOperationChunkSize);
 
         const chunkResults = await promiseMap(chunks, async chunk => {
             const { response } = await this.api.dataValues
-                .postSetAsync({ importStrategy }, { dataSet: dataSetId, dataValues: chunk })
+                .postSetAsync(
+                    { importStrategy },
+                    { dataSet: dataSetId, dataValues: chunk.map(({ dataSet: _dataSet, ...value }) => value) }
+                )
                 .getData();
 
-            return this.api.system.waitFor(response.jobType, response.id).getData();
+            const result = await this.api.system.waitFor(response.jobType, response.id).getData();
+            return result ?? undefined;
         });
 
         if (chunkResults.every(r => !r)) {
@@ -515,12 +535,21 @@ export class InstanceDhisRepository implements InstanceRepository {
         const allConflicts = _.flatMap(summaries, s => s.conflicts ?? []);
         const errors = allConflicts.map(({ object, value }) => ({ id: object, message: value, details: "" }));
 
-        const canCompleteDataSets =
-            markCompleted && importStrategy !== "DELETE" && mergedStatus === "SUCCESS" && allConflicts.length === 0;
+        const registrationsToComplete = this.resolveRegistrationsToComplete(
+            markCompleted,
+            importStrategy,
+            dataPackage,
+            {
+                chunks,
+                chunkResults,
+            }
+        );
 
         const [errorDetails, completionErrors] = await Promise.all([
             getMetadataDetailsFromErrors(this.api, errors, rowLookup),
-            canCompleteDataSets ? this.completeDataSetRegistrations(dataPackage) : Promise.resolve([]),
+            registrationsToComplete.length > 0
+                ? this.completeDataSetRegistrations(registrationsToComplete)
+                : Promise.resolve([]),
         ]);
 
         const status = computeOverallSyncStatus([
@@ -538,22 +567,25 @@ export class InstanceDhisRepository implements InstanceRepository {
         };
     }
 
-    private async completeDataSetRegistrations(dataPackage: DataPackage): Promise<ErrorMessage[]> {
-        if (dataPackage.type !== dataFormTypeMap.dataSets) return [];
+    private resolveRegistrationsToComplete(
+        markCompleted: boolean,
+        importStrategy: "CREATE" | "UPDATE" | "CREATE_AND_UPDATE" | "DELETE",
+        dataPackage: { dataEntries: DataSetPackageData[] },
+        completable?: { chunks: CompletableDataValue[][]; chunkResults: Array<Maybe<DataValueSetsPostResponse>> }
+    ): Registration[] {
+        if (!markCompleted || importStrategy === "DELETE") return [];
 
-        const registrations = _(dataPackage.dataEntries)
-            .map(({ dataForm, period, orgUnit, attribute }) => ({
-                dataSet: dataForm,
-                period,
-                organisationUnit: orgUnit,
-                attributeOptionCombo: attribute,
-            }))
-            .uniqBy(reg => [reg.dataSet, reg.period, reg.organisationUnit, reg.attributeOptionCombo].join("-"))
-            .value();
+        const keys = completable
+            ? resolveCompletableRegistrationKeys(dataPackage.dataEntries, completable.chunks, completable.chunkResults)
+            : undefined;
 
+        return resolveRegistrations(dataPackage.dataEntries, keys);
+    }
+
+    private async completeDataSetRegistrations(registrations: Registration[]): Promise<ErrorMessage[]> {
         if (registrations.length === 0) return [];
 
-        const chunks = _.chunk(registrations, 1000);
+        const chunks = _.chunk(registrations, bulkOperationChunkSize);
 
         const chunkErrors = await promiseMap(chunks, async chunk => {
             try {
@@ -574,7 +606,7 @@ export class InstanceDhisRepository implements InstanceRepository {
         return _.compact(chunkErrors);
     }
 
-    private mergeChunkResults(chunks: AggregatedDataValue[][], chunkResults: Array<DataValueSetsPostResponse | null>) {
+    private mergeChunkResults(chunks: AggregatedDataValue[][], chunkResults: Array<Maybe<DataValueSetsPostResponse>>) {
         const emptyChunkCount = chunkResults.filter(r => !r).length;
         const hasEmptySummaries = emptyChunkCount > 0;
         const summaries = _.compact(chunkResults);
@@ -623,7 +655,7 @@ export class InstanceDhisRepository implements InstanceRepository {
     }
 
     // TODO: Review when data validation comes in
-    private async validateAggregateImportPackage(dataValues: AggregatedDataValue[]) {
+    private async validateAggregateImportPackage<T extends AggregatedDataValue>(dataValues: T[]): Promise<T[]> {
         const dataElements = _.uniq(dataValues.map(({ dataElement }) => dataElement));
         const result = await promiseMap(_.chunk(dataElements, 300), dataElements =>
             this.api.metadata

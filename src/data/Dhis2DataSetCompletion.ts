@@ -1,0 +1,82 @@
+import _ from "lodash";
+import { AggregatedDataValue } from "../domain/entities/DhisDataPackage";
+import { DataSetPackageData } from "../domain/entities/DataPackage";
+import { Id } from "../domain/entities/ReferenceObject";
+import { Maybe } from "../types/utils";
+import { DataValueSetsPostResponse } from "../types/d2-api";
+
+export interface Registration {
+    dataSet: Id;
+    period: string;
+    organisationUnit: Id;
+    attributeOptionCombo: Maybe<Id>;
+}
+
+export type CompletableDataValue = AggregatedDataValue & { dataSet: Id };
+
+export function registrationKey(registrationInfo: {
+    dataSet: Id;
+    period: string;
+    orgUnit: Id;
+    attributeOptionCombo?: Id;
+}): string {
+    const { dataSet, period, orgUnit, attributeOptionCombo } = registrationInfo;
+    return [dataSet, period, orgUnit, attributeOptionCombo].join("-");
+}
+
+function entryRegistrationKey(
+    entry: Pick<DataSetPackageData, "dataForm" | "period" | "orgUnit" | "attribute">
+): string {
+    return registrationKey({
+        dataSet: entry.dataForm,
+        period: entry.period,
+        orgUnit: entry.orgUnit,
+        attributeOptionCombo: entry.attribute,
+    });
+}
+
+export function resolveCompletableRegistrationKeys(
+    dataEntries: DataSetPackageData[],
+    chunks: CompletableDataValue[][],
+    chunkResults: Array<Maybe<DataValueSetsPostResponse>>
+): string[] {
+    const chunkIndexesByKey = _.mapValues(
+        _.groupBy(
+            chunks.flatMap((chunk, chunkIndex) => chunk.map(value => ({ key: registrationKey(value), chunkIndex }))),
+            entry => entry.key
+        ),
+        entries => _.uniq(entries.map(entry => entry.chunkIndex))
+    );
+
+    return _.uniq(dataEntries.map(entryRegistrationKey)).filter(key => {
+        const chunkIndexes = chunkIndexesByKey[key];
+        // No values were sent for this registration (e.g. all filtered out) — nothing failed, so it's completable.
+        if (!chunkIndexes) return true;
+
+        return chunkIndexes.every(index => {
+            const result = chunkResults[index];
+            return result !== undefined && result.status !== "ERROR";
+        });
+    });
+}
+
+export function resolveRegistrations(
+    dataEntries: DataSetPackageData[],
+    keys: Iterable<string> = dataEntries.map(entryRegistrationKey)
+): Registration[] {
+    const registrationsByKey = new Map<string, Registration>(
+        dataEntries.map(entry => [
+            entryRegistrationKey(entry),
+            {
+                dataSet: entry.dataForm,
+                period: entry.period,
+                organisationUnit: entry.orgUnit,
+                attributeOptionCombo: entry.attribute,
+            },
+        ])
+    );
+
+    return _.uniq(Array.from(keys))
+        .map(key => registrationsByKey.get(key))
+        .filter((registration): registration is Registration => registration !== undefined);
+}
