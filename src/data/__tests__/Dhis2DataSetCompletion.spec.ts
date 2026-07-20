@@ -1,7 +1,9 @@
 import { DataSetPackageData } from "../../domain/entities/DataPackage";
 import { DataValueSetsPostResponse } from "../../types/d2-api";
 import {
+    buildCompletionLookup,
     CompletableDataValue,
+    CompleteDataSetRegistrationsGetResponse,
     registrationKey,
     resolveCompletableRegistrationKeys,
     resolveRegistrations,
@@ -241,5 +243,62 @@ describe("resolveRequestedRegistrationKeys", () => {
         expect(keys).toEqual([
             registrationKey({ dataSet: "dataSet1", period: "202401", orgUnit: "ou1", attributeOptionCombo: "aoc1" }),
         ]);
+    });
+});
+
+describe("buildCompletionLookup", () => {
+    function registration(
+        overrides: Partial<CompleteDataSetRegistrationsGetResponse["completeDataSetRegistrations"][number]> = {}
+    ): CompleteDataSetRegistrationsGetResponse["completeDataSetRegistrations"][number] {
+        return {
+            dataSet: "dataSet1",
+            period: "202401",
+            organisationUnit: "ou1",
+            attributeOptionCombo: "aoc1",
+            ...overrides,
+        };
+    }
+
+    it("treats presence in the response as completed", () => {
+        const lookup = buildCompletionLookup([registration()], []);
+        const key = registrationKey({
+            dataSet: "dataSet1",
+            period: "202401",
+            orgUnit: "ou1",
+            attributeOptionCombo: "aoc1",
+        });
+        expect(lookup.has(key)).toBe(true);
+    });
+
+    it("excludes a registration explicitly flagged completed: false", () => {
+        const lookup = buildCompletionLookup([registration({ completed: false })], []);
+        expect(lookup.size).toBe(0);
+    });
+
+    it("includes a registration with an explicit completed: true, same as bare presence", () => {
+        const lookup = buildCompletionLookup([registration({ completed: true })], []);
+        const key = registrationKey({
+            dataSet: "dataSet1",
+            period: "202401",
+            orgUnit: "ou1",
+            attributeOptionCombo: "aoc1",
+        });
+        expect(lookup.has(key)).toBe(true);
+    });
+
+    it("normalizes the default attributeOptionCombo to undefined, matching entry.attribute", () => {
+        const lookup = buildCompletionLookup([registration({ attributeOptionCombo: "defaultAoc" })], ["defaultAoc"]);
+        const key = registrationKey({
+            dataSet: "dataSet1",
+            period: "202401",
+            orgUnit: "ou1",
+            attributeOptionCombo: undefined,
+        });
+        expect(lookup.has(key)).toBe(true);
+        expect(lookup.size).toBe(1);
+    });
+
+    it("returns an empty set for empty input", () => {
+        expect(buildCompletionLookup([], []).size).toBe(0);
     });
 });

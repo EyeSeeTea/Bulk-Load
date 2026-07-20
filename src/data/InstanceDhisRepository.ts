@@ -65,8 +65,12 @@ import { getProgram, getTrackedEntityInstances, updateTrackedEntityInstances } f
 import { Sharing } from "../domain/entities/Sharing";
 import { getMetadataDetailsFromErrors, resolveEventStatus } from "./Dhis2Import";
 import {
+    buildCompletionLookup,
     CompletableDataValue,
+    CompleteDataSetRegistrationsGetResponse,
+    nonDefaultId,
     Registration,
+    registrationKey,
     resolveCompletableRegistrationKeys,
     resolveRegistrations,
     resolveRequestedRegistrationKeys,
@@ -820,6 +824,7 @@ export class InstanceDhisRepository implements InstanceRepository {
         startDate,
         endDate,
         translateCodes = true,
+        includeCompletionStatus = false,
     }: GetDataPackageParams): Promise<DataPackage> {
         const defaultIds = await this.getDefaultIds();
         const metadata = await this.getDataSetMetadata({ id });
@@ -838,28 +843,43 @@ export class InstanceDhisRepository implements InstanceRepository {
             return periods.length > 0 ? await promiseMap(_.chunk(periods, 200), query) : [await query()];
         });
 
+        const extractedDataValues = _(response)
+            .flatten()
+            .flatMap(({ dataValues = [] }) => dataValues)
+            .value();
+
+        const completionLookup = includeCompletionStatus
+            ? await this.getCompletionLookupForValues(id, extractedDataValues, defaultIds)
+            : undefined;
+
         return {
             type: dataFormTypeMap.dataSets,
-            dataEntries: _(response)
-                .flatten()
-                .flatMap(({ dataValues = [] }) => dataValues)
+            dataEntries: _(extractedDataValues)
                 .groupBy(({ period, orgUnit, attributeOptionCombo }) =>
                     [period, orgUnit, attributeOptionCombo].join("-")
                 )
                 .map((dataValues, key) => {
-                    const [period, orgUnit, attribute] = key.split("-");
+                    const [period, orgUnit, rawAttribute] = key.split("-");
                     if (!period || !orgUnit) return undefined;
+
+                    const attribute = nonDefaultId(rawAttribute, defaultIds);
+
+                    const isDataEntryCompleted = completionLookup
+                        ? completionLookup.has(
+                              registrationKey({ dataSet: id, period, orgUnit, attributeOptionCombo: attribute })
+                          )
+                        : undefined;
 
                     return {
                         type: "aggregated" as const,
                         dataForm: id,
                         orgUnit,
                         period,
-                        attribute: attribute && defaultIds.includes(attribute) ? undefined : attribute,
-                        completed: undefined,
+                        attribute,
+                        completed: isDataEntryCompleted,
                         dataValues: dataValues.map(({ dataElement, categoryOptionCombo, value, comment }) => ({
                             dataElement,
-                            category: defaultIds.includes(categoryOptionCombo) ? undefined : categoryOptionCombo,
+                            category: nonDefaultId(categoryOptionCombo, defaultIds),
                             value: this.formatDataValue(dataElement, value, metadata, translateCodes),
                             comment,
                         })),
@@ -868,6 +888,36 @@ export class InstanceDhisRepository implements InstanceRepository {
                 .compact()
                 .value(),
         };
+    }
+
+    private async getCompletionLookupForValues(
+        dataSetId: Id,
+        values: Array<{ orgUnit: Id; period: string }>,
+        defaultIds: string[]
+    ): Promise<Set<string>> {
+        const orgUnits = _.uniq(values.map(({ orgUnit }) => orgUnit));
+        const periods = _.uniq(values.map(({ period }) => period));
+        if (orgUnits.length === 0 || periods.length === 0) return new Set();
+
+        const responses = await promiseMap(_.chunk(orgUnits, 200), orgUnit =>
+            promiseMap(_.chunk(periods, 200), period =>
+                this.api
+                    .get<CompleteDataSetRegistrationsGetResponse>("/completeDataSetRegistrations", {
+                        dataSet: [dataSetId],
+                        orgUnit,
+                        period,
+                    })
+                    .getData()
+            )
+        );
+
+        return buildCompletionLookup(
+            _(responses)
+                .flatten()
+                .flatMap(r => r.completeDataSetRegistrations ?? [])
+                .value(),
+            defaultIds
+        );
     }
 
     private async getEventProgramPackage(props: GetDataPackageParams): Promise<DataPackage> {

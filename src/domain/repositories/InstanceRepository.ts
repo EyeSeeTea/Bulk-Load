@@ -22,6 +22,7 @@ export interface GetDataPackageParams {
     translateCodes?: boolean;
     relationshipsOuFilter?: RelationshipOrgUnitFilter;
     filterTEIEnrollmentDate?: boolean;
+    includeCompletionStatus?: boolean;
 }
 
 export interface GetDataFormsParams {

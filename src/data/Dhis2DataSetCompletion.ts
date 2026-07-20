@@ -25,6 +25,10 @@ export function registrationKey(registrationInfo: {
     return [dataSet, period, orgUnit, attributeOptionCombo].join("-");
 }
 
+export function nonDefaultId(id: Maybe<Id>, defaultIds: string[]): Maybe<Id> {
+    return id && defaultIds.includes(id) ? undefined : id;
+}
+
 function entryRegistrationKey(
     entry: Pick<DataSetPackageData, "dataForm" | "period" | "orgUnit" | "attribute">
 ): string {
@@ -59,6 +63,34 @@ export function resolveCompletableRegistrationKeys(
             return result !== undefined && result.status !== "ERROR";
         });
     });
+}
+
+export type CompleteDataSetRegistrationsGetResponse = {
+    completeDataSetRegistrations: Array<{
+        dataSet: Id;
+        period: string;
+        organisationUnit: Id;
+        attributeOptionCombo?: Id;
+        completed?: boolean;
+    }>;
+};
+
+export function buildCompletionLookup(
+    registrations: CompleteDataSetRegistrationsGetResponse["completeDataSetRegistrations"],
+    defaultIds: string[]
+): Set<string> {
+    return new Set(
+        registrations
+            .filter(registration => registration.completed !== false)
+            .map(registration =>
+                registrationKey({
+                    dataSet: registration.dataSet,
+                    period: registration.period,
+                    orgUnit: registration.organisationUnit,
+                    attributeOptionCombo: nonDefaultId(registration.attributeOptionCombo, defaultIds),
+                })
+            )
+    );
 }
 
 export function resolveRequestedRegistrationKeys(
