@@ -5,6 +5,7 @@ import {
     registrationKey,
     resolveCompletableRegistrationKeys,
     resolveRegistrations,
+    resolveRequestedRegistrationKeys,
 } from "../Dhis2DataSetCompletion";
 
 function buildValue(overrides: Partial<CompletableDataValue> = {}): CompletableDataValue {
@@ -27,6 +28,7 @@ function buildEntry(overrides: Partial<DataSetPackageData> = {}): DataSetPackage
         period: "202401",
         orgUnit: "ou1",
         attribute: "aoc1",
+        completed: undefined,
         dataValues: [],
         ...overrides,
     };
@@ -189,6 +191,55 @@ describe("resolveRegistrations", () => {
         expect(registrations.sort((a, b) => a.dataSet.localeCompare(b.dataSet))).toEqual([
             { dataSet: "dataSetA", period: "202401", organisationUnit: "ou1", attributeOptionCombo: "aoc1" },
             { dataSet: "dataSetB", period: "202401", organisationUnit: "ou1", attributeOptionCombo: "aoc1" },
+        ]);
+    });
+});
+
+describe("resolveRequestedRegistrationKeys", () => {
+    const key = registrationKey({
+        dataSet: "dataSet1",
+        period: "202401",
+        orgUnit: "ou1",
+        attributeOptionCombo: "aoc1",
+    });
+
+    it("requests a registration whose only row explicitly says Yes, even with the default off", () => {
+        const keys = resolveRequestedRegistrationKeys([buildEntry({ completed: true })], false);
+        expect(keys).toEqual([key]);
+    });
+
+    it("does not request a registration whose only row explicitly says No, even with the default on", () => {
+        const keys = resolveRequestedRegistrationKeys([buildEntry({ completed: false })], true);
+        expect(keys).toEqual([]);
+    });
+
+    it("falls back to the default when the row is blank", () => {
+        expect(resolveRequestedRegistrationKeys([buildEntry({ completed: undefined })], true)).toEqual([key]);
+        expect(resolveRequestedRegistrationKeys([buildEntry({ completed: undefined })], false)).toEqual([]);
+    });
+
+    it("any Yes wins across split-section rows sharing one registration", () => {
+        const rows = [
+            buildEntry({ completed: false }),
+            buildEntry({ completed: true }),
+            buildEntry({ completed: undefined }),
+        ];
+        expect(resolveRequestedRegistrationKeys(rows, false)).toEqual([key]);
+    });
+
+    it("all-No/blank rows do not request completion even if one is explicitly No", () => {
+        const rows = [buildEntry({ completed: false }), buildEntry({ completed: undefined })];
+        expect(resolveRequestedRegistrationKeys(rows, true)).toEqual([]);
+    });
+
+    it("keeps distinct registrations independent", () => {
+        const rows = [
+            buildEntry({ orgUnit: "ou1", completed: true }),
+            buildEntry({ orgUnit: "ou2", completed: false }),
+        ];
+        const keys = resolveRequestedRegistrationKeys(rows, false);
+        expect(keys).toEqual([
+            registrationKey({ dataSet: "dataSet1", period: "202401", orgUnit: "ou1", attributeOptionCombo: "aoc1" }),
         ]);
     });
 });

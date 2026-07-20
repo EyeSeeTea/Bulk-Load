@@ -379,7 +379,7 @@ async function getApiEvents(options: {
                 orgUnit: data.orgUnit,
                 occurredAt: data.period,
                 attributeOptionCombo: data.attribute,
-                status: resolveEventStatus(markCompleted),
+                status: resolveEventStatus(data.completed ?? markCompleted),
                 programStage: data.programStage,
                 dataValues,
             };

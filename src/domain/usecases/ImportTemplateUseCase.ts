@@ -36,6 +36,7 @@ import { buildHistorySharing, HistoryEntry, HistoryEntryDocument } from "../enti
 import { DocumentRepository } from "../repositories/DocumentRepository";
 import { DataElementDisaggregationsMappingRepository } from "../repositories/DataElementDisaggregationsMappingRepository";
 import { DuplicateImportStrategy, ImportTemplateConfiguration } from "../entities/ImportTemplateConfiguration";
+import { parseBooleanCell } from "../../utils/booleans";
 
 export type ImportTemplateError =
     | {
@@ -681,6 +682,8 @@ export const compareDataPackages = (
         if (baseValue && compareValue && !areEqual) return false;
     }
 
+    if (base.completed !== undefined) return false;
+
     if (dataForm.type === dataFormTypeMap.programs || dataForm.type === dataFormTypeMap.trackerPrograms) {
         const isWithToleranceRange =
             moment
@@ -724,24 +727,8 @@ export const compareDataPackages = (
     return true;
 };
 
-const trueValues = ["y", "yes", "true", "1"];
-const falseValues = ["n", "no", "false", "0"];
-
 function getBooleanValue(item: TemplateDataPackageDataValue): Maybe<boolean> {
-    const strValue = String(item.value).toLowerCase();
-
-    switch (true) {
-        case String(item.optionId) === "true" || item.optionId === "true":
-            return true;
-        case String(item.optionId) === "false" || item.optionId === "false":
-            return false;
-        case trueValues.includes(strValue):
-            return true;
-        case falseValues.includes(strValue):
-            return false;
-        default:
-            return undefined;
-    }
+    return parseBooleanCell(item.value, item.optionId);
 }
 
 function getOptionValue(originalValue: string, options?: DataOption[]): Maybe<DataOption> {

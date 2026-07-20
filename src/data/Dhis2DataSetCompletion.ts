@@ -4,6 +4,7 @@ import { DataSetPackageData } from "../domain/entities/DataPackage";
 import { Id } from "../domain/entities/ReferenceObject";
 import { Maybe } from "../types/utils";
 import { DataValueSetsPostResponse } from "../types/d2-api";
+import { resolveAnyYesWins } from "../utils/booleans";
 
 export interface Registration {
     dataSet: Id;
@@ -58,6 +59,17 @@ export function resolveCompletableRegistrationKeys(
             return result !== undefined && result.status !== "ERROR";
         });
     });
+}
+
+export function resolveRequestedRegistrationKeys(
+    dataEntries: DataSetPackageData[],
+    defaultMarkCompleted: boolean
+): string[] {
+    const requestedEntriesByKey = _.pickBy(
+        _.groupBy(dataEntries, entryRegistrationKey),
+        entries => resolveAnyYesWins(entries.map(entry => entry.completed)) ?? defaultMarkCompleted
+    );
+    return Object.keys(requestedEntriesByKey);
 }
 
 export function resolveRegistrations(

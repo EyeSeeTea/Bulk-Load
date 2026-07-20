@@ -15,6 +15,7 @@ function dataEntry(partial: Partial<TemplateDataPackageData>): TemplateDataPacka
         trackedEntityInstance: undefined,
         programStage: undefined,
         geometry: undefined,
+        completed: undefined,
         dataValues: [],
         ...partial,
     };

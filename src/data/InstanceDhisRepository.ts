@@ -69,6 +69,7 @@ import {
     Registration,
     resolveCompletableRegistrationKeys,
     resolveRegistrations,
+    resolveRequestedRegistrationKeys,
 } from "./Dhis2DataSetCompletion";
 import { Maybe } from "../types/utils";
 
@@ -448,10 +449,20 @@ export class InstanceDhisRepository implements InstanceRepository {
     private buildEventsPayload(dataPackage: DataPackage, markCompleted = false): Event[] {
         if (dataPackage.type === dataFormTypeMap.dataSets) return [];
         return dataPackage.dataEntries.map(
-            ({ id, orgUnit, period, attribute, dataValues, dataForm, coordinate, geometry }: ProgramPackageData) => ({
+            ({
+                id,
+                orgUnit,
+                period,
+                attribute,
+                dataValues,
+                dataForm,
+                coordinate,
+                geometry,
+                completed,
+            }: ProgramPackageData) => ({
                 event: id,
                 program: dataForm,
-                status: resolveEventStatus(markCompleted),
+                status: resolveEventStatus(completed ?? markCompleted),
                 orgUnit,
                 occurredAt: period,
                 attributeOptionCombo: attribute,
@@ -573,11 +584,16 @@ export class InstanceDhisRepository implements InstanceRepository {
         dataPackage: { dataEntries: DataSetPackageData[] },
         completable?: { chunks: CompletableDataValue[][]; chunkResults: Array<Maybe<DataValueSetsPostResponse>> }
     ): Registration[] {
-        if (!markCompleted || importStrategy === "DELETE") return [];
+        if (importStrategy === "DELETE") return [];
 
-        const keys = completable
+        const requestedKeys = resolveRequestedRegistrationKeys(dataPackage.dataEntries, markCompleted);
+        if (requestedKeys.length === 0) return [];
+
+        const completableKeys = completable
             ? resolveCompletableRegistrationKeys(dataPackage.dataEntries, completable.chunks, completable.chunkResults)
             : undefined;
+
+        const keys = completableKeys ? _.intersection(completableKeys, requestedKeys) : requestedKeys;
 
         return resolveRegistrations(dataPackage.dataEntries, keys);
     }
@@ -840,6 +856,7 @@ export class InstanceDhisRepository implements InstanceRepository {
                         orgUnit,
                         period,
                         attribute: attribute && defaultIds.includes(attribute) ? undefined : attribute,
+                        completed: undefined,
                         dataValues: dataValues.map(({ dataElement, categoryOptionCombo, value, comment }) => ({
                             dataElement,
                             category: defaultIds.includes(categoryOptionCombo) ? undefined : categoryOptionCombo,
@@ -924,6 +941,7 @@ export class InstanceDhisRepository implements InstanceRepository {
                     dataValues,
                     trackedEntity,
                     programStage,
+                    status,
                 }) => ({
                     id: event,
                     dataForm: id,
@@ -940,6 +958,7 @@ export class InstanceDhisRepository implements InstanceRepository {
                     geometry: geometry,
                     trackedEntityInstance: trackedEntity,
                     programStage,
+                    completed: status === "COMPLETED",
                     dataValues:
                         dataValues?.map(({ dataElement, value }) => ({
                             dataElement,

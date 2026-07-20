@@ -14,9 +14,9 @@ import { Sheet, StyleOptions, Workbook } from "./Workbook";
 import { Maybe } from "../../types/utils";
 import { MetadataService } from "./MetadataService";
 
-export const dataSetId = "DATASET_GENERATED_v2";
-export const programId = "PROGRAM_GENERATED_v4";
-export const trackerProgramId = "TRACKER_PROGRAM_GENERATED_v3";
+export const dataSetId = "DATASET_GENERATED_v3";
+export const programId = "PROGRAM_GENERATED_v5";
+export const trackerProgramId = "TRACKER_PROGRAM_GENERATED_v4";
 
 const Excel = Workbook;
 const teiSheetName = "TEI Instances";
@@ -258,6 +258,15 @@ export class SheetBuilder {
                           })
                         : i18n.t("Date", { lng: this.builder.language })
                 } *` + dateFormatInfo
+            );
+
+            this.createColumn(
+                sheet,
+                itemRow,
+                columnId++,
+                i18n.t("Completed", { lng: this.builder.language }),
+                null,
+                this.validations.get("BOOLEAN")
             );
 
             // Include attribute look-up from TEI Instances sheet
@@ -946,6 +955,15 @@ export class SheetBuilder {
             .style({ ...baseStyle, font: { size: 16, bold: true } });
 
         if (element.type === "dataSets") {
+            this.createColumn(
+                dataEntrySheet,
+                itemRow,
+                columnId++,
+                i18n.t("Completed", { lng: this.builder.language }),
+                null,
+                this.validations.get("BOOLEAN")
+            );
+
             const dataSet = element;
             const dataElementsAll = getDataSetDataElements(dataSet, metadata);
             const dataElements = includedDataElementIds
@@ -1028,6 +1046,15 @@ export class SheetBuilder {
                               })
                             : i18n.t("Date", { lng: this.builder.language })
                     } *` + dateFormatInfo
+                );
+
+                this.createColumn(
+                    dataEntrySheet,
+                    itemRow,
+                    columnId++,
+                    i18n.t("Completed", { lng: this.builder.language }),
+                    null,
+                    this.validations.get("BOOLEAN")
                 );
 
                 if (programStage.programStageSections.length === 0) {

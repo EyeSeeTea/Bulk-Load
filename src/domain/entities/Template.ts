@@ -194,6 +194,7 @@ interface BaseDataSource {
     categoryOption?: SheetRef | ValueRef;
     attribute?: SheetRef | ValueRef;
     eventId?: SheetRef | ValueRef;
+    completed?: SheetRef | ValueRef;
     coordinates?: {
         latitude: SheetRef | ValueRef;
         longitude: SheetRef | ValueRef;
@@ -217,6 +218,7 @@ export interface TrackerEventRowDataSource {
     teiId: ColumnRef;
     eventId: ColumnRef;
     date: ColumnRef;
+    completed?: ColumnRef;
     categoryOptionCombo: ColumnRef;
     dataValues: Range;
     programStage: CellRef;
@@ -236,6 +238,7 @@ export interface RowDataSource extends BaseDataSource {
     categoryOption?: ColumnRef | RowRef | ValueRef;
     attribute?: ColumnRef | CellRef | ValueRef;
     eventId?: ColumnRef | CellRef | ValueRef;
+    completed?: ColumnRef | CellRef | ValueRef;
     coordinates?: {
         latitude: ColumnRef | CellRef | ValueRef;
         longitude: ColumnRef | CellRef | ValueRef;
@@ -285,6 +288,7 @@ export interface CellDataSource extends BaseDataSource {
     categoryOption?: CellRef | ValueRef;
     attribute?: CellRef | ValueRef;
     eventId?: CellRef | ValueRef;
+    completed?: CellRef | ValueRef;
     multiTextDataElementDelimiter?: string;
     dataElementProcessingRules?: DataProcessingRule[];
 }
@@ -327,6 +331,7 @@ export function setDataEntrySheet(dataSource: RowDataSource, sheets: SheetE[]): 
         get(dataSource.categoryOption),
         get(dataSource.attribute),
         get(dataSource.eventId),
+        get(dataSource.completed),
         get(dataSource.coordinates?.latitude),
         get(dataSource.coordinates?.longitude),
         get(dataSource.geometry),
@@ -364,6 +369,7 @@ export function setDataEntrySheet(dataSource: RowDataSource, sheets: SheetE[]): 
             categoryOption: set(dataSource.categoryOption),
             attribute: set(dataSource.attribute),
             eventId: set(dataSource.eventId),
+            completed: set(dataSource.completed),
             coordinates: dataSource.coordinates
                 ? {
                       latitude: set(dataSource.coordinates.latitude),
@@ -396,6 +402,7 @@ export function setSheet<DS extends TrackerRelationship | TrackerEventRowDataSou
                 teiId: { ...dataSource.teiId, sheet },
                 eventId: { ...dataSource.eventId, sheet },
                 date: { ...dataSource.date, sheet },
+                completed: dataSource.completed && { ...dataSource.completed, sheet },
                 categoryOptionCombo: { ...dataSource.categoryOptionCombo, sheet },
                 dataValues: { ...dataSource.dataValues, sheet },
                 programStage: { ...dataSource.programStage, sheet },
@@ -458,6 +465,7 @@ export type TemplateDataPackageData = {
     trackedEntityInstance: Maybe<string>;
     programStage: Maybe<string>;
     geometry: Maybe<Geometry>;
+    completed: Maybe<boolean>;
     dataValues: TemplateDataValue[];
 };
 
@@ -474,6 +482,7 @@ export function templateToDataPackage(template: TemplateDataPackage): DataPackag
                     dataForm: entry.dataForm,
                     period: entry.period,
                     attribute: entry.attribute,
+                    completed: entry.completed,
                     dataValues: entry.dataValues.map(dv => ({
                         dataElement: dv.dataElement,
                         category: dv.category,
@@ -520,6 +529,7 @@ export function templateFromDataPackage(dataPackage: DataPackage): TemplateDataP
                     geometry: undefined,
                     trackedEntityInstance: undefined,
                     programStage: undefined,
+                    completed: entry.completed,
                     dataValues: entry.dataValues.map((dv: DataSetPackageDataValue) => ({
                         dataElement: dv.dataElement,
                         value: dv.value,
@@ -560,6 +570,7 @@ function mapToProgramData(entry: TemplateDataPackageData): ProgramPackageData {
         programStage: entry.programStage,
         coordinate: entry.coordinate,
         geometry: entry.geometry,
+        completed: entry.completed,
         dataValues: entry.dataValues.map(dv => ({
             dataElement: dv.dataElement,
             value: dv.value,
@@ -582,6 +593,7 @@ function mapFromProgramData(entry: ProgramPackageData): TemplateDataPackageData 
         geometry: entry.geometry,
         trackedEntityInstance: entry.trackedEntityInstance,
         programStage: entry.programStage,
+        completed: entry.completed,
         dataValues: entry.dataValues.map(dv => ({
             dataElement: dv.dataElement,
             value: dv.value,
