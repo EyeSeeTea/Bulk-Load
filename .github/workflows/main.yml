@@ -9,6 +9,6 @@ on:
 
 jobs:
   master-workflow:
-    uses: EyeSeeTea/github-workflows/.github/workflows/master.yml@feature/add_bom_actions
+    uses: EyeSeeTea/github-workflows/.github/workflows/master.yml@master
     secrets:
       DTRACK_API_KEY: ${{ secrets.DTRACK_API_KEY }} 
