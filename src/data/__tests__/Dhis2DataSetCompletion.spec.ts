@@ -36,12 +36,38 @@ function buildEntry(overrides: Partial<DataSetPackageData> = {}): DataSetPackage
     };
 }
 
+const defaultImportOptions: DataValueSetsPostResponse["importOptions"] = {
+    idSchemes: {},
+    dryRun: false,
+    async: false,
+    importStrategy: "CREATE_AND_UPDATE",
+    mergeMode: "REPLACE",
+    reportMode: "FULL",
+    skipExistingCheck: false,
+    sharing: false,
+    skipNotifications: false,
+    skipAudit: false,
+    datasetAllowsPeriods: false,
+    strictPeriods: false,
+    strictDataElements: false,
+    strictCategoryOptionCombos: false,
+    strictAttributeOptionCombos: false,
+    strictOrganisationUnits: false,
+    requireCategoryOptionCombo: false,
+    requireAttributeOptionCombo: false,
+    skipPatternValidation: false,
+    ignoreEmptyCollection: false,
+    force: false,
+    firstRowIsHeader: false,
+    skipLastUpdated: false,
+};
+
 function response(overrides: Partial<DataValueSetsPostResponse> = {}): DataValueSetsPostResponse {
     return {
         responseType: "ImportSummary",
         status: "SUCCESS",
         description: "",
-        importOptions: {} as DataValueSetsPostResponse["importOptions"],
+        importOptions: defaultImportOptions,
         importCount: { imported: 1, updated: 0, ignored: 0, deleted: 0 },
         dataSetComplete: false,
         conflicts: [],
