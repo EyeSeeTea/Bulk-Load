@@ -352,7 +352,7 @@ export class InstanceDhisRepository implements InstanceRepository {
         };
     }
 
-    public convertDataPackage(dataPackage: DataPackage, markCompleted = false): EventsPackage | AggregatedPackage {
+    public convertDataPackage(dataPackage: DataPackage, markCompleted: boolean): EventsPackage | AggregatedPackage {
         switch (dataPackage.type) {
             case dataFormTypeMap.dataSets:
                 return { dataValues: this.buildAggregatedPayload(dataPackage) };
