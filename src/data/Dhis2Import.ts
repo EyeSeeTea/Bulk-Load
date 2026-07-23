@@ -7,10 +7,9 @@ import { ErrorMessage } from "../domain/entities/SynchronizationResult";
 import { promiseMap } from "../utils/promises";
 import { UidErrorMessage } from "./UidErrorMessage";
 import { ImportRowLookup } from "../domain/entities/ImportRowLookup";
+import { EventStatus } from "../domain/entities/DhisDataPackage";
 
 export type Status = "OK" | "ERROR";
-
-export type EventStatus = "ACTIVE" | "COMPLETED";
 
 export function resolveEventStatus(markCompleted: boolean): EventStatus {
     return markCompleted ? "COMPLETED" : "ACTIVE";

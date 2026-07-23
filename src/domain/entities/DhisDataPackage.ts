@@ -1,5 +1,6 @@
-import { EventStatus } from "../../data/Dhis2Import";
 import { Id } from "./ReferenceObject";
+
+export type EventStatus = "ACTIVE" | "COMPLETED";
 
 export interface EventsPackage {
     events: Event[];
