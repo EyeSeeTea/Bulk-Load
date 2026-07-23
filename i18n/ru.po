@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2026-07-14T09:23:22.562Z\n"
+"POT-Creation-Date: 2026-07-23T16:34:15.474Z\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1313,6 +1313,10 @@ msgstr "Опции"
 
 msgid "Date"
 msgstr "Дата"
+
+#, fuzzy
+msgid "Completed"
+msgstr "Удалено"
 
 msgid "TEI id"
 msgstr "идентификатор TEI"
