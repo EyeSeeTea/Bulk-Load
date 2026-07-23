@@ -64,6 +64,7 @@ import { postEvents } from "./Dhis2Events";
 import { getProgram, getTrackedEntityInstances, updateTrackedEntityInstances } from "./Dhis2TrackedEntityInstances";
 import { Sharing } from "../domain/entities/Sharing";
 import { getMetadataDetailsFromErrors, resolveEventStatus } from "./Dhis2Import";
+import { getApiErrorMessage } from "./ApiError";
 import {
     buildCompletionLookup,
     CompletableDataValue,
@@ -617,8 +618,8 @@ export class InstanceDhisRepository implements InstanceRepository {
                     )
                     .getData();
                 return undefined;
-            } catch (error: any) {
-                const message = error?.response?.data?.message ?? i18n.t("Failed to register data set(s) as completed");
+            } catch (error: unknown) {
+                const message = getApiErrorMessage(error) ?? i18n.t("Failed to register data set(s) as completed");
                 return { id: "completeDataSetRegistrations", message, details: undefined };
             }
         });
