@@ -6,7 +6,7 @@ import { isString, removeCharacters } from "../../utils/string";
 import Settings from "../../webapp/logic/settings";
 import { DuplicateExclusion, DuplicateToleranceUnit } from "../entities/AppSettings";
 import { DataForm, dataFormTypeMap, DataOption } from "../entities/DataForm";
-import { DataPackageDataValue } from "../entities/DataPackage";
+import { DataPackage, DataPackageDataValue } from "../entities/DataPackage";
 import { Either } from "../entities/Either";
 import { OrgUnit } from "../entities/OrgUnit";
 import { ErrorMessage, SynchronizationResult } from "../entities/SynchronizationResult";
@@ -265,9 +265,14 @@ export class ImportTemplateUseCase implements UseCase {
             rowLookup,
         });
 
-        const importResultHasErrors = importResult.flatMap(result => result.errors);
-        if (importResultHasErrors.length > 0 || deleteResult) {
-            const importResultWithErrorsDetails = this.getImportResultsWithDetailsErrors(importResult, orgUnits);
+        // Rows ignored as duplicates never reach the import, so complete their registrations here.
+        const completionResult = await this.completeExistingRegistrations(existingDataValues, rowLookup);
+
+        const allResults = [...importResult, ...completionResult];
+
+        const hasImportErrors = allResults.some(result => !_.isEmpty(result.errors));
+        if (hasImportErrors || deleteResult) {
+            const importResultWithErrorsDetails = this.getImportResultsWithDetailsErrors(allResults, orgUnits);
 
             const deleteResultWithErrorsDetails = deleteResult
                 ? {
@@ -278,8 +283,27 @@ export class ImportTemplateUseCase implements UseCase {
 
             return Either.success(_.compact([deleteResultWithErrorsDetails, ...importResultWithErrorsDetails]));
         } else {
-            return Either.success(_.compact([deleteResult, ...importResult]));
+            return Either.success(_.compact([deleteResult, ...allResults]));
         }
+    }
+
+    /**
+     * Completes the registrations of aggregated rows that matched existing data and were ignored as duplicates.
+     * Only the completion is applied; the data values are not re-imported.
+     */
+    private async completeExistingRegistrations(
+        existingDataValues: TemplateDataPackage,
+        rowLookup: ImportRowLookup
+    ): Promise<SynchronizationResult[]> {
+        const completionOnlyPackage = buildCompletionOnlyPackage(existingDataValues);
+        if (!completionOnlyPackage) return [];
+
+        return this.instanceRepository.importDataPackage(completionOnlyPackage, {
+            createAndUpdate: true,
+            markCompleted: false,
+            multiTextTeiDelimiter: undefined,
+            rowLookup,
+        });
     }
 
     /**
@@ -682,8 +706,6 @@ export const compareDataPackages = (
         if (baseValue && compareValue && !areEqual) return false;
     }
 
-    if (base.completed !== undefined) return false;
-
     if (dataForm.type === dataFormTypeMap.programs || dataForm.type === dataFormTypeMap.trackerPrograms) {
         const isWithToleranceRange =
             moment
@@ -726,6 +748,20 @@ export const compareDataPackages = (
 
     return true;
 };
+
+/**
+ * Builds a data package that only completes the registrations of aggregated rows flagged as completed,
+ * without their data values. Returns undefined when there is nothing to complete or the type is not aggregated.
+ */
+export function buildCompletionOnlyPackage(existingDataValues: TemplateDataPackage): Maybe<DataPackage> {
+    if (existingDataValues.type !== dataFormTypeMap.dataSets) return undefined;
+
+    const dataEntries = existingDataValues.dataEntries
+        .filter(entry => entry.completed)
+        .map(entry => ({ ...entry, dataValues: [] }));
+
+    return _.isEmpty(dataEntries) ? undefined : templateToDataPackage({ ...existingDataValues, dataEntries });
+}
 
 function getBooleanValue(item: TemplateDataPackageDataValue): Maybe<boolean> {
     return parseBooleanCell(item.value, item.optionId);
