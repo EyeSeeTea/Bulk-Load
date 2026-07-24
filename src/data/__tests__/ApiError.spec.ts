@@ -6,11 +6,12 @@ describe("getApiErrorMessage", () => {
         expect(getApiErrorMessage(error)).toEqual("Data set not found");
     });
 
-    it("returns undefined if the error has no API response", () => {
-        [undefined, null, "boom", new Error("boom"), {}, { response: undefined }].forEach(error => {
+    it.each([undefined, null, "boom", new Error("boom"), {}, { response: undefined }])(
+        "returns undefined if the error has no API response: %s",
+        error => {
             expect(getApiErrorMessage(error)).toBeUndefined();
-        });
-    });
+        }
+    );
 
     it("returns undefined if the API response has no message", () => {
         expect(getApiErrorMessage({ response: { data: {} } })).toBeUndefined();

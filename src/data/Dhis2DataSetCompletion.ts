@@ -43,7 +43,7 @@ function entryRegistrationKey(
 export function resolveCompletableRegistrationKeys(
     dataEntries: DataSetPackageData[],
     chunks: CompletableDataValue[][],
-    chunkResults: Array<Maybe<DataValueSetsPostResponse>>
+    chunkResults: Array<Maybe<Pick<DataValueSetsPostResponse, "status">>>
 ): string[] {
     const chunkIndexesByKey = _.mapValues(
         _.groupBy(

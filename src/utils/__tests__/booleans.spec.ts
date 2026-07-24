@@ -1,22 +1,16 @@
 import { parseBooleanCell, resolveAnyYesWins } from "../booleans";
 
 describe("parseBooleanCell", () => {
-    it("returns true for the recognised true values, in any case", () => {
-        ["y", "yes", "true", "1", "Y", "Yes", "TRUE"].forEach(value => {
-            expect(parseBooleanCell(value)).toBe(true);
-        });
+    it.each(["y", "yes", "true", "1", "Y", "Yes", "TRUE"])("returns true for the true value %s", value => {
+        expect(parseBooleanCell(value)).toBe(true);
     });
 
-    it("returns false for the recognised false values, in any case", () => {
-        ["n", "no", "false", "0", "N", "No", "FALSE"].forEach(value => {
-            expect(parseBooleanCell(value)).toBe(false);
-        });
+    it.each(["n", "no", "false", "0", "N", "No", "FALSE"])("returns false for the false value %s", value => {
+        expect(parseBooleanCell(value)).toBe(false);
     });
 
-    it("returns undefined for unrecognised input", () => {
-        [undefined, null, "", "maybe", "2", {}].forEach(value => {
-            expect(parseBooleanCell(value)).toBeUndefined();
-        });
+    it.each([undefined, null, "", "maybe", "2", {}])("returns undefined for the unrecognised input %s", value => {
+        expect(parseBooleanCell(value)).toBeUndefined();
     });
 
     it("accepts boolean and numeric cell values", () => {

@@ -36,52 +36,12 @@ function buildEntry(overrides: Partial<DataSetPackageData> = {}): DataSetPackage
     };
 }
 
-const defaultImportOptions: DataValueSetsPostResponse["importOptions"] = {
-    idSchemes: {},
-    dryRun: false,
-    async: false,
-    importStrategy: "CREATE_AND_UPDATE",
-    mergeMode: "REPLACE",
-    reportMode: "FULL",
-    skipExistingCheck: false,
-    sharing: false,
-    skipNotifications: false,
-    skipAudit: false,
-    datasetAllowsPeriods: false,
-    strictPeriods: false,
-    strictDataElements: false,
-    strictCategoryOptionCombos: false,
-    strictAttributeOptionCombos: false,
-    strictOrganisationUnits: false,
-    requireCategoryOptionCombo: false,
-    requireAttributeOptionCombo: false,
-    skipPatternValidation: false,
-    ignoreEmptyCollection: false,
-    force: false,
-    firstRowIsHeader: false,
-    skipLastUpdated: false,
-};
+// resolveCompletableRegistrationKeys only reads the status of each chunk result.
+type ChunkResult = Pick<DataValueSetsPostResponse, "status">;
 
-function response(overrides: Partial<DataValueSetsPostResponse> = {}): DataValueSetsPostResponse {
-    return {
-        responseType: "ImportSummary",
-        status: "SUCCESS",
-        description: "",
-        importOptions: defaultImportOptions,
-        importCount: { imported: 1, updated: 0, ignored: 0, deleted: 0 },
-        dataSetComplete: false,
-        conflicts: [],
-        ...overrides,
-    };
-}
-
-function warningResponse(conflicts: Array<{ object: string; value: string }>): DataValueSetsPostResponse {
-    return response({
-        status: "WARNING",
-        importCount: { imported: 0, updated: 0, ignored: conflicts.length, deleted: 0 },
-        conflicts,
-    });
-}
+const okResult: ChunkResult = { status: "SUCCESS" };
+const warningResult: ChunkResult = { status: "WARNING" };
+const errorResult: ChunkResult = { status: "ERROR" };
 
 describe("resolveCompletableRegistrationKeys", () => {
     it("includes every registration when all chunks return a clean result", () => {
@@ -89,7 +49,7 @@ describe("resolveCompletableRegistrationKeys", () => {
         const entry2 = buildEntry({ orgUnit: "ou2" });
         const value1 = buildValue({ orgUnit: "ou1" });
         const value2 = buildValue({ orgUnit: "ou2" });
-        const chunkResults = [response(), response()];
+        const chunkResults = [okResult, okResult];
 
         const keys = resolveCompletableRegistrationKeys([entry1, entry2], [[value1], [value2]], chunkResults);
 
@@ -101,7 +61,7 @@ describe("resolveCompletableRegistrationKeys", () => {
         const value1 = buildValue({ orgUnit: "ou1", dataElement: "de1" });
         const value2 = buildValue({ orgUnit: "ou1", dataElement: "de2" });
         // both values share a single chunk and registration, which has one conflict
-        const chunkResults = [warningResponse([{ object: "de2", value: "invalid value" }])];
+        const chunkResults = [warningResult];
 
         const keys = resolveCompletableRegistrationKeys([entry], [[value1, value2]], chunkResults);
 
@@ -122,7 +82,7 @@ describe("resolveCompletableRegistrationKeys", () => {
         const entry = buildEntry({ orgUnit: "ou1" });
         const value1 = buildValue({ orgUnit: "ou1", dataElement: "de1" });
         const value2 = buildValue({ orgUnit: "ou1", dataElement: "de2" });
-        const chunkResults = [response(), undefined];
+        const chunkResults = [okResult, undefined];
 
         const keys = resolveCompletableRegistrationKeys([entry], [[value1], [value2]], chunkResults);
 
@@ -132,7 +92,7 @@ describe("resolveCompletableRegistrationKeys", () => {
     it("excludes a registration whose chunk was rejected outright (status ERROR), even though the response is non-null", () => {
         const entry = buildEntry({ orgUnit: "ou1" });
         const value = buildValue({ orgUnit: "ou1" });
-        const chunkResults = [response({ status: "ERROR" })];
+        const chunkResults = [errorResult];
 
         const keys = resolveCompletableRegistrationKeys([entry], [[value]], chunkResults);
 
@@ -143,7 +103,7 @@ describe("resolveCompletableRegistrationKeys", () => {
         const entryWithData = buildEntry({ orgUnit: "ou1" });
         const entryWithoutData = buildEntry({ orgUnit: "ou2", dataValues: [] });
         const value = buildValue({ orgUnit: "ou1" });
-        const chunkResults = [response()];
+        const chunkResults = [okResult];
 
         const keys = resolveCompletableRegistrationKeys([entryWithData, entryWithoutData], [[value]], chunkResults);
 
@@ -166,7 +126,7 @@ describe("resolveCompletableRegistrationKeys", () => {
         const valueA = buildValue({ dataSet: "dataSetA", orgUnit: "ou1" });
         const valueB = buildValue({ dataSet: "dataSetB", orgUnit: "ou1" });
         // dataSetA's chunk failed outright, dataSetB's succeeded
-        const chunkResults = [response({ status: "ERROR" }), response()];
+        const chunkResults = [errorResult, okResult];
 
         const keys = resolveCompletableRegistrationKeys([entryA, entryB], [[valueA], [valueB]], chunkResults);
 
