@@ -4106,9 +4106,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@eyeseetea/d2-api@npm:1.20.0":
-  version: 1.20.0
-  resolution: "@eyeseetea/d2-api@npm:1.20.0"
+"@eyeseetea/d2-api@npm:1.21.0":
+  version: 1.21.0
+  resolution: "@eyeseetea/d2-api@npm:1.21.0"
   dependencies:
     abort-controller: "npm:3.0.0"
     axios: "npm:1.6.4"
@@ -4119,8 +4119,7 @@ __metadata:
     iconv-lite: "npm:0.6.2"
     lodash: "npm:4.17.21"
     qs: "npm:6.9.7"
-    react: "npm:^16.12.0"
-  checksum: 10c0/611f6a927151a3c300dc526cb7376326ed9f536d6ca91aa6d9a6d506aff408daf0b36963db81628506383cff7d59c0df40a8fe7583db5a93c8bebde0a00fde26
+  checksum: 10c0/f70c2e34b7a284ccec23ea24869cc764b2607b09a55acdd1b8fea0a19337a729277f5a1a3fdd2cc4bf53539527ed5f04aaf32308d676f5f9cef5cce46ec1f2e4
   languageName: node
   linkType: hard
 
@@ -6421,7 +6420,7 @@ __metadata:
     "@dhis2/d2-ui-core": "npm:7.3.3"
     "@dhis2/ui-core": "npm:6.24.0"
     "@dhis2/ui-widgets": "npm:6.24.0"
-    "@eyeseetea/d2-api": "npm:1.20.0"
+    "@eyeseetea/d2-api": "npm:1.21.0"
     "@eyeseetea/d2-ui-components": "npm:2.12.0"
     "@eyeseetea/feedback-component": "npm:0.3.0"
     "@eyeseetea/xlsx-populate": "npm:4.3.2-beta.1"
@@ -12567,17 +12566,6 @@ __metadata:
     loose-envify: "npm:^1.1.0"
     object-assign: "npm:^4.1.1"
   checksum: 10c0/07ae8959acf1596f0550685102fd6097d461a54a4fd46a50f88a0cd7daaa97fdd6415de1dcb4bfe0da6aa43221a6746ce380410fa848acc60f8ac41f6649c148
-  languageName: node
-  linkType: hard
-
-"react@npm:^16.12.0":
-  version: 16.13.1
-  resolution: "react@npm:16.13.1"
-  dependencies:
-    loose-envify: "npm:^1.1.0"
-    object-assign: "npm:^4.1.1"
-    prop-types: "npm:^15.6.2"
-  checksum: 10c0/4d6ad44cd5c12511218ad179df94919b5c1c328d078160a9f39ae7d31738c427a9b6bbcf9fb4745f4c4f534ddab8529acc24e7cd9dce086c76e3478422256fb3
   languageName: node
   linkType: hard
 
