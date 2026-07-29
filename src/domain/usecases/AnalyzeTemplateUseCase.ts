@@ -1,12 +1,11 @@
 import { UseCase } from "../../CompositionRoot";
-import i18n from "../../utils/i18n";
 import { getExcelOrThrow } from "../../utils/files";
-import { cleanFormula } from "../../utils/string";
 import { ExcelReader } from "../helpers/ExcelReader";
 import { ExcelRepository } from "../repositories/ExcelRepository";
 import { InstanceRepository } from "../repositories/InstanceRepository";
 import { TemplateRepository } from "../repositories/TemplateRepository";
 import { DataElementDisaggregationsMappingRepository } from "../repositories/DataElementDisaggregationsMappingRepository";
+import { getDataFormFromTemplate, loadTemplateFromExcel } from "./utils/templates";
 
 export class AnalyzeTemplateUseCase implements UseCase {
     constructor(
@@ -19,24 +18,18 @@ export class AnalyzeTemplateUseCase implements UseCase {
     public async execute(file: File) {
         const excelFile = await getExcelOrThrow(file);
 
-        const templateId = await this.excelRepository.loadTemplate({ type: "file", file: excelFile });
-        const template = await this.templateRepository.getTemplate(templateId);
+        const { templateId, template } = await loadTemplateFromExcel(
+            this.templateRepository,
+            this.excelRepository,
+            excelFile
+        );
 
-        const dataFormId1 = await this.excelRepository.readCell(templateId, template.dataFormId, {
-            formula: true,
-        });
-        const dataFormId2 = await this.excelRepository.readCell(templateId, template.dataFormId);
-        const dataFormId = dataFormId1 || dataFormId2;
-
-        if (!dataFormId || typeof dataFormId !== "string") {
-            throw new Error(i18n.t("Cannot read data form id"));
-        }
-
-        const [dataForm] = await this.instanceRepository.getDataForms({
-            ids: [cleanFormula(dataFormId)],
-        });
-
-        if (!dataForm) throw new Error(i18n.t("Program or DataSet not found in instance"));
+        const dataForm = await getDataFormFromTemplate(
+            this.instanceRepository,
+            this.excelRepository,
+            templateId,
+            template
+        );
 
         const orgUnits = await this.instanceRepository.getDataFormOrgUnits(dataForm.type, dataForm.id);
 
