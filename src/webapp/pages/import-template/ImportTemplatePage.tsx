@@ -18,12 +18,7 @@ import { orgUnitListParams } from "../../utils/template";
 import { RouteComponentProps } from "../Router";
 import { TemplateDataPackage, templateToDataPackage } from "../../../domain/entities/Template";
 
-const importAcceptedMimeTypes = [
-    "application/zip",
-    "application/x-zip-compressed",
-    xlsxMimeType,
-    xlsxMacroMimeType,
-];
+const importAcceptedMimeTypes = ["application/zip", "application/x-zip-compressed", xlsxMimeType, xlsxMacroMimeType];
 
 interface ImportState {
     dataForm: DataForm;
@@ -427,4 +422,3 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
         </React.Fragment>
     );
 }
-
