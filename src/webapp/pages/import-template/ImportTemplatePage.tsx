@@ -1,16 +1,15 @@
 import { OrgUnitsSelector, useLoading, useSnackbar } from "@eyeseetea/d2-ui-components";
-import { Button, Checkbox, FormControlLabel, makeStyles } from "@material-ui/core";
-import CloudDoneIcon from "@material-ui/icons/CloudDone";
-import CloudUploadIcon from "@material-ui/icons/CloudUpload";
+import { Button, Checkbox, FormControlLabel } from "@material-ui/core";
 import { saveAs } from "file-saver";
 import _ from "lodash";
 import moment from "moment";
 import React, { useCallback, useEffect, useState } from "react";
-import Dropzone from "react-dropzone";
 import { DataForm, DataFormType } from "../../../domain/entities/DataForm";
 import { SynchronizationResult } from "../../../domain/entities/SynchronizationResult";
 import { ImportTemplateUseCaseParams } from "../../../domain/usecases/ImportTemplateUseCase";
+import { xlsxMacroMimeType, xlsxMimeType } from "../../../utils/files";
 import i18n from "../../../utils/i18n";
+import { TemplateDropzone } from "../../components/dropzone/TemplateDropzone";
 import ModalDialog, { ModalDialogProps } from "../../components/modal-dialog/ModalDialog";
 import { ImportResultBadge } from "../../components/import-result-badge/ImportResultBadge";
 import SyncSummaryDialog from "../../components/sync-summary/SyncSummaryDialog";
@@ -18,6 +17,13 @@ import { useAppContext } from "../../contexts/app-context";
 import { orgUnitListParams } from "../../utils/template";
 import { RouteComponentProps } from "../Router";
 import { TemplateDataPackage, templateToDataPackage } from "../../../domain/entities/Template";
+
+const importAcceptedMimeTypes = [
+    "application/zip",
+    "application/x-zip-compressed",
+    xlsxMimeType,
+    xlsxMacroMimeType,
+];
 
 interface ImportState {
     dataForm: DataForm;
@@ -33,7 +39,6 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
     const { api, compositionRoot } = useAppContext();
     const loading = useLoading();
     const snackbar = useSnackbar();
-    const classes = useStyles();
 
     const [orgUnitTreeRootIds, setOrgUnitTreeRootIds] = useState<string[]>([]);
     const [selectedOrgUnits, setSelectedOrgUnits] = useState<string[]>([]);
@@ -311,44 +316,12 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
 
             <h3>{i18n.t("Bulk data import")}</h3>
 
-            <Dropzone
-                accept={[
-                    "application/zip",
-                    "application/x-zip-compressed",
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    "application/vnd.ms-excel.sheet.macroEnabled.12",
-                ]}
+            <TemplateDropzone
+                accept={importAcceptedMimeTypes}
+                placeholder={i18n.t("Drag and drop file to import")}
+                selectedFileName={importState?.file.name}
                 onDrop={onDrop}
-                multiple={false}
-            >
-                {({ getRootProps, getInputProps, isDragActive, isDragAccept }) => (
-                    <section className={classes.dropzoneSection}>
-                        <div
-                            {...getRootProps({
-                                className: isDragActive
-                                    ? `${classes.stripes} ${
-                                          isDragAccept ? classes.acceptStripes : classes.rejectStripes
-                                      }`
-                                    : classes.dropzone,
-                            })}
-                        >
-                            <input {...getInputProps()} />
-                            <div className={classes.dropzoneTextStyle} hidden={importState?.file !== undefined}>
-                                <p className={classes.dropzoneParagraph}>{i18n.t("Drag and drop file to import")}</p>
-                                <br />
-                                <CloudUploadIcon className={classes.uploadIconSize} />
-                            </div>
-                            <div className={classes.dropzoneTextStyle} hidden={importState?.file === undefined}>
-                                {importState?.file !== undefined && (
-                                    <p className={classes.dropzoneParagraph}>{importState?.file.name}</p>
-                                )}
-                                <br />
-                                <CloudDoneIcon className={classes.uploadIconSize} />
-                            </div>
-                        </div>
-                    </section>
-                )}
-            </Dropzone>
+            />
 
             {syncResults && <ImportResultBadge results={syncResults} onClick={openSyncDialog} />}
 
@@ -455,47 +428,3 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
     );
 }
 
-const useStyles = makeStyles({
-    dropzoneTextStyle: { textAlign: "center", top: "15%", position: "relative" },
-    dropzoneParagraph: { fontSize: 20 },
-    uploadIconSize: { width: 50, height: 50, color: "#909090" },
-    dropzone: {
-        position: "relative",
-        width: "100%",
-        height: 270,
-        backgroundColor: "#f0f0f0",
-        border: "dashed",
-        borderColor: "#c8c8c8",
-        cursor: "pointer",
-    },
-    stripes: {
-        width: "100%",
-        height: 270,
-        cursor: "pointer",
-        border: "solid",
-        borderColor: "#c8c8c8",
-        "-webkit-animation": "progress 2s linear infinite !important",
-        "-moz-animation": "progress 2s linear infinite !important",
-        animation: "progress 2s linear infinite !important",
-        backgroundSize: "150% 100%",
-    },
-    acceptStripes: {
-        backgroundImage: `repeating-linear-gradient(
-            -45deg,
-            #f0f0f0,
-            #f0f0f0 25px,
-            #c8c8c8 25px,
-            #c8c8c8 50px
-        )`,
-    },
-    rejectStripes: {
-        backgroundImage: `repeating-linear-gradient(
-            -45deg,
-            #fc8785,
-            #fc8785 25px,
-            #f4231f 25px,
-            #f4231f 50px
-        )`,
-    },
-    dropzoneSection: { marginBottom: "1em" },
-});
