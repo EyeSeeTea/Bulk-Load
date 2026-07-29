@@ -101,3 +101,5 @@ yarn regenerate-metadata \
 | `--include-codes` | — | Write the Code column in the Metadata sheet (default off). |
 | `--use-codes` | — | Use item codes instead of names for org units, data elements, options… (default off). |
 | `--org-unit-short-name` | — | Use each org unit's short name instead of its regular name (default off). |
+
+The same operation is available in the app, under Settings → Maintenance → Regenerate template metadata.
