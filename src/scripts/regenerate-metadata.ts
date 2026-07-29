@@ -1,5 +1,5 @@
 import path from "path";
-import { command, run, string, option, flag } from "cmd-ts";
+import { command, run, string, option, flag, oneOf } from "cmd-ts";
 import { readFile, writeFile } from "node:fs/promises";
 
 import { D2Api } from "./../types/d2-api";
@@ -8,7 +8,7 @@ import { getCompositionRoot } from "../CompositionRoot";
 import { JsonConfig } from "../data/ConfigWebRepository";
 import { getD2APiFromInstance } from "../utils/d2-api";
 import Settings from "../webapp/logic/settings";
-import { DataFormType } from "../domain/entities/DataForm";
+import { dataFormTypeMap, dataFormTypes } from "../domain/entities/DataForm";
 
 // Embed --auth into the URL, matching how the rest of the app builds its DHIS2 instance.
 function buildDhis2Url(baseUrl: string, auth: string): string {
@@ -56,9 +56,9 @@ function main() {
                 description: "DHIS2 program/dataSet id whose metadata is used (e.g. U6z7eJniNfL)",
             }),
             formType: option({
-                type: string,
+                type: oneOf(dataFormTypes),
                 long: "form-type",
-                defaultValue: () => "trackerPrograms",
+                defaultValue: () => dataFormTypeMap.trackerPrograms,
                 description: "Data form type: trackerPrograms | programs | dataSets (default: trackerPrograms)",
             }),
             language: option({
@@ -96,7 +96,7 @@ function main() {
             console.debug(`Regenerating Metadata for ${args.input} (form ${args.formId})`);
 
             const outputBase64 = await compositionRoot.templates.regenerateMetadata(api, {
-                type: args.formType as DataFormType,
+                type: args.formType,
                 id: args.formId,
                 fileContents,
                 settings,

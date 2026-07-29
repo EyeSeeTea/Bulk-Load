@@ -1,5 +1,8 @@
 import { UseCase } from "../../CompositionRoot";
 import { D2Api } from "../../types/d2-api";
+// TODO: Settings and SheetBuilder live in webapp/logic, so this use case breaks the
+// domain → presentation dependency rule. Moving them to domain requires a wider
+// refactor (shared by other use cases) and is tracked as its own task.
 import Settings from "../../webapp/logic/settings";
 import { SheetBuilder } from "../../webapp/logic/sheetBuilder";
 import { DataFormType } from "../entities/DataForm";
