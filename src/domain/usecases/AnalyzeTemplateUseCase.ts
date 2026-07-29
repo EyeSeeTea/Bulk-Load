@@ -1,6 +1,7 @@
 import { UseCase } from "../../CompositionRoot";
 import i18n from "../../utils/i18n";
 import { getExcelOrThrow } from "../../utils/files";
+import { cleanFormula } from "../../utils/string";
 import { ExcelReader } from "../helpers/ExcelReader";
 import { ExcelRepository } from "../repositories/ExcelRepository";
 import { InstanceRepository } from "../repositories/InstanceRepository";
@@ -59,5 +60,3 @@ export class AnalyzeTemplateUseCase implements UseCase {
         return { custom: true, dataForm, dataValues, orgUnits, file };
     }
 }
-
-const cleanFormula = (string: string) => (string.startsWith("_") ? string.substr(1) : string);
