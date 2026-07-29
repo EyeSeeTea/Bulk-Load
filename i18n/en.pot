@@ -5,8 +5,8 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2026-07-29T04:43:44.097Z\n"
-"PO-Revision-Date: 2026-07-29T04:43:44.097Z\n"
+"POT-Creation-Date: 2026-07-29T11:52:52.301Z\n"
+"PO-Revision-Date: 2026-07-29T11:52:52.301Z\n"
 
 msgid "Events - Create/update"
 msgstr ""
@@ -120,15 +120,15 @@ msgstr ""
 msgid "Found in {{locations}} of the Excel file"
 msgstr ""
 
+msgid ""
+"Could not identify this template. Check the file is a Bulk Load template "
+"and that your session is still active."
+msgstr ""
+
 msgid "Cannot read data form id"
 msgstr ""
 
 msgid "Program or DataSet not found in instance"
-msgstr ""
-
-msgid ""
-"Could not identify this template. Check the file is a Bulk Load template "
-"and that your session is still active."
 msgstr ""
 
 msgid "Case Registration Date"
@@ -483,18 +483,6 @@ msgstr ""
 msgid "Populate events for every Tracked Entity Instance (TEI)"
 msgstr ""
 
-msgid "Only .xlsx and .xlsm template files are accepted"
-msgstr ""
-
-msgid "Unsupported file extension for template"
-msgstr ""
-
-msgid "Regenerating metadata..."
-msgstr ""
-
-msgid "Metadata regenerated"
-msgstr ""
-
 msgid "Regenerate"
 msgstr ""
 
@@ -711,6 +699,9 @@ msgid "Are you sure you want to remove the selected templates"
 msgstr ""
 
 msgid "Cannot determine file extension for template"
+msgstr ""
+
+msgid "Unsupported file extension for template"
 msgstr ""
 
 msgid "Cannot download spreadsheet for template"
@@ -1201,6 +1192,15 @@ msgid "Error loading history entries"
 msgstr ""
 
 msgid "Error loading import details"
+msgstr ""
+
+msgid "Only .xlsx and .xlsm template files are accepted"
+msgstr ""
+
+msgid "Regenerating metadata..."
+msgstr ""
+
+msgid "Metadata regenerated"
 msgstr ""
 
 msgid "Error deleting data values"

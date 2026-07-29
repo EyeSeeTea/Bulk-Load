@@ -17,17 +17,8 @@ export function RegenerateMetadataDialog(props: RegenerateMetadataDialogProps): 
     const { title, settings, onClose } = props;
     const classes = useStyles();
 
-    const {
-        resolution,
-        flags,
-        isRunning,
-        translations,
-        droppedFileName,
-        onDrop,
-        setFlag,
-        regenerate,
-        cancel,
-    } = useRegenerateMetadata({ settings, onClose });
+    const { resolution, flags, isRunning, translations, droppedFileName, onDrop, setFlag, regenerate, cancel } =
+        useRegenerateMetadata({ settings, onClose });
 
     return (
         <ConfirmationDialog

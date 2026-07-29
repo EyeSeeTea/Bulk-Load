@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2026-07-29T04:43:44.097Z\n"
+"POT-Creation-Date: 2026-07-29T11:52:52.301Z\n"
 "Language: pt\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -134,16 +134,16 @@ msgstr ""
 msgid "Found in {{locations}} of the Excel file"
 msgstr ""
 
+msgid ""
+"Could not identify this template. Check the file is a Bulk Load template and "
+"that your session is still active."
+msgstr ""
+
 msgid "Cannot read data form id"
 msgstr "Não é possível ler os dados do formulário de identificação"
 
 msgid "Program or DataSet not found in instance"
 msgstr "Programa ou DataSet não encontrado na instância"
-
-msgid ""
-"Could not identify this template. Check the file is a Bulk Load template and "
-"that your session is still active."
-msgstr ""
 
 msgid "Case Registration Date"
 msgstr "Data de registo do caso"
@@ -533,19 +533,6 @@ msgstr "Pesquisar elementos de dados ou atributos"
 msgid "Populate events for every Tracked Entity Instance (TEI)"
 msgstr ""
 
-msgid "Only .xlsx and .xlsm template files are accepted"
-msgstr ""
-
-msgid "Unsupported file extension for template"
-msgstr ""
-
-#, fuzzy
-msgid "Regenerating metadata..."
-msgstr "Lendo dados ..."
-
-msgid "Metadata regenerated"
-msgstr ""
-
 msgid "Regenerate"
 msgstr ""
 
@@ -781,6 +768,9 @@ msgid "Are you sure you want to remove the selected templates"
 msgstr "Tem certeza de que deseja excluir os temas selecionados"
 
 msgid "Cannot determine file extension for template"
+msgstr ""
+
+msgid "Unsupported file extension for template"
 msgstr ""
 
 msgid "Cannot download spreadsheet for template"
@@ -1314,6 +1304,15 @@ msgid "Error loading history entries"
 msgstr ""
 
 msgid "Error loading import details"
+msgstr ""
+
+msgid "Only .xlsx and .xlsm template files are accepted"
+msgstr ""
+
+msgid "Regenerating metadata..."
+msgstr ""
+
+msgid "Metadata regenerated"
 msgstr ""
 
 msgid "Error deleting data values"
