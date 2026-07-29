@@ -5,8 +5,13 @@ import { SynchronizationResult } from "../domain/entities/SynchronizationResult"
 import i18n from "../utils/i18n";
 import { promiseMap } from "../utils/promises";
 import { ImportPostResponse, postImport } from "./Dhis2Import";
+import { ImportRowLookup } from "../domain/entities/ImportRowLookup";
 
-export async function postEvents(api: D2Api, events: Event[]): Promise<SynchronizationResult[]> {
+export async function postEvents(
+    api: D2Api,
+    events: Event[],
+    rowLookup?: ImportRowLookup
+): Promise<SynchronizationResult[]> {
     return promiseMap(_.chunk(events, 200), eventsToSave => {
         return postImport(
             api,
@@ -15,6 +20,7 @@ export async function postEvents(api: D2Api, events: Event[]): Promise<Synchroni
                 title: i18n.t("Events - Create/update"),
                 model: i18n.t("Event"),
                 splitStatsList: true,
+                rowLookup,
             }
         );
     });

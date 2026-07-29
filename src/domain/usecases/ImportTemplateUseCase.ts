@@ -20,6 +20,7 @@ import {
     templateToDataPackage,
     TemplateTrackerProgramPackage,
 } from "../entities/Template";
+import { ImportRowLookup } from "../entities/ImportRowLookup";
 import { ExcelReader } from "../helpers/ExcelReader";
 import { MULTI_TEXT_OPTION_DELIMITER } from "../helpers/ExcelBuilder";
 import { ExcelRepository } from "../repositories/ExcelRepository";
@@ -246,16 +247,19 @@ export class ImportTemplateUseCase implements UseCase {
             });
         }
 
+        const rowLookup = ImportRowLookup.fromTemplateDataPackage(dataValues);
+
         const shouldDeleteExistingData =
             dataForm.type === dataFormTypeMap.dataSets ? this.shouldDeleteAggregatedData(duplicateStrategy) : false;
 
         const deleteResult = shouldDeleteExistingData
-            ? await this.instanceRepository.deleteAggregatedData(templateToDataPackage(instanceDataValues))
+            ? await this.instanceRepository.deleteAggregatedData(templateToDataPackage(instanceDataValues), rowLookup)
             : undefined;
 
         const importResult = await this.instanceRepository.importDataPackage(templateToDataPackage(dataValues), {
             createAndUpdate: duplicateStrategy === "IMPORT_WITHOUT_DELETE" || duplicateStrategy === "ERROR",
             multiTextTeiDelimiter: this.getMultiTextTeiDelimiter(template),
+            rowLookup,
         });
 
         const importResultHasErrors = importResult.flatMap(result => result.errors);
@@ -632,9 +636,12 @@ export class ImportTemplateUseCase implements UseCase {
         return errors.map(error => {
             const orgUnit = orgUnits.find(ou => ou.id === error.id);
             const matches = allowedMessages.find(regex => error.message.match(regex.regex));
+            const orgUnitMessage = matches && orgUnit ? matches.getErrorMessage(orgUnit.name) : "";
+            const details = _.compact([error.details, orgUnitMessage]).join(". ");
+
             return {
                 ...error,
-                details: matches && orgUnit ? matches.getErrorMessage(orgUnit.name) : "",
+                details,
             };
         });
     }

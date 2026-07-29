@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2026-07-29T04:19:07.056Z\n"
+"POT-Creation-Date: 2026-07-29T04:43:44.097Z\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -108,6 +108,29 @@ msgstr "Programa de eventos"
 
 msgid "Tracker Program"
 msgstr "Programa de tracker"
+
+msgid "cell {{ref}}"
+msgstr ""
+
+msgid "cells {{refs}}"
+msgstr ""
+
+msgid "row {{ref}}"
+msgstr ""
+
+msgid "rows {{refs}}"
+msgstr ""
+
+msgid "and {{count}} more"
+msgid_plural "and {{count}} more"
+msgstr[0] "y {{count}} más"
+msgstr[1] "y {{count}} más"
+
+msgid "sheet {{sheet}}, {{lines}}"
+msgstr ""
+
+msgid "Found in {{locations}} of the Excel file"
+msgstr ""
 
 msgid "Cannot read data form id"
 msgstr "No se pueden leer los datos del formulario id"
@@ -510,8 +533,9 @@ msgstr ""
 msgid "Unsupported file extension for template"
 msgstr ""
 
+#, fuzzy
 msgid "Regenerating metadata..."
-msgstr ""
+msgstr "Leyendo datos..."
 
 msgid "Metadata regenerated"
 msgstr ""
@@ -519,8 +543,9 @@ msgstr ""
 msgid "Regenerate"
 msgstr ""
 
+#, fuzzy
 msgid "Drag and drop the template file to regenerate"
-msgstr ""
+msgstr "Mueva aquí los ficheros a importar"
 
 msgid "Template"
 msgstr "Plantilla"
