@@ -264,7 +264,7 @@ export class DownloadTemplateUseCase implements UseCase {
     }
 }
 
-async function getElement(api: D2Api, type: DataFormType, id: string) {
+export async function getElement(api: D2Api, type: DataFormType, id: string) {
     const endpoint = type === dataFormTypeMap.dataSets ? "dataSets" : "programs";
     const fields = [
         "id",
@@ -288,7 +288,7 @@ async function getElement(api: D2Api, type: DataFormType, id: string) {
     return { ...response, type };
 }
 
-async function getElementMetadata({
+export async function getElementMetadata({
     element,
     api,
     orgUnitIds,

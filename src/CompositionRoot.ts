@@ -20,6 +20,8 @@ import { ConvertDataPackageUseCase } from "./domain/usecases/ConvertDataPackageU
 import { DeleteCustomTemplateUseCase } from "./domain/usecases/DeleteCustomTemplateUseCase";
 import { DeleteThemeUseCase } from "./domain/usecases/DeleteThemeUseCase";
 import { DownloadTemplateUseCase } from "./domain/usecases/DownloadTemplateUseCase";
+import { RegenerateTemplateMetadataUseCase } from "./domain/usecases/RegenerateTemplateMetadataUseCase";
+import { ResolveTemplateFromFileUseCase } from "./domain/usecases/ResolveTemplateFromFileUseCase";
 import { GetCustomTemplatesUseCase } from "./domain/usecases/GetCustomTemplatesUseCase";
 import { GetDataFormsForGenerationUseCase } from "./domain/usecases/GetDataFormsForGenerationUseCase";
 import { GetDataFormsUseCase } from "./domain/usecases/GetDataFormsUseCase";
@@ -125,6 +127,8 @@ export function getCompositionRoot({ appConfig, dhisInstance, mockApi, importSou
                 documentRepository,
                 dataElementDisaggregationsMappingRepository
             ),
+            regenerateMetadata: new RegenerateTemplateMetadataUseCase(),
+            resolveFromFile: new ResolveTemplateFromFileUseCase(instance, templateManager, excelReader),
             list: new ListDataFormsUseCase(instance),
             getDataFormsForGeneration: new GetDataFormsForGenerationUseCase(instance),
             get: new GetDataFormsUseCase(instance),

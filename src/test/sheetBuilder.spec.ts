@@ -7,8 +7,11 @@ import { initializeMockServer } from "./mocks/server";
 
 const metadataSheetName = "Metadata";
 const codeColumn = "H";
+// Metadata sheet rows 3-5 hold the sorted CC_DEFAULT/dataElement1/dataElement2 items; org units follow.
+const orgUnitRow = 6;
 const dataElement1 = { id: "DE_1", code: "CODE_DE1" };
 const dataElement2 = { id: "DE_2", code: "CODE_DE2" };
+const orgUnit1 = { id: "OU_1", displayName: "Org unit 1", translations: [], code: "CODE_OU1" };
 
 const { api } = initializeMockServer();
 const compositionRoot = getCompositionRoot({
@@ -72,7 +75,7 @@ function buildParams(settings: Settings, includeMetadataCodes: boolean): SheetBu
         },
         metadata: {},
         elementMetadata,
-        organisationUnits: [],
+        organisationUnits: [orgUnit1],
         rawMetadata: {
             dataElements: [dataElement1Metadata, dataElement2Metadata],
             categoryOptionCombos: [],
@@ -109,6 +112,7 @@ describe("SheetBuilder", () => {
             expect(getMetadataSheetCellValue(workbook, `${codeColumn}1`)).toEqual("Code");
             expect(getMetadataSheetCellValue(workbook, `${codeColumn}4`)).toEqual(dataElement1.code);
             expect(getMetadataSheetCellValue(workbook, `${codeColumn}5`)).toEqual(dataElement2.code);
+            expect(getMetadataSheetCellValue(workbook, `${codeColumn}${orgUnitRow}`)).toEqual(orgUnit1.code);
         });
 
         it("does not write a Code header or values when includeMetadataCodes is false", async () => {
@@ -117,6 +121,23 @@ describe("SheetBuilder", () => {
             expect(getMetadataSheetCellValue(workbook, `${codeColumn}1`)).toBeUndefined();
             expect(getMetadataSheetCellValue(workbook, `${codeColumn}4`)).toBeUndefined();
             expect(getMetadataSheetCellValue(workbook, `${codeColumn}5`)).toBeUndefined();
+            expect(getMetadataSheetCellValue(workbook, `${codeColumn}${orgUnitRow}`)).toBeUndefined();
+        });
+    });
+
+    describe("generateMetadataOnly", () => {
+        it("refreshes the Metadata sheet (with Code column) while preserving other sheets", async () => {
+            const base = await new SheetBuilder(buildParams(settings, false)).generate();
+            expect(getMetadataSheetCellValue(base, `${codeColumn}1`)).toBeUndefined(); // no codes yet
+            const inputBase64 = await base.writeToBase64();
+
+            const regenerated = await new SheetBuilder(buildParams(settings, true)).generateMetadataOnly(inputBase64);
+
+            // Metadata refreshed with the Code column
+            expect(getMetadataSheetCellValue(regenerated, `${codeColumn}1`)).toEqual("Code");
+            expect(getMetadataSheetCellValue(regenerated, `${codeColumn}4`)).toEqual(dataElement1.code);
+            // Other sheets preserved (generate() also produced a Legend sheet)
+            expect(regenerated.xworkbook.sheet("Legend")).toBeTruthy();
         });
     });
 });
