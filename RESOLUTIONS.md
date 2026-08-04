@@ -94,7 +94,7 @@ Add, update or remove a resolution and its entry here in the same change.
 - **Why:** `i18next-conv@6.1.1` requests `node-gettext@^2.0.0`, which cannot reach the fix. Scoped to
   that parent because it is the only consumer. `i18next-conv` is reached through
   `@dhis2/d2-i18n-extract` and `@dhis2/d2-i18n-generate`.
-- **Fixes:** GHSA-g8qh-9h27-crr2 (prototype pollution). The advisory records no patched version, but
+- **Fixes:** GHSA-g974-hxvm-x689 (prototype pollution). The advisory records no patched version, but
   its affected range is `<= 3.0.0` and 3.0.1 is published and outside it — "no patched version
   recorded" is not the same as "no fix exists".
 - **Drop when:** `i18next-conv` requests `node-gettext@^3` or later, or the `@dhis2/d2-i18n-*` pair is
