@@ -145,6 +145,28 @@ effect. Removing it left the lockfile byte-identical, which is the evidence it w
 
 ---
 
+## Findings with no remediation available
+
+Recorded so they are not investigated again from scratch. Neither is a resolution; both are states of
+the upstream package.
+
+### `elliptic` — GHSA-848j-6mx2-7j84
+
+The advisory affects every published version (`<= 6.6.1`), and 6.6.1 is the latest release. There is
+no version to upgrade to and no range that avoids it. Reached transitively through the crypto
+polyfills used by the browser build.
+
+**Revisit when:** a release above 6.6.1 is published, or the consumer that pulls it in stops needing
+it.
+
+### `eslint` — GHSA-p5wg-g6qr-c7cg
+
+**This advisory was withdrawn on 2026-02-03.** It may still appear in scanner output, because
+different databases pick up withdrawals at different times. It does not describe a real defect and
+should be dismissed rather than remediated — do not upgrade `eslint` on account of it.
+
+---
+
 ## Dependency decisions with no trace in the manifest
 
 ### Why `@dhis2/d2-i18n-extract` and `@dhis2/d2-i18n-generate` have not been replaced

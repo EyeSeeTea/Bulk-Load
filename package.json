@@ -44,7 +44,7 @@
         "react-dropzone": "11.5.1",
         "react-json-view": "1.21.3",
         "react-markdown": "^8.0.7",
-        "react-router-dom": "6.30.3",
+        "react-router-dom": "6.30.4",
         "rehype-raw": "^6.1.1",
         "rehype-sanitize": "^5.0.1",
         "styled-jsx": "5.0.0"
@@ -69,8 +69,8 @@
         "postinstall": "yarn localize"
     },
     "devDependencies": {
-        "@babel/core": "7.16.7",
-        "@babel/preset-typescript": "7.16.7",
+        "@babel/core": "^7.26.10",
+        "@babel/preset-typescript": "^7.26.0",
         "@dhis2/d2-i18n-extract": "1.0.8",
         "@dhis2/d2-i18n-generate": "1.2.0",
         "@testing-library/jest-dom": "5.16.1",
