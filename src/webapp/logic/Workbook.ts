@@ -34,6 +34,18 @@ export class Workbook {
         return new Workbook(workbook);
     }
 
+    // Loads from a (raw or data-URI) base64 string without the browser-only fetch/File path,
+    // so it works in Node (scripts) and the browser alike.
+    static async fromBase64Data(base64: string) {
+        const clean = base64.replace(/^data:[^,]*,/, "");
+        const bytes =
+            typeof Buffer !== "undefined"
+                ? new Uint8Array(Buffer.from(clean, "base64"))
+                : Uint8Array.from(atob(clean), character => character.charCodeAt(0));
+        const workbook = await XlsxPopulate.fromDataAsync(bytes);
+        return new Workbook(workbook);
+    }
+
     static getExcelAlpha(n: number): string {
         if (n === 0) return "";
         const columnsRange = 26;
@@ -70,6 +82,11 @@ export class Workbook {
         return this.xworkbook.outputAsync({ type: "blob" });
     }
 
+    // Cross-environment output (works in both browser and Node, unlike the "blob" type).
+    writeToBase64(): Promise<string> {
+        return this.xworkbook.outputAsync({ type: "base64" });
+    }
+
     get definedNameCollection() {
         return {
             addDefinedName: (options: { name: string; refFormula: string }) => {
@@ -88,6 +105,14 @@ export class Sheet {
 
     get name() {
         return this.xsheet.name();
+    }
+
+    // Clears the sheet's used range in place (values), preserving the sheet identity
+    // (codeName / VBA binding) — deleting the sheet instead would orphan its VBA module.
+    clear() {
+        const usedRange = this.xsheet.usedRange();
+        if (usedRange) usedRange.clear();
+        return this;
     }
 
     row(rowNumber: number) {

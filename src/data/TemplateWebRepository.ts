@@ -41,6 +41,7 @@ export class TemplateWebRepository implements TemplateRepository {
                           : {}),
                       ...(importCustomization ? { importCustomization: importCustomization.bind(customTemplate) } : {}),
                       generateMetadata: customTemplate.generateMetadata ?? false,
+                      includeMetadataCodes: customTemplate.includeMetadataCodes ?? false,
                   }
                 : template;
         });
