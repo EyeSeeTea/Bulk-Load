@@ -18,10 +18,13 @@ Add, update or remove a resolution and its entry here in the same change.
 >
 > A floor written as an exact version stops working over time: it cannot select a patch, so it holds
 > the tree on the version it was written against. `axios`, `lodash` and `qs` were all previously
-> constrained to exact versions here and had to be reopened into ranges. Two entries below show the
-> mechanism working: `minimatch` resolves to 3.1.5 and `brace-expansion` to 1.1.18, both above the
-> version their advisories name as patched, because backports published later were picked up by the
-> range without anyone touching it.
+> constrained to exact versions here and had to be reopened into ranges. `axios` shows the mechanism
+> working once corrected: the range resolves to 1.19.0, above the version its advisories name as
+> patched, because releases published later were picked up without anyone touching the entry.
+>
+> The same reasoning retires entries as well as writing them. If every parent's declared range already
+> reaches a patched release, the floor is not what is holding the tree up and can go — see
+> [Removed](#removed), where four entries were retired on that basis.
 
 ---
 
@@ -54,41 +57,6 @@ Add, update or remove a resolution and its entry here in the same change.
 -   **Fixes:** GHSA-q8mj-m7cp-5q26, which affects `>= 6.11.1, <= 6.15.1`.
 -   **Drop when:** `@eyeseetea/d2-api` requests a `qs` range admitting 6.15.2 or later.
 
-### `form-data: ^4.0.6`
-
--   **Why:** requested transitively, including by `@eyeseetea/d2-api@1.21.0` at `^4.0.0`, which admits
-    affected 4.0.x releases.
--   **Fixes:** GHSA-hmw2-7cc7-3qxx. The advisory carries three ranges; the 4.x line is patched in
-    4.0.6.
--   **Drop when:** no parent requests a `form-data` range whose lowest satisfying version is below
-    4.0.6.
-
-### `jszip: ^3.8.0`
-
--   **Why:** `@eyeseetea/xlsx-populate@4.3.2-beta.1` requests `jszip@^3.2.2`, which admits versions
-    below the patch line.
--   **Fixes:** GHSA-36fh-84j7-cv5h, patched in 3.8.0.
--   **Drop when:** `@eyeseetea/xlsx-populate` requests a range admitting 3.8.0 or later.
-
-### `minimatch: ^3.1.4`
-
--   **Why:** an unscoped constraint that collapses every `minimatch` request in the tree onto the 3.x
-    line.
--   **Fixes:** GHSA-23c5-xmqv-rm74. The advisory patches each major line separately and the 3.x line is
-    patched in place at 3.1.4, so no parent bump is required. Resolves to 3.1.5.
--   **Drop when:** the constraint is shown to be unnecessary — that is, every consumer resolves to a
-    patched `minimatch` on its own line without it. Verify by removing it, running `yarn install` and
-    re-running `yarn lint`, which is the tool that consumes it here.
-
-### `brace-expansion: ^1.1.17`
-
--   **Why:** requested by `minimatch`, which this repository constrains to the 3.x line (above). The
-    1.x line is the one `minimatch@3.x` requests.
--   **Fixes:** GHSA-mh99-v99m-4gvg. All four affected lines were patched by backport; the 1.x line is
-    patched at 1.1.17. Resolves to 1.1.18.
--   **Drop when:** the `minimatch` constraint above is dropped, or every consumer requests a patched
-    `brace-expansion` line unaided.
-
 ### `i18next-conv/node-gettext: ^3.0.1`
 
 -   **Why:** `i18next-conv@6.1.1` requests `node-gettext@^2.0.0`, which cannot reach the fix. Scoped to
@@ -107,6 +75,11 @@ Add, update or remove a resolution and its entry here in the same change.
     `@eyeseetea/d2-ui-components@2.12.0`, so the parent cannot be moved either. Scoped to that parent
     rather than applied globally.
 -   **Fixes:** GHSA-22p9-wv53-3rq4 (patched 5.0.1) and GHSA-v245-v573-v5vm (patched 5.0.2).
+-   **Compatibility was checked, not assumed.** `react-linkify` is unmaintained and written against the
+    linkify-it 2 API, so forcing a major is the whole risk here. `linkify-it@5.0.2` still exports a
+    callable CJS function and keeps the same `.tlds()`, `.match()` and `.test()` surface, and rendering
+    `<Linkify>` produces the expected `<a href>` for both URLs and `mailto:` addresses. Re-run those
+    four checks rather than trusting this note if the pinned major ever moves again.
 -   **Drop when:** `@eyeseetea/d2-ui-components` drops `react-linkify` or moves to a release requesting
     a patched `linkify-it`.
 
@@ -138,10 +111,65 @@ common.
 
 ## Removed
 
+> **The test is whether a resolved version moves, not whether the lockfile changes.** A byte-identical
+> lockfile proves a constraint did nothing, but the reverse does not hold: a constraint can rewrite a
+> descriptor, change the lockfile, and still leave every installed version exactly where it was. It can
+> also add a line to the tree that is already patched, which changes the lockfile and changes nothing
+> about exposure. Compare versions.
+
 ### `path-to-regexp: 1.9.0` — removed 2026-08-04
 
 No `path-to-regexp` entry existed in `yarn.lock`, so the constraint matched no descriptor and had no
 effect. Removing it left the lockfile byte-identical, which is the evidence it was a no-op.
+
+### `form-data: ^4.0.6` and `jszip: ^3.8.0` — removed 2026-08-05
+
+Both were inert. Removing them and re-installing left the resolved versions unchanged — `form-data` at
+4.0.6 and `jszip` at 3.10.1 — because every parent's declared range already reaches those releases:
+
+| Package     | Ranges the parents declare | Resolves to, with or without the constraint |
+| ----------- | -------------------------- | ------------------------------------------- |
+| `form-data` | `^4.0.0` (×2), `^4.0.6`    | 4.0.6                                       |
+| `jszip`     | `^3.2.2`, `3.10.1`         | 3.10.1                                      |
+
+The original reasoning for `form-data` was that `@eyeseetea/d2-api` requests `^4.0.0`, "which admits
+affected 4.0.x releases". True, but incomplete: `^4.0.0` admits the patched 4.0.6 as well, so
+re-resolution reaches it without a constraint. Same for `jszip`, where `^3.2.2` admits 3.10.1.
+
+**Restore either only if** a parent appears whose range cannot reach the patched line.
+
+### `minimatch: ^3.1.4` and `brace-expansion: ^1.1.17` — removed 2026-08-05
+
+The `minimatch` entry's own drop-when condition — _"every consumer resolves to a patched `minimatch`
+on its own line without it"_ — was tested and found to be already met.
+
+| Package           | With the constraints | Without              |
+| ----------------- | -------------------- | -------------------- |
+| `minimatch`       | 3.1.5                | 10.2.6 **and** 3.1.5 |
+| `brace-expansion` | 1.1.18               | 1.1.18 **and** 5.0.9 |
+
+All four releases are outside every advisory affecting them, so the security outcome is identical.
+Two things made the constraints unnecessary:
+
+-   **The 3.x line reaches the patch unaided.** The seven parents that request `minimatch` declare
+    `^3.0.4`, which already admits 3.1.5. The constraint was not what lifted them above 3.1.4.
+-   **`brace-expansion` only existed on the 1.x line because `minimatch` was held at 3.x.** Its sole
+    requester was `minimatch@3.x` at `^1.1.7`, which admits 1.1.18. The second constraint was holding up
+    the first, not a finding.
+
+What the `minimatch` constraint _did_ do, which was not recorded: `glob@13.0.6` (under `cacache`)
+requests `minimatch@^10.2.2`, and the unscoped entry pulled it down seven majors to 3.1.5. Removing it
+gives that consumer the major it declared.
+
+**Worth knowing before re-investigating this:** forcing `glob@13` onto `minimatch@3.1.5` looks like it
+should break it, because `glob@13` references `minimatch.escape` and `minimatch.unescape` and neither
+exists in 3.1.5. It does not break, because `glob@13`'s default entry point is
+`dist/commonjs/index.min.js`, a bundle with `minimatch` inlined that never requires it at runtime —
+the external copy is reachable only through the `glob/raw` subpath, which nothing here imports. So the
+constraint was neither helping nor breaking anything.
+
+Verified after removal with `yarn lint` — the tool the original entry named as the consumer — plus
+type-check, the unit suite, `yarn localize` and a production build.
 
 ---
 
