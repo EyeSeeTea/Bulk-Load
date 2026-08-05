@@ -12,6 +12,23 @@ Each entry states:
 
 Add, update or remove a resolution and its entry here in the same change.
 
+> **The install policy is part of this, even though it lives in another file.** `.yarnrc.yml` sets
+> `npmMinimalAgeGate: 7d`, `enableScripts: false`, `enableHardenedMode: true` and
+> `checksumBehavior: throw`, matching the other repositories in this family rather than falling back
+> to yarn's defaults, which are looser on the first three.
+>
+> **The age gate is the one that will confuse you.** It refuses releases published within the last
+> week, and `yarn up -R` reports success while silently selecting one patch below the patched release
+> rather than failing. That reads as _"there is no fix on this line"_ and sends you up the remediation
+> ladder for nothing. Compare the version you got against the version the advisory names, not against
+> the version you had — and if the gate is the blocker, wait rather than lowering it.
+>
+> **`enableScripts: false` makes yarn report `YN0004`** for each package whose build script it skips —
+> here `esbuild` and three `core-js` variants. None of them breaks: `esbuild` ships its binary as a
+> platform-specific optional package rather than fetching it in a postinstall, and `core-js`'s script
+> only prints a funding message. A package that genuinely needs its postinstall would fail, so treat a
+> new `YN0004` as something to check rather than as noise.
+
 > **Ranges, not exact versions.** Almost every entry below is a _floor_ — "never below this" — so it
 > takes a compatible range. An exact version is a _fixture_, used only when something binds to that
 > specific release, and it should say what binds it.
