@@ -85,27 +85,39 @@ Add, update or remove a resolution and its entry here in the same change.
 
 ---
 
-## Compatibility fixtures with no recorded rationale
+## Inherited constraints with no recorded rationale
 
-These exact-version entries predate this file and were added without an explanation. Each still binds
-something in the tree, so they were left in place rather than removed speculatively — as the `lodash`
-entry above shows, removing a resolution can resolve a package _downwards_.
+These entries predate this file and were added in one batch without an explanation. Each still binds
+something in the tree, so they were kept rather than removed speculatively — as the `lodash` entry
+above shows, removing a resolution can resolve a package _downwards_.
 
-| Resolution                | Still binds | Note                                                                                                                                                                                  |
-| ------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@babel/runtime: 7.26.10` | 7.26.10     | Exact; no recorded reason                                                                                                                                                             |
-| `i18next: 19.8.5`         | 19.8.5      | Exact, and far below the current release line. A resolution on this package is capable of breaking application startup, so change it only deliberately and verify by starting the app |
-| `glob-parent: 5.1.2`      | 5.1.2       | Exact; no recorded reason                                                                                                                                                             |
-| `moment: 2.29.4`          | 2.29.4      | Exact; also a direct dependency at the same version                                                                                                                                   |
-| `nanoid: 3.3.8`           | 3.3.8       | Exact; no recorded reason                                                                                                                                                             |
-| `node-fetch: 2.6.7`       | 2.6.7       | Exact; no recorded reason                                                                                                                                                             |
-| `diff: 5.2.2`             | 5.2.2       | Exact; no recorded reason                                                                                                                                                             |
-| `debug: 4.3.4`            | 4.3.4       | Exact; no recorded reason                                                                                                                                                             |
-| `ua-parser-js: 0.7.24`    | 0.7.24      | Exact; no recorded reason                                                                                                                                                             |
+**They were converted from exact versions to `^` ranges on 2026-08-05.** Several were, by their own
+descriptions elsewhere, security floors written in fixture shape — the form that cannot receive a
+patch and eventually becomes the finding it was added to prevent. None of them was inside a live
+advisory range at the time, so this is not a remediation: it removes a decay path before it opens.
+Converting is also strictly narrower than pruning, which is still open and has to be judged one entry
+at a time.
 
-**Drop when:** for each, confirm no consumer requires the pinned release, then remove it and run
-`yarn install`. Treat each individually — they were added as one batch but have nothing else in
-common.
+A `^` range keeps every consumer on the same major the exact version already forced it onto — it only
+allows newer releases within that line.
+
+| Resolution                 | Now resolves to | Note                                                                                                                                                                                                     |
+| -------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@babel/runtime: ^7.26.10` | 7.29.7          | Was exact `7.26.10`; no recorded reason                                                                                                                                                                  |
+| `i18next: 19.8.5`          | 19.8.5          | ⚠️ **Deliberately still exact.** Far below the current release line, and a resolution on this package can break application startup, so it is changed only deliberately and verified by starting the app |
+| `glob-parent: ^5.1.2`      | 5.1.2           | Was exact; already the newest 5.x. Note this is a global entry and the tree has consumers declaring `^3.1.0` and `^6.0.1`, both of which it pulls onto the 5.x line                                      |
+| `moment: ^2.29.4`          | 2.30.1          | Was exact; the direct dependency was reopened to the same range, which previously contradicted it                                                                                                        |
+| `nanoid: ^3.3.8`           | 3.3.17          | Was exact `3.3.8`, which held `postcss` below the `^3.3.16` it declares                                                                                                                                  |
+| `node-fetch: ^2.6.7`       | 2.7.0           | Was exact `2.6.7`, below the `^2.7.0` one consumer declares. Load-bearing: the tree also has a consumer on `^1.0.1`, and this floor is what lifts it onto a patched line                                 |
+| `diff: ^5.2.2`             | 5.2.2           | Was exact; already the newest 5.x                                                                                                                                                                        |
+| `debug: ^4.3.4`            | 4.4.3           | Was exact; no recorded reason                                                                                                                                                                            |
+| `ua-parser-js: ^0.7.24`    | 0.7.41          | Was exact; `^0.7.x` stays inside the 0.7 line                                                                                                                                                            |
+
+**Drop when:** for each, confirm no consumer requires the constrained line, then remove it and
+re-install, comparing **resolved versions** rather than lockfile bytes. Treat each individually — they
+were added as one batch but have nothing else in common. `glob-parent` is the most likely to be
+retirable: in another repository that carried the same inherited entry, removing it let three major
+lines coexist, all of them outside every advisory affecting them.
 
 ---
 
