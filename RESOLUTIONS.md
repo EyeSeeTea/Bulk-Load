@@ -122,19 +122,17 @@ allows newer releases within that line.
 | -------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@babel/runtime: ^7.26.10` | 7.29.7          | Was exact `7.26.10`; no recorded reason                                                                                                                                                                  |
 | `i18next: 19.8.5`          | 19.8.5          | ⚠️ **Deliberately still exact.** Far below the current release line, and a resolution on this package can break application startup, so it is changed only deliberately and verified by starting the app |
-| `glob-parent: ^5.1.2`      | 5.1.2           | Was exact; already the newest 5.x. Note this is a global entry and the tree has consumers declaring `^3.1.0` and `^6.0.1`, both of which it pulls onto the 5.x line                                      |
 | `moment: ^2.29.4`          | 2.30.1          | Was exact; the direct dependency was reopened to the same range, which previously contradicted it                                                                                                        |
 | `nanoid: ^3.3.8`           | 3.3.17          | Was exact `3.3.8`, which held `postcss` below the `^3.3.16` it declares                                                                                                                                  |
 | `node-fetch: ^2.6.7`       | 2.7.0           | Was exact `2.6.7`, below the `^2.7.0` one consumer declares. Load-bearing: the tree also has a consumer on `^1.0.1`, and this floor is what lifts it onto a patched line                                 |
 | `diff: ^5.2.2`             | 5.2.2           | Was exact; already the newest 5.x                                                                                                                                                                        |
-| `debug: ^4.3.4`            | 4.4.3           | Was exact; no recorded reason                                                                                                                                                                            |
+| `debug: ^4.4.3`            | 4.4.3           | ⚠️ **The floor value matters here.** GHSA-4x49-vf9v-38px reports `debug@4.4.2` as carrying malware after an npm account takeover, so `^4.4.3` is the meaningful lower bound. The previous `^4.3.4` resolved to 4.4.3 in practice but would have admitted 4.4.2 |
 | `ua-parser-js: ^0.7.24`    | 0.7.41          | Was exact; `^0.7.x` stays inside the 0.7 line                                                                                                                                                            |
 
 **Drop when:** for each, confirm no consumer requires the constrained line, then remove it and
 re-install, comparing **resolved versions** rather than lockfile bytes. Treat each individually — they
-were added as one batch but have nothing else in common. `glob-parent` is the most likely to be
-retirable: in another repository that carried the same inherited entry, removing it let three major
-lines coexist, all of them outside every advisory affecting them.
+were added as one batch but have nothing else in common. `glob-parent` was retired on that basis —
+see [Removed](#removed).
 
 ---
 
@@ -145,6 +143,36 @@ lines coexist, all of them outside every advisory affecting them.
 > descriptor, change the lockfile, and still leave every installed version exactly where it was. It can
 > also add a line to the tree that is already patched, which changes the lockfile and changes nothing
 > about exposure. Compare versions.
+
+### `glob-parent: ^5.1.2` — removed 2026-08-12
+
+The entry's own note said the tree had consumers declaring `^3.1.0` and `^6.0.1` that it pulled onto
+the 5.x line. Removing it lets all three coexist:
+
+| Version | Reached by | In an advisory range? |
+| ------- | ---------- | --------------------- |
+| 3.1.0 | `glob-stream@6.1.0`, declaring `^3.1.0` | no |
+| 5.1.2 | eslint, chokidar, fast-glob | no |
+| 6.0.2 | the `^6.0.1` consumer | no |
+
+**The advisory decides it.** `GHSA-ww39-953v-wcq6` affects `>= 4.0.0, < 5.1.2`, so 3.1.0 sits below
+its lower bound and was never in range; `GHSA-cj88-88mr-972w` affects `= 6.0.0` only, and 6.0.2 is
+past it. The entry was not keeping a vulnerable version out — it was holding two consumers off the
+majors they declare.
+
+`is-glob@3.1.0` and `path-dirname@1.0.2` come back as dependencies of glob-parent 3.x. Neither has
+an advisory at any version.
+
+Verified with `yarn lint` — eslint is a direct consumer — plus the unit suite, `yarn localize`,
+which is the chain that reaches the 3.1.0 copy through `i18next-scanner` → `vinyl-fs` →
+`glob-stream`, and a full build.
+
+⚠️ **Pick the control carefully when re-checking this.** `glob-parent@5.0.0` looks like a
+known-vulnerable control and returns nothing, because that version was never published.
+`glob-parent@5.1.1` is a valid one.
+
+**Restore it only if** a consumer appears on a glob-parent range whose lowest satisfying version
+falls inside `>= 4.0.0, < 5.1.2`.
 
 ### `path-to-regexp: 1.9.0` — removed 2026-08-04
 
