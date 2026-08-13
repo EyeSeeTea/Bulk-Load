@@ -14,8 +14,8 @@ Add, update or remove a resolution and its entry here in the same change.
 
 > **The install policy is part of this, even though it lives in another file.** `.yarnrc.yml` sets
 > `npmMinimalAgeGate: 7d`, `enableScripts: false`, `enableHardenedMode: true` and
-> `checksumBehavior: throw`, matching the other repositories in this family rather than falling back
-> to yarn's defaults, which are looser on the first three.
+> `checksumBehavior: throw`, rather than falling back to yarn's defaults, which are looser on the
+> first three.
 >
 > **The age gate is the one that will confuse you.** It refuses releases published within the last
 > week, and `yarn up -R` reports success while silently selecting one patch below the patched release
@@ -292,6 +292,8 @@ It is deliberately out of scope here so that a dependency pass does not become a
 **Revisit when:** the v7 migration is scheduled. Anyone picking it up should go **straight to v7** —
 stopping anywhere on 6.x lands back on these three.
 
+-   **Advisories against these components:** `react-router@6.30.4` has **two** open — both listed above; eighteen others exist against the package and are patched at or below 6.30.4. `react-router-dom@6.30.4` has **one**, the one listed. The counts are stated rather than implied so that a missing row reads as a gap.
+
 ### `elliptic` — GHSA-848j-6mx2-7j84
 
 The advisory affects every published version (`<= 6.6.1`), and 6.6.1 is the latest release. There is
@@ -301,11 +303,15 @@ polyfills used by the browser build.
 **Revisit when:** a release above 6.6.1 is published, or the consumer that pulls it in stops needing
 it.
 
+-   **Advisories against this component:** **one** open — the entry above. Eight others exist against `elliptic` and are all patched at or below 6.6.1, including the critical GHSA-vjh7-7g9h-fjfh, which 6.6.1 is itself the fix for.
+
 ### `eslint` — GHSA-p5wg-g6qr-c7cg
 
 **This advisory was withdrawn on 2026-02-03.** It may still appear in scanner output, because
 different databases pick up withdrawals at different times. It does not describe a real defect and
 should be dismissed rather than remediated — do not upgrade `eslint` on account of it.
+
+-   **Advisories against this component:** **none** live against `eslint@8.57.1`. The one above is withdrawn, and one other exists against the package, patched below this version.
 
 ---
 
