@@ -43,6 +43,48 @@ Add, update or remove a resolution and its entry here in the same change.
 > reaches a patched release, the floor is not what is holding the tree up and can go — see
 > [Removed](#removed), where four entries were retired on that basis.
 
+## Conventions
+
+These are shared with the sibling repositories that carry this file; keep them in step.
+
+-   **Prefer per-parent paths (`parent/child`) over standalone descriptors.** A standalone descriptor
+    rewrites the request of every consumer in the tree, including ones that were already healthy.
+    Yarn-berry matches a standalone descriptor on exact text — `picomatch@npm:^4` will _not_ match a
+    child request of `^4.0.2`.
+-   **The version in a versioned-parent path is the _descriptor_, not the resolved version.**
+    `glob@npm:7.2.3/minimatch` reads correctly next to a lockfile entry saying `version: 7.2.3`, and
+    matches nothing, because the descriptors consumers actually request are `^7.1.1` and friends.
+    Take the key off the descriptor line, never off the `version:` line below it. An entry of this
+    shape shipped in a sibling repository and was inert from the day it was written.
+-   **A versioned-parent path cannot select a version outside the range the parent declares; a
+    parent-name path can.** `vite@4.5.14` declares `rollup: ^3.27.1` and `esbuild: ^0.18.10`. A pin of
+    `vite@npm:^4.0.0/rollup: ^3.30.0` binds, because 3.30.0 is inside `^3.27.1`;
+    `vite@npm:^4.0.0/esbuild: ^0.25.0` silently does nothing, because 0.25.0 is outside `^0.18.10`.
+    To lift a child past what its parent declares you need the parent-name form — and then check what
+    else shares that parent name before using it.
+-   **Versioned-parent paths also go stale silently** when the parent patch-bumps. There is no entry
+    of that shape in this file; if you add one, mark it as a decay risk.
+-   **Prefer re-resolution to a new constraint.** Most transitive findings are a stale lockfile rather
+    than a missing fix: the declared range already admits the patched release and `yarn up -R
+    <package>` reaches it with no manifest change at all.
+-   **Removing a constraint is not the same as upgrading it away.** For a package no direct dependency
+    requests, deleting the entry hands version selection back to the parents, and a parent may be the
+    reason the old version was there. Some packages resolve _downwards_ when their entry is removed.
+-   **Test a constraint by removing it, re-installing and comparing the _resolved versions_** — not
+    the lockfile bytes. A constraint can rewrite a descriptor, change the lockfile, and leave every
+    installed version exactly where it was.
+-   **When a returning version looks alarming, check the advisory's range before keeping the pin.** An
+    older version coming back is not by itself a reason to keep a constraint — `glob-parent@3.1.0`
+    returns when its entry is removed, and `GHSA-ww39-953v-wcq6` affects `>= 4.0.0, < 5.1.2`.
+-   **Validate the control before trusting a zero from the advisories API.** A query returns nothing
+    both for a clean version and for one that was never published. `glob-parent@5.0.0` looks like a
+    known-vulnerable control and returns nothing because it does not exist; `glob-parent@5.1.1` is a
+    valid one.
+-   **A constraint that clears the scanner but breaks a consumer is not a fix.** Verify against the
+    tool that actually uses the package, not just `yarn install`.
+
+---
+
 ---
 
 ## Security floors
