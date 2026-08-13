@@ -45,8 +45,6 @@ Add, update or remove a resolution and its entry here in the same change.
 
 ## Conventions
 
-These are shared with the sibling repositories that carry this file; keep them in step.
-
 -   **Prefer per-parent paths (`parent/child`) over standalone descriptors.** A standalone descriptor
     rewrites the request of every consumer in the tree, including ones that were already healthy.
     Yarn-berry matches a standalone descriptor on exact text — `picomatch@npm:^4` will _not_ match a
@@ -54,8 +52,8 @@ These are shared with the sibling repositories that carry this file; keep them i
 -   **The version in a versioned-parent path is the _descriptor_, not the resolved version.**
     `glob@npm:7.2.3/minimatch` reads correctly next to a lockfile entry saying `version: 7.2.3`, and
     matches nothing, because the descriptors consumers actually request are `^7.1.1` and friends.
-    Take the key off the descriptor line, never off the `version:` line below it. An entry of this
-    shape shipped in a sibling repository and was inert from the day it was written.
+    Take the key off the descriptor line, never off the `version:` line below it. An entry written
+    this way is inert from the day it is created, and yarn does not warn.
 -   **A versioned-parent path cannot select a version outside the range the parent declares; a
     parent-name path can.** `vite@4.5.14` declares `rollup: ^3.27.1` and `esbuild: ^0.18.10`. A pin of
     `vite@npm:^4.0.0/rollup: ^3.30.0` binds, because 3.30.0 is inside `^3.27.1`;
