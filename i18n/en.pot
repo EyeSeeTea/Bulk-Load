@@ -5,8 +5,8 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2026-07-29T11:52:52.301Z\n"
-"PO-Revision-Date: 2026-07-29T11:52:52.301Z\n"
+"POT-Creation-Date: 2026-08-16T18:08:38.823Z\n"
+"PO-Revision-Date: 2026-08-16T18:08:38.823Z\n"
 
 msgid "Events - Create/update"
 msgstr ""
@@ -219,6 +219,9 @@ msgstr ""
 msgid "Import strategy"
 msgstr ""
 
+msgid "Org. Unit"
+msgstr ""
+
 msgid "File"
 msgstr ""
 
@@ -226,6 +229,9 @@ msgid "The original file has been deleted and is no longer available for downloa
 msgstr ""
 
 msgid "The original file is not available for download"
+msgstr ""
+
+msgid "and {{total}} more"
 msgstr ""
 
 msgid "Default"

@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2026-07-29T11:52:52.301Z\n"
+"POT-Creation-Date: 2026-08-16T18:08:38.823Z\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -242,6 +242,9 @@ msgstr "Estado"
 msgid "Import strategy"
 msgstr "Importar datos"
 
+msgid "Org. Unit"
+msgstr "Unidad organizativa"
+
 msgid "File"
 msgstr ""
 
@@ -251,6 +254,9 @@ msgstr ""
 
 msgid "The original file is not available for download"
 msgstr ""
+
+msgid "and {{total}} more"
+msgstr "y {{count}} más"
 
 msgid "Default"
 msgstr ""
