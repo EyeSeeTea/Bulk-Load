@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2026-07-23T16:34:15.474Z\n"
+"POT-Creation-Date: 2026-07-29T11:52:52.301Z\n"
 "Language: pt\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -135,6 +135,11 @@ msgid "sheet {{sheet}}, {{lines}}"
 msgstr ""
 
 msgid "Found in {{locations}} of the Excel file"
+msgstr ""
+
+msgid ""
+"Could not identify this template. Check the file is a Bulk Load template and "
+"that your session is still active."
 msgstr ""
 
 msgid "Cannot read data form id"
@@ -419,6 +424,80 @@ msgstr "Programa"
 msgid "Items older than {{period}}"
 msgstr ""
 
+msgid "File cleanup completed successfully"
+msgstr ""
+
+msgid "An error occurred during file cleanup"
+msgstr ""
+
+msgid "History cleanup completed successfully"
+msgstr ""
+
+msgid "An error occurred during history cleanup"
+msgstr ""
+
+msgid "Regenerate template metadata"
+msgstr ""
+
+msgid "Maintenance"
+msgstr ""
+
+msgid "File cleanup"
+msgstr ""
+
+msgid ""
+"Remove files older than the selected period. History entries will be kept "
+"but the files will be unaccessible"
+msgstr ""
+
+msgid "Cleaning up files..."
+msgstr ""
+
+msgid "Confirm File Cleanup"
+msgstr ""
+
+msgid ""
+"Are you sure you want to remove all files older than the selected period? "
+"This action cannot be undone. History entries will be kept but the files "
+"will be inaccessible."
+msgstr ""
+
+msgid "Remove files older than"
+msgstr ""
+
+msgid "Clean up files"
+msgstr ""
+
+msgid "History cleanup"
+msgstr ""
+
+msgid ""
+"Remove history entries and their documents older than the selected period. "
+"This action cannot be undone"
+msgstr ""
+
+msgid "Cleaning up history..."
+msgstr ""
+
+msgid "Confirm History Cleanup"
+msgstr ""
+
+msgid ""
+"Are you sure you want to remove all history entries and their documents "
+"older than the selected period? This action cannot be undone."
+msgstr ""
+
+msgid "Remove history entries older than"
+msgstr ""
+
+msgid "Clean up history"
+msgstr ""
+
+msgid ""
+"Refresh the Metadata sheet of an existing template file with current DHIS2 "
+"metadata"
+msgstr ""
+
 msgid "Access to Template Generation"
 msgstr "Acesso à geração de planilhas"
 
@@ -457,19 +536,32 @@ msgstr "Pesquisar elementos de dados ou atributos"
 msgid "Populate events for every Tracked Entity Instance (TEI)"
 msgstr ""
 
-msgid "File cleanup completed successfully"
+msgid "Regenerate"
 msgstr ""
 
 #, fuzzy
-msgid "An error occurred during file cleanup"
-msgstr "Ocorreu um erro ao salvar o tema"
+msgid "Drag and drop the template file to regenerate"
+msgstr "Arraste e solte o logotipo aqui"
 
-msgid "History cleanup completed successfully"
+msgid "Template"
+msgstr "Modelo"
+
+msgid "Data Form Type"
 msgstr ""
 
-#, fuzzy
-msgid "An error occurred during history cleanup"
-msgstr "Ocorreu um erro ao salvar o tema"
+msgid "Include the Code column in the Metadata sheet"
+msgstr ""
+
+msgid "Use codes instead of names for metadata items"
+msgstr ""
+
+msgid "Use the short name of organisation units"
+msgstr ""
+
+msgid ""
+"The Metadata sheet will be re-protected with the standard Bulk Load sheet "
+"password. All other sheets and the macros are left untouched."
+msgstr ""
 
 msgid "Select Organisation Units on template generation"
 msgstr "Selecione unidades organizacionais na geração de planilhas"
@@ -600,65 +692,6 @@ msgid "Permissions"
 msgstr "Permissões"
 
 #, fuzzy
-msgid "Maintenance"
-msgstr "Migrar instância"
-
-msgid "File cleanup"
-msgstr ""
-
-msgid ""
-"Remove files older than the selected period. History entries will be kept "
-"but the files will be unaccessible"
-msgstr ""
-
-#, fuzzy
-msgid "Cleaning up files..."
-msgstr "Lendo arquivo ..."
-
-msgid "Confirm File Cleanup"
-msgstr ""
-
-msgid ""
-"Are you sure you want to remove all files older than the selected period? "
-"This action cannot be undone. History entries will be kept but the files "
-"will be inaccessible."
-msgstr ""
-
-msgid "Remove files older than"
-msgstr ""
-
-#, fuzzy
-msgid "Clean up files"
-msgstr "Não é possível ler o arquivo"
-
-msgid "History cleanup"
-msgstr ""
-
-msgid ""
-"Remove history entries and their documents older than the selected period. "
-"This action cannot be undone"
-msgstr ""
-
-#, fuzzy
-msgid "Cleaning up history..."
-msgstr "Lendo arquivo ..."
-
-msgid "Confirm History Cleanup"
-msgstr ""
-
-msgid ""
-"Are you sure you want to remove all history entries and their documents "
-"older than the selected period? This action cannot be undone."
-msgstr ""
-
-msgid "Remove history entries older than"
-msgstr ""
-
-#, fuzzy
-msgid "Clean up history"
-msgstr "Não é possível ler o arquivo"
-
-#, fuzzy
 msgid "Edit custom template"
 msgstr "Modelo"
 
@@ -758,9 +791,6 @@ msgstr "Nome"
 
 msgid "Description"
 msgstr "Descrição"
-
-msgid "Data Form Type"
-msgstr ""
 
 msgid "Type"
 msgstr "Tipo"
@@ -1127,9 +1157,6 @@ msgstr "Selecione a unidade da organização para preencher os dados"
 msgid "Select available organisation units to include in the template"
 msgstr "Selecione as unidades organizacionais para incluir na planilha"
 
-msgid "Template"
-msgstr "Modelo"
-
 msgid "Data Model"
 msgstr "Modelo de dados"
 
@@ -1289,6 +1316,15 @@ msgstr ""
 msgid "Error loading import details"
 msgstr ""
 
+msgid "Only .xlsx and .xlsm template files are accepted"
+msgstr ""
+
+msgid "Regenerating metadata..."
+msgstr ""
+
+msgid "Metadata regenerated"
+msgstr ""
+
 msgid "Error deleting data values"
 msgstr "Erro ao excluir valores de dados"
 
@@ -1422,9 +1458,9 @@ msgid ""
 "Samaritan’s Purse, Medecins Sans Frontières (MSF), the the Norwegian Refugee "
 "Council (NRC) and the Clinton Health Access Initiative (CHAI) to support "
 "countries in strengthening the collection and use of health data by using "
-"DHIS2. The application has been developed by [EyeSeeTea SL](http://"
-"eyeseetea.com). Source code, documentation and release notes can be found at "
-"the [EyeSeetea GitHub Project Page](https://eyeseetea.github.io/Bulk-Load-"
+"DHIS2. The application has been developed by [EyeSeeTea SL](http://eyeseetea."
+"com). Source code, documentation and release notes can be found at the "
+"[EyeSeetea GitHub Project Page](https://eyeseetea.github.io/Bulk-Load-"
 "blessed/)."
 msgstr ""
 
