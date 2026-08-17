@@ -99,6 +99,10 @@ export const TemplateSelector = ({
     const dataSets = dataSource?.dataSets;
     const { templateId, id } = state;
 
+    const activeCustomTemplate =
+        state.templateType === "custom" ? customTemplates.find(t => t.id === templateId) : undefined;
+    const allowMultipleOrgUnits = Boolean(activeCustomTemplate?.allowMultipleOrgUnits);
+
     const isDataSet = React.useMemo(() => {
         if (!dataSets) return false;
         const dataSetIds = dataSets.map(ds => ds.id);
@@ -349,7 +353,7 @@ export const TemplateSelector = ({
             : i18n.t("Select available organisation units to include in the template");
 
     const isCustomDataSet = state.templateType === "custom" && state.type === "dataSets";
-    const isMultipleSelection = !isCustomDataSet;
+    const isMultipleSelection = !isCustomDataSet || allowMultipleOrgUnits;
     const showPopulate = !(state.templateType === "custom" && !settings.showPopulateInCustomForms);
     const selected = state.id && state.templateId ? getOptionValue({ id: state.id, templateId: state.templateId }) : "";
     const hasDataFilter = Boolean(state.dataFilterOptions.teiFilter?.filters.length);

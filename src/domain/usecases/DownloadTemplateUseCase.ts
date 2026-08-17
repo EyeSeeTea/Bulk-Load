@@ -169,6 +169,13 @@ export class DownloadTemplateUseCase implements UseCase {
             }
         }
 
+        if (dataPackage?.type === "dataSets" && template.type === "custom" && template.orgUnitSort === "ALPHABETICAL") {
+            dataPackage = {
+                ...dataPackage,
+                dataEntries: sortDataEntriesByOrgUnitName(dataPackage.dataEntries, element.organisationUnits),
+            };
+        }
+
         const maxTeiRows =
             dataPackage?.type === "trackerPrograms" && enablePopulate
                 ? dataPackage.trackedEntityInstances.length
@@ -264,12 +271,36 @@ export class DownloadTemplateUseCase implements UseCase {
     }
 }
 
+type OrgUnitNameRef = { id: Id; path: string; displayName: string };
+
+// Joins an org unit's ancestor names into one sortable key. The NUL char is the separator because it is
+// the only one guaranteed to sort before every real character and to never appear in a name, so a
+// parent's key is always a prefix of its children's. Sorting these keys reproduces the org unit tree:
+// pre-order (parent before children), siblings ordered by name.
+const ANCESTOR_NAME_SEPARATOR = "\u0000";
+
+function sortDataEntriesByOrgUnitName<T extends { orgUnit: Id }>(
+    dataEntries: T[],
+    organisationUnits: OrgUnitNameRef[]
+): T[] {
+    const ouById = _.keyBy(organisationUnits, ou => ou.id);
+
+    const ancestorNameKey = (orgUnitId: Id): string =>
+        _(ouById[orgUnitId]?.path ?? orgUnitId)
+            .split("/")
+            .compact()
+            .map(segmentId => ouById[segmentId]?.displayName ?? segmentId)
+            .join(ANCESTOR_NAME_SEPARATOR);
+
+    return _.sortBy(dataEntries, entry => ancestorNameKey(entry.orgUnit));
+}
+
 export async function getElement(api: D2Api, type: DataFormType, id: string) {
     const endpoint = type === dataFormTypeMap.dataSets ? "dataSets" : "programs";
     const fields = [
         "id",
         "displayName",
-        "organisationUnits[id,path]",
+        "organisationUnits[id,path,displayName]",
         "attributeValues[attribute[code],value]",
         "categoryCombo",
         "dataSetElements",
