@@ -1,5 +1,7 @@
 import { Id } from "./ReferenceObject";
 
+export type EventStatus = "ACTIVE" | "COMPLETED";
+
 export interface EventsPackage {
     events: Event[];
 }
@@ -22,7 +24,7 @@ export interface Event {
     event?: string;
     orgUnit: string;
     program: string;
-    status: string;
+    status: EventStatus;
     occurredAt: string;
     coordinate?: {
         latitude: string;

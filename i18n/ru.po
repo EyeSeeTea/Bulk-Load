@@ -49,6 +49,9 @@ msgstr "значения данных"
 msgid "Failed to import data values"
 msgstr ""
 
+msgid "Failed to register data set(s) as completed"
+msgstr ""
+
 msgid ""
 "{{count}} chunk(s) returned no summary — import result unknown for those "
 "records."
@@ -661,6 +664,13 @@ msgstr "Фильтр обнаружения дубликатов для собы
 
 msgid "Data elements used for duplicates identification"
 msgstr "Элементы данных, используемые для выявления дубликатов"
+
+msgid "Completion status"
+msgstr ""
+
+#, fuzzy
+msgid "Mark data as completed on import"
+msgstr "значения данных"
 
 #, fuzzy
 msgid "Template configuration"
@@ -1340,6 +1350,10 @@ msgstr "Опции"
 msgid "Date"
 msgstr "Дата"
 
+#, fuzzy
+msgid "Completed"
+msgstr "Удалено"
+
 msgid "TEI id"
 msgstr "идентификатор TEI"
 
@@ -1620,6 +1634,9 @@ msgstr "значения данных"
 
 msgid "Override import Organisation Unit"
 msgstr "Выберите импортируемое организационное подразделение"
+
+msgid "Mark imported records as completed"
+msgstr ""
 
 msgid "No capture org unit match element org units"
 msgstr "Нет захвата орг единицы соответствие элемента орг единицы"

@@ -1,23 +1,10 @@
+import { templateDataEntry } from "../../../test/fixtures/template";
 import { ImportRowLookup } from "../ImportRowLookup";
 import { TemplateDataPackage, TemplateDataPackageData } from "../Template";
 import { TrackedEntityInstance } from "../TrackedEntityInstance";
 
 function dataEntry(partial: Partial<TemplateDataPackageData>): TemplateDataPackageData {
-    return {
-        group: 5,
-        sheet: "Data Entry",
-        dataForm: "form1",
-        id: undefined,
-        orgUnit: "orgUnitA",
-        period: "202401",
-        attribute: undefined,
-        coordinate: undefined,
-        trackedEntityInstance: undefined,
-        programStage: undefined,
-        geometry: undefined,
-        dataValues: [],
-        ...partial,
-    };
+    return templateDataEntry({ group: 5, dataForm: "form1", orgUnit: "orgUnitA", ...partial });
 }
 
 describe("ImportRowLookup", () => {

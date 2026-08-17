@@ -153,6 +153,7 @@ export class DownloadTemplateUseCase implements UseCase {
                   endDate: populateEndDate,
                   filterTEIEnrollmentDate,
                   relationshipsOuFilter,
+                  includeCompletionStatus: true,
               })
             : undefined;
 
