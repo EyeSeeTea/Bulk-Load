@@ -135,6 +135,7 @@ export class DownloadTemplateUseCase implements UseCase {
                 useCodesForMetadata,
                 orgUnitShortName: useShortNameInOrgUnit,
                 maxTeiRows,
+                includeMetadataCodes: template.includeMetadataCodes ?? false,
             });
 
             const workbook = await sheetBuilder.generate();
@@ -294,7 +295,7 @@ function sortDataEntriesByOrgUnitName<T extends { orgUnit: Id }>(
     return _.sortBy(dataEntries, entry => ancestorNameKey(entry.orgUnit));
 }
 
-async function getElement(api: D2Api, type: DataFormType, id: string) {
+export async function getElement(api: D2Api, type: DataFormType, id: string) {
     const endpoint = type === dataFormTypeMap.dataSets ? "dataSets" : "programs";
     const fields = [
         "id",
@@ -318,7 +319,7 @@ async function getElement(api: D2Api, type: DataFormType, id: string) {
     return { ...response, type };
 }
 
-async function getElementMetadata({
+export async function getElementMetadata({
     element,
     api,
     orgUnitIds,

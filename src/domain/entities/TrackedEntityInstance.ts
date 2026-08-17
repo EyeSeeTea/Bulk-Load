@@ -15,6 +15,8 @@ export interface TrackedEntityInstance {
     enrollment: Enrollment | undefined;
     relationships: Relationship[];
     geometry: Geometry;
+    row?: number;
+    sheet?: string;
 }
 
 export interface Enrollment {
@@ -32,6 +34,7 @@ export interface AttributeValue {
     value: string;
     optionId?: Id;
     contentType?: ContentType;
+    column?: string;
 }
 
 export interface Program {
