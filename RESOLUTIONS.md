@@ -83,8 +83,6 @@ Add, update or remove a resolution and its entry here in the same change.
 
 ---
 
----
-
 ## Security floors
 
 ### `axios: ^1.18.0`
