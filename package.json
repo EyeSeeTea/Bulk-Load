@@ -114,8 +114,7 @@
         "vite": "^7.3.6",
         "vite-plugin-checker": "^0.11.0",
         "vite-plugin-node-stdlib-browser": "^0.2.1",
-        "vitest": "^3.2.7",
-        "wait-on": "6.0.0"
+        "vitest": "^3.2.7"
     },
     "resolutions": {
         "axios": "^1.18.0",
