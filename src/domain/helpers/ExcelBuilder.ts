@@ -374,7 +374,15 @@ export class ExcelBuilder {
         const dataEntriesToProcess = this.buildTeiEventsForCustomTemplates({ template, dataSource, payload });
 
         for (const dataEntry of dataEntriesToProcess) {
-            const { id, period, dataValues, trackedEntityInstance, attribute: cocId, programStage } = dataEntry;
+            const {
+                id,
+                period,
+                dataValues,
+                trackedEntityInstance,
+                attribute: cocId,
+                programStage,
+                completed,
+            } = dataEntry;
             const someDataElementPresentInSheet = _(dataValues).some(dv => dataElementIdsSet.has(dv.dataElement));
             if (!someDataElementPresentInSheet && !_.isEmpty(dataValues)) continue;
 
@@ -409,6 +417,8 @@ export class ExcelBuilder {
 
             const dateCell = await this.excelRepository.findRelativeCell(template.id, dataSource.date, cells[0]);
             if (dateCell) await this.excelRepository.writeCell(template.id, dateCell, period);
+
+            await this.writeCompletedCell(template, dataSource.completed, cells[0], completed);
 
             const dataElementsToProcess = _.compact(
                 _.zip(dataElementIds, cells).map(([dataElementId, cell]): Maybe<DataToProcess> => {
@@ -603,7 +613,16 @@ export class ExcelBuilder {
         multiTextLookup: MultiTextLookup
     ) {
         let { rowStart } = dataSource.range;
-        for (const { id, orgUnit, period, attribute, dataValues, coordinate, geometry } of payload.dataEntries) {
+        for (const {
+            id,
+            orgUnit,
+            period,
+            attribute,
+            dataValues,
+            coordinate,
+            geometry,
+            completed,
+        } of payload.dataEntries) {
             const cells = await this.excelRepository.getCellsInRange(template.id, {
                 ...dataSource.range,
                 rowStart,
@@ -627,6 +646,8 @@ export class ExcelBuilder {
             if (attributeCell && attribute) {
                 await this.excelRepository.writeCell(template.id, attributeCell, attribute);
             }
+
+            await this.writeCompletedCell(template, dataSource.completed, cells[0], completed);
 
             if (payload.type === "programs" && geometry?.type === "Polygon") {
                 const geometryCell = await this.findRelative(template, dataSource.geometry, cells[0]);
@@ -727,6 +748,18 @@ export class ExcelBuilder {
     private async findRelative(template: Template, ref?: SheetRef | ValueRef, relative?: CellRef) {
         if (ref && ref.type === "value") return undefined;
         return this.excelRepository.findRelativeCell(template.id, ref, relative);
+    }
+
+    private async writeCompletedCell(
+        template: Template,
+        completedRef: Maybe<SheetRef | ValueRef>,
+        relativeCell: Maybe<CellRef>,
+        completed: Maybe<boolean>
+    ) {
+        const completedCell = await this.findRelative(template, completedRef, relativeCell);
+        if (completedCell && completed !== undefined) {
+            await this.excelRepository.writeCell(template.id, completedCell, String(completed));
+        }
     }
 
     public async applyTheme(template: Template, theme: Theme): Promise<void> {
