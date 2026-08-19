@@ -22,6 +22,7 @@ export interface GetDataPackageParams {
     translateCodes?: boolean;
     relationshipsOuFilter?: RelationshipOrgUnitFilter;
     filterTEIEnrollmentDate?: boolean;
+    includeCompletionStatus?: boolean;
 }
 
 export interface GetDataFormsParams {
@@ -41,13 +42,14 @@ export interface InstanceRepository {
     deleteAggregatedData(dataPackage: DataPackage, rowLookup?: ImportRowLookup): Promise<SynchronizationResult>;
     importDataPackage(dataPackage: DataPackage, options: ImportDataPackageOptions): Promise<SynchronizationResult[]>;
     getProgram(programId: Id): Promise<Program | undefined>;
-    convertDataPackage(dataPackage: DataPackage): EventsPackage | AggregatedPackage;
+    convertDataPackage(dataPackage: DataPackage, markCompleted: boolean): EventsPackage | AggregatedPackage;
     getBuilderMetadata(teis: TrackedEntityInstance[]): Promise<BuilderMetadata>;
     getDataFormPermissions(dataFormIds: Id[]): Promise<DataFormPermissions[]>;
 }
 
 export type ImportDataPackageOptions = {
     createAndUpdate: boolean;
+    markCompleted: boolean;
     multiTextTeiDelimiter: Maybe<string>;
     rowLookup?: ImportRowLookup;
 };

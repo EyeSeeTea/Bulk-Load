@@ -36,6 +36,7 @@ type BasePackageData = {
     dataForm: Id;
     period: string;
     attribute: Maybe<Id>;
+    completed: Maybe<boolean>;
     dataValues: (BasePackageDataValue | DataSetPackageDataValue)[];
 };
 

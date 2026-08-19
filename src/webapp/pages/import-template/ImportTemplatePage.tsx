@@ -42,6 +42,7 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
     const [overwriteOrgUnits, setOverwriteOrgUnits] = useState<boolean>(() => {
         return settings.orgUnitSelection === "import";
     });
+    const [markCompleted, setMarkCompleted] = useState<boolean>(settings.markCompletedOnImport);
     const [orgUnitTreeFilter, setOrgUnitTreeFilter] = useState<string[]>([]);
     const [importState, setImportState] = useState<ImportState>();
     const [messages, setMessages] = useState<string[]>([]);
@@ -108,7 +109,7 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
                 throw new Error(i18n.t("Select at least one organisation unit to import data"));
             }
 
-            await startImport({ file, settings, useBuilderOrgUnits, selectedOrgUnits });
+            await startImport({ file, settings, useBuilderOrgUnits, selectedOrgUnits, markCompleted });
         } catch (reason: any) {
             console.error(reason);
             snackbar.error(reason.message || reason.toString());
@@ -281,7 +282,7 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
     };
 
     const downloadInvalidOrganisations = (dataPackage: TemplateDataPackage) => {
-        const object = compositionRoot.form.convertDataPackage(templateToDataPackage(dataPackage));
+        const object = compositionRoot.form.convertDataPackage(templateToDataPackage(dataPackage), markCompleted);
         const json = JSON.stringify(object, null, 4);
         const blob = new Blob([json], { type: "application/json" });
         const date = moment().format("YYYYMMDDHHmm");
@@ -303,6 +304,10 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
 
     const onOverwriteOrgUnitsChange = useCallback((_event, overwriteOrgUnits) => {
         setOverwriteOrgUnits(overwriteOrgUnits);
+    }, []);
+
+    const onMarkCompletedChange = useCallback((_event, markCompleted) => {
+        setMarkCompleted(markCompleted);
     }, []);
 
     return (
@@ -373,6 +378,13 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
                     />
                 </div>
             )}
+
+            <div>
+                <FormControlLabel
+                    control={<Checkbox checked={markCompleted} onChange={onMarkCompletedChange} />}
+                    label={i18n.t("Mark imported records as completed")}
+                />
+            </div>
 
             {overwriteOrgUnits &&
                 (orgUnitTreeRootIds.length > 0 ? (

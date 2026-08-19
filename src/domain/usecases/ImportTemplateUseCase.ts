@@ -6,7 +6,7 @@ import { isString, removeCharacters } from "../../utils/string";
 import Settings from "../../webapp/logic/settings";
 import { DuplicateExclusion, DuplicateToleranceUnit } from "../entities/AppSettings";
 import { DataForm, dataFormTypeMap, DataOption } from "../entities/DataForm";
-import { DataPackageDataValue } from "../entities/DataPackage";
+import { DataPackage, DataPackageDataValue } from "../entities/DataPackage";
 import { Either } from "../entities/Either";
 import { OrgUnit } from "../entities/OrgUnit";
 import { ErrorMessage, SynchronizationResult } from "../entities/SynchronizationResult";
@@ -37,6 +37,7 @@ import { DocumentRepository } from "../repositories/DocumentRepository";
 import { DataElementDisaggregationsMappingRepository } from "../repositories/DataElementDisaggregationsMappingRepository";
 import { DuplicateImportStrategy, ImportTemplateConfiguration } from "../entities/ImportTemplateConfiguration";
 import { Id } from "../entities/ReferenceObject";
+import { parseBooleanCell } from "../../utils/booleans";
 
 export type ImportTemplateError =
     | {
@@ -232,6 +233,7 @@ export class ImportTemplateUseCase implements UseCase {
             selectedOrgUnits = [],
             duplicateStrategy = "ERROR",
             organisationUnitStrategy = "ERROR",
+            markCompleted,
             settings,
         }: ImportTemplateUseCaseParams,
         dataForm: DataForm,
@@ -294,13 +296,19 @@ export class ImportTemplateUseCase implements UseCase {
 
         const importResult = await this.instanceRepository.importDataPackage(templateToDataPackage(dataValues), {
             createAndUpdate: duplicateStrategy === "IMPORT_WITHOUT_DELETE" || duplicateStrategy === "ERROR",
+            markCompleted: markCompleted ?? settings.markCompletedOnImport,
             multiTextTeiDelimiter: this.getMultiTextTeiDelimiter(template),
             rowLookup,
         });
 
-        const importResultHasErrors = importResult.flatMap(result => result.errors);
-        if (importResultHasErrors.length > 0 || deleteResult) {
-            const importResultWithErrorsDetails = this.getImportResultsWithDetailsErrors(importResult, orgUnits);
+        // Rows ignored as duplicates never reach the import, so complete their registrations here.
+        const completionResult = await this.completeExistingRegistrations(existingDataValues, rowLookup);
+
+        const allResults = [...importResult, ...completionResult];
+
+        const hasImportErrors = allResults.some(result => !_.isEmpty(result.errors));
+        if (hasImportErrors || deleteResult) {
+            const importResultWithErrorsDetails = this.getImportResultsWithDetailsErrors(allResults, orgUnits);
 
             const deleteResultWithErrorsDetails = deleteResult
                 ? {
@@ -314,8 +322,27 @@ export class ImportTemplateUseCase implements UseCase {
                 orgUnitsImported,
             };
         } else {
-            return { result: Either.success(_.compact([deleteResult, ...importResult])), orgUnitsImported };
+            return { result: Either.success(_.compact([deleteResult, ...allResults])), orgUnitsImported };
         }
+    }
+
+    /**
+     * Completes the registrations of aggregated rows that matched existing data and were ignored as duplicates.
+     * Only the completion is applied; the data values are not re-imported.
+     */
+    private async completeExistingRegistrations(
+        existingDataValues: TemplateDataPackage,
+        rowLookup: ImportRowLookup
+    ): Promise<SynchronizationResult[]> {
+        const completionOnlyPackage = buildCompletionOnlyPackage(existingDataValues);
+        if (!completionOnlyPackage) return [];
+
+        return this.instanceRepository.importDataPackage(completionOnlyPackage, {
+            createAndUpdate: true,
+            markCompleted: false,
+            multiTextTeiDelimiter: undefined,
+            rowLookup,
+        });
     }
 
     /**
@@ -761,24 +788,22 @@ export const compareDataPackages = (
     return true;
 };
 
-const trueValues = ["y", "yes", "true", "1"];
-const falseValues = ["n", "no", "false", "0"];
+/**
+ * Builds a data package that only completes the registrations of aggregated rows flagged as completed,
+ * without their data values. Returns undefined when there is nothing to complete or the type is not aggregated.
+ */
+export function buildCompletionOnlyPackage(existingDataValues: TemplateDataPackage): Maybe<DataPackage> {
+    if (existingDataValues.type !== dataFormTypeMap.dataSets) return undefined;
+
+    const dataEntries = existingDataValues.dataEntries
+        .filter(entry => entry.completed)
+        .map(entry => ({ ...entry, dataValues: [] }));
+
+    return _.isEmpty(dataEntries) ? undefined : templateToDataPackage({ ...existingDataValues, dataEntries });
+}
 
 function getBooleanValue(item: TemplateDataPackageDataValue): Maybe<boolean> {
-    const strValue = String(item.value).toLowerCase();
-
-    switch (true) {
-        case String(item.optionId) === "true" || item.optionId === "true":
-            return true;
-        case String(item.optionId) === "false" || item.optionId === "false":
-            return false;
-        case trueValues.includes(strValue):
-            return true;
-        case falseValues.includes(strValue):
-            return false;
-        default:
-            return undefined;
-    }
+    return parseBooleanCell(item.value, item.optionId);
 }
 
 function getOptionValue(originalValue: string, options?: DataOption[]): Maybe<DataOption> {

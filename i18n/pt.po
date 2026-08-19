@@ -48,6 +48,9 @@ msgstr "valores de dados"
 msgid "Failed to import data values"
 msgstr ""
 
+msgid "Failed to register data set(s) as completed"
+msgstr ""
+
 msgid ""
 "{{count}} chunk(s) returned no summary — import result unknown for those "
 "records."
@@ -664,6 +667,13 @@ msgstr "Filtro de detecção duplicado para eventos (programas)"
 
 msgid "Data elements used for duplicates identification"
 msgstr "Elementos de dados usados para identificação de duplicatas"
+
+msgid "Completion status"
+msgstr ""
+
+#, fuzzy
+msgid "Mark data as completed on import"
+msgstr "valores de dados"
 
 #, fuzzy
 msgid "Template configuration"
@@ -1339,6 +1349,10 @@ msgstr "Opções"
 msgid "Date"
 msgstr "Data"
 
+#, fuzzy
+msgid "Completed"
+msgstr "Excluído"
+
 msgid "TEI id"
 msgstr "Id. de TEI"
 
@@ -1626,6 +1640,9 @@ msgstr "valores de dados"
 
 msgid "Override import Organisation Unit"
 msgstr "Selecione a unidade organizacional para importar os dados"
+
+msgid "Mark imported records as completed"
+msgstr ""
 
 msgid "No capture org unit match element org units"
 msgstr ""

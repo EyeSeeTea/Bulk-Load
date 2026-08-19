@@ -140,6 +140,7 @@ export class HistoryEntry {
                 "selectedOrgUnits",
                 "duplicateStrategy",
                 "organisationUnitStrategy",
+                "markCompleted",
             ]),
             orgUnitsImported: [...this.orgUnitsImported],
         };
