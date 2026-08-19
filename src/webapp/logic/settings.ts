@@ -26,6 +26,7 @@ import i18n from "../../utils/i18n";
 import { D2Api, Ref } from "../../types/d2-api";
 import { GetArrayInnerType, Maybe, OkOrError } from "../../types/utils";
 import { isAdmin, User } from "../../domain/entities/User";
+import { canUploadDocuments } from "../../data/d2-authorities";
 
 const privateFields = ["currentUser"] as const;
 
@@ -105,7 +106,7 @@ export default class Settings {
     }
 
     static async build(api: D2Api, compositionRoot: CompositionRoot): Promise<Settings> {
-        const authorities = await api.get<string[]>("/me/authorization").getData();
+        const authorities = new Set(await api.get<string[]>("/me/authorization").getData());
 
         const d2CurrentUser = await api.currentUser
             .get({
@@ -134,7 +135,8 @@ export default class Settings {
             id: d2CurrentUser.id,
             name: d2CurrentUser.name,
             username: d2CurrentUser.username ?? d2CurrentUser.userCredentials?.username ?? "",
-            authorities: new Set(authorities),
+            authorities,
+            canUploadDocuments: canUploadDocuments(authorities),
             userGroups: d2CurrentUser.userGroups,
             orgUnits: d2CurrentUser.organisationUnits,
             orgUnitsView: d2CurrentUser.dataViewOrganisationUnits,
@@ -497,8 +499,7 @@ export default class Settings {
     }
 
     canUploadDocument(): boolean {
-        const DOCUMENT_AUTHORITIES = ["ALL", "F_DOCUMENT_PRIVATE_ADD"];
-        return DOCUMENT_AUTHORITIES.some(auth => this.currentUser.authorities.has(auth));
+        return this.currentUser.canUploadDocuments;
     }
 
     getModelsInfo(): Array<{ key: Model; name: string; value: boolean }> {

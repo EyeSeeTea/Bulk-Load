@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2026-08-16T18:08:38.823Z\n"
+"POT-Creation-Date: 2026-08-19T14:35:59.584Z\n"
 "Language: pt\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1601,6 +1601,13 @@ msgstr "Descarregar dados com unidades organizacionais inválidas"
 
 msgid "Bulk data import"
 msgstr "Importação de dados em massa"
+
+msgid ""
+"The data will be imported as usual, but the file itself will not be saved "
+"because you do not have any of the required authorities ({{authorities}}). "
+"The import will still be recorded in the history, without a file available "
+"for download."
+msgstr ""
 
 msgid "Drag and drop file to import"
 msgstr "Arraste e solte o arquivo para importar"

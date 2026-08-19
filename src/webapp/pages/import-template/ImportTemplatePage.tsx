@@ -17,6 +17,8 @@ import { useAppContext } from "../../contexts/app-context";
 import { orgUnitListParams } from "../../utils/template";
 import { RouteComponentProps } from "../Router";
 import { TemplateDataPackage, templateToDataPackage } from "../../../domain/entities/Template";
+import { WarningAlert } from "../../components/warning-alert/WarningAlert";
+import { documentUploadAuthorities } from "../../../data/d2-authorities";
 
 const importAcceptedMimeTypes = ["application/zip", "application/x-zip-compressed", xlsxMimeType, xlsxMacroMimeType];
 
@@ -310,6 +312,15 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
             {syncResults && isSyncDialogOpen && <SyncSummaryDialog results={syncResults} onClose={closeSyncDialog} />}
 
             <h3>{i18n.t("Bulk data import")}</h3>
+
+            {!settings.canUploadDocument() && (
+                <WarningAlert
+                    message={i18n.t(
+                        "The data will be imported as usual, but the file itself will not be saved because you do not have any of the required authorities ({{authorities}}). The import will still be recorded in the history, without a file available for download.",
+                        { authorities: documentUploadAuthorities.join(", ") }
+                    )}
+                />
+            )}
 
             <TemplateDropzone
                 accept={importAcceptedMimeTypes}
