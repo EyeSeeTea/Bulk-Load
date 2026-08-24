@@ -259,7 +259,7 @@ msgid "The original file is not available for download"
 msgstr ""
 
 msgid "and {{total}} more"
-msgstr "y {{count}} más"
+msgstr "y {{total}} más"
 
 msgid "Default"
 msgstr ""
