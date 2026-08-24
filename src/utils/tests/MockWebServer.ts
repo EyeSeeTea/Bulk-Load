@@ -26,8 +26,8 @@ export class MockWebServer {
         this.server = setupServer();
     }
 
-    start(): void {
-        this.server.listen({ onUnhandledRequest: "bypass" });
+    start(options?: { onUnhandledRequest?: "bypass" | "warn" | "error" }): void {
+        this.server.listen({ onUnhandledRequest: options?.onUnhandledRequest ?? "bypass" });
     }
 
     resetHandlers(): void {
