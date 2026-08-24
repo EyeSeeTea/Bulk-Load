@@ -402,7 +402,7 @@ interface CategoryOptionCombo {
     categoryOptions: Ref[];
 }
 
-interface Element {
+export interface TemplateElement {
     type: "dataSets" | "programs";
     organisationUnits: Ref[];
 }
@@ -419,7 +419,7 @@ interface Element {
 
 async function filterRawMetadata(options: {
     api: D2Api;
-    element: Element;
+    element: TemplateElement;
     elementMetadata: ElementMetadata;
     orgUnitIds: Id[];
     startDate: Date | undefined;
@@ -443,17 +443,17 @@ async function filterRawMetadata(options: {
     }
 }
 
-interface CategoryOption {
+export interface DataSetCategoryOption {
     id: Id;
     startDate?: string;
     endDate?: String;
     organisationUnits: Ref[];
 }
 
-function getCategoryOptionIdsToInclude(
-    element: Element,
+export function getCategoryOptionIdsToInclude(
+    element: TemplateElement,
     orgUnitIds: string[],
-    categoryOptions: CategoryOption[],
+    categoryOptions: DataSetCategoryOption[],
     options: { startDate: Date | undefined; endDate: Date | undefined }
 ) {
     const dataSetOrgUnitIds = element.organisationUnits.map(ou => ou.id);
@@ -483,7 +483,7 @@ function getCategoryOptionIdsToInclude(
     return categoryOptionIdsToInclude;
 }
 
-async function getCategoryOptions(api: D2Api): Promise<CategoryOption[]> {
+async function getCategoryOptions(api: D2Api): Promise<DataSetCategoryOption[]> {
     const { categoryOptions } = await api.metadata
         .get({
             categoryOptions: {
