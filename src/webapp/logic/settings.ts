@@ -26,7 +26,7 @@ import i18n from "../../utils/i18n";
 import { D2Api, Ref } from "../../types/d2-api";
 import { GetArrayInnerType, Maybe, OkOrError } from "../../types/utils";
 import { isAdmin, User } from "../../domain/entities/User";
-import { canUploadDocuments } from "../../data/d2-authorities";
+import { canUploadDocuments, documentUploadAuthorities } from "../../data/d2-authorities";
 
 const privateFields = ["currentUser"] as const;
 
@@ -506,6 +506,10 @@ export default class Settings {
 
     canUploadDocument(): boolean {
         return this.currentUser.canUploadDocuments;
+    }
+
+    getDocumentUploadAuthorities(): ReadonlyArray<string> {
+        return documentUploadAuthorities;
     }
 
     getModelsInfo(): Array<{ key: Model; name: string; value: boolean }> {
