@@ -35,17 +35,14 @@ let getGeneratedTemplateId: typeof GetGeneratedTemplateId;
 const originalProcessBrowser = (process as unknown as { browser?: boolean }).browser;
 
 // This is a characterization test, not a spec derived from an intended design: it pins down
-// today's metadata -> XLSX output so the upcoming `api` removal doesn't silently change it.
+// today's metadata -> XLSX output so refactoring execute() doesn't silently change it.
 // It should not be read as confirmation that `DownloadTemplateUseCase` is modeled correctly.
 // Per EyeSeeTea's Clean Architecture know-how ("Export to file" / "Import from File"), a
 // disk-bound download like this one is arguably a UI Utility, not a domain use case — the
 // current code already leaks that: it imports `file-saver`/`fs` directly and branches on
-// Node vs. browser (see DownloadTemplateUseCase.ts:1-2, :249/:252), and
-// RegenerateTemplateMetadataUseCase imports its internals (getElement/getElementMetadata),
-// a sign that a real `getTemplateMetadata` use case is buried in here alongside UI-only
-// save-to-disk logic. That reshaping is out of scope for this refactor (tracked as a
-// follow-up in the PR description); if/when it happens, this test will need to move or be
-// rewritten around whatever replaces `execute()`.
+// Node vs. browser (see DownloadTemplateUseCase.ts:1-2, :246-251). That reshaping is out of
+// scope for this refactor (tracked as a follow-up in the PR description); if/when it happens,
+// this test will need to move or be rewritten around whatever replaces `execute()`.
 describe("DownloadTemplateUseCase", () => {
     beforeAll(async () => {
         (process as unknown as { browser?: boolean }).browser = true;
@@ -91,6 +88,7 @@ describe("DownloadTemplateUseCase", () => {
             id: dataSetId,
             dataElement: { id: dataElementId, name: "Data element 1" },
             categoryCombo: { id: "CC_DEFAULT", name: "default" },
+            orgUnitIds: [orgUnitId],
         });
         givenOrgUnit({ id: orgUnitId, name: "Org unit 1" });
 
@@ -161,18 +159,20 @@ function givenADataSet(options: {
     id: string;
     dataElement: { id: string; name: string };
     categoryCombo: { id: string; name: string };
+    orgUnitIds: string[];
 }) {
-    const { id, dataElement, categoryCombo } = options;
+    const { id, dataElement, categoryCombo, orgUnitIds } = options;
 
     mockWebServer.addRequestHandlers([
         {
+            // TemplateMetadataD2Repository.getElement()
             method: "get",
             endpoint: `${baseUrl}/api/dataSets/${id}`,
             httpStatusCode: 200,
             response: {
                 id,
                 displayName: "Test DataSet",
-                organisationUnits: [],
+                organisationUnits: orgUnitIds.map(ouId => ({ id: ouId })),
                 attributeValues: [],
                 categoryCombo: { id: categoryCombo.id },
                 dataSetElements: [
@@ -191,6 +191,61 @@ function givenADataSet(options: {
                 periodType: "Monthly",
             },
         },
+    ]);
+
+    mockWebServer.addRequestHandlers([
+        {
+            // InstanceDhisRepository.getDataForms() also queries programs (default `type` covers both);
+            // this test is about a dataSet, so no programs match.
+            method: "get",
+            endpoint: `${baseUrl}/api/programs`,
+            httpStatusCode: 200,
+            response: { programs: [] },
+        },
+    ]);
+
+    mockWebServer.addRequestHandlers([
+        {
+            // InstanceDhisRepository.getDataForms() / getDataFormOrgUnits(), both hit GET /api/dataSets
+            // (list endpoint, distinguished by which fields each one requests).
+            method: "get",
+            endpoint: `${baseUrl}/api/dataSets`,
+            httpStatusCode: 200,
+            response: (req: MockRequest) => {
+                const fields = req.params.get("fields") ?? "";
+                return fields.includes("organisationUnits")
+                    ? { dataSets: [{ organisationUnits: orgUnitIds.map(ouId => ({ id: ouId, name: "Org unit 1", level: 1, path: `/${ouId}` })) }] }
+                    : {
+                          dataSets: [
+                              {
+                                  id,
+                                  displayName: "Test DataSet",
+                                  name: "Test DataSet",
+                                  attributeValues: [],
+                                  dataSetElements: [
+                                      {
+                                          dataElement: {
+                                              id: dataElement.id,
+                                              name: dataElement.name,
+                                              formName: dataElement.name,
+                                              valueType: "TEXT",
+                                              categoryCombo: { id: categoryCombo.id },
+                                              optionSet: undefined,
+                                          },
+                                      },
+                                  ],
+                                  sections: [],
+                                  periodType: "Monthly",
+                                  access: { data: { read: true, write: true } },
+                                  sharing: { external: false, public: "--------", userGroups: {}, users: {} },
+                              },
+                          ],
+                      };
+            },
+        },
+    ]);
+
+    mockWebServer.addRequestHandlers([
         {
             method: "get",
             endpoint: `${baseUrl}/api/dataSets/${id}/metadata.json`,
@@ -290,7 +345,7 @@ async function whenDownloadingGeneratedTemplate(options: { id: string; orgUnits:
     savedBlob = undefined;
     const type = "dataSets";
 
-    await downloadTemplate(api, {
+    await downloadTemplate({
         type,
         id: options.id,
         language: "en",

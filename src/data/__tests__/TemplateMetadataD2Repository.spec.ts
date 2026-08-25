@@ -1,11 +1,8 @@
-import {
-    DataSetCategoryOption,
-    TemplateElement,
-    getCategoryOptionIdsToInclude,
-} from "../DownloadTemplateUseCase";
+import { DataSetCategoryOption, getCategoryOptionIdsToInclude } from "../TemplateMetadataD2Repository";
+import { Ref } from "../../domain/entities/ReferenceObject";
 
-function givenADataSet(organisationUnitIds: string[]): TemplateElement {
-    return { type: "dataSets", organisationUnits: organisationUnitIds.map(id => ({ id })) };
+function givenDataSetOrgUnits(organisationUnitIds: string[]): Ref[] {
+    return organisationUnitIds.map(id => ({ id }));
 }
 
 function givenACategoryOption(options: {
@@ -20,7 +17,7 @@ function givenACategoryOption(options: {
 
 describe("getCategoryOptionIdsToInclude", () => {
     it("includes a category option with no org units regardless of the requested org units", () => {
-        const dataSet = givenADataSet(["ou1"]);
+        const dataSet = givenDataSetOrgUnits(["ou1"]);
         const categoryOptions = [givenACategoryOption({ id: "co1" })];
 
         const result = getCategoryOptionIdsToInclude(dataSet, ["ou1"], categoryOptions, {
@@ -32,7 +29,7 @@ describe("getCategoryOptionIdsToInclude", () => {
     });
 
     it("includes a category option whose org units overlap the dataSet org units when none are requested", () => {
-        const dataSet = givenADataSet(["ou1", "ou2"]);
+        const dataSet = givenDataSetOrgUnits(["ou1", "ou2"]);
         const categoryOptions = [givenACategoryOption({ id: "co1", organisationUnitIds: ["ou2"] })];
 
         const result = getCategoryOptionIdsToInclude(dataSet, [], categoryOptions, {
@@ -44,7 +41,7 @@ describe("getCategoryOptionIdsToInclude", () => {
     });
 
     it("excludes a category option whose org units are outside the dataSet org units", () => {
-        const dataSet = givenADataSet(["ou1", "ou2"]);
+        const dataSet = givenDataSetOrgUnits(["ou1", "ou2"]);
         const categoryOptions = [givenACategoryOption({ id: "co1", organisationUnitIds: ["ou3"] })];
 
         const result = getCategoryOptionIdsToInclude(dataSet, [], categoryOptions, {
@@ -56,7 +53,7 @@ describe("getCategoryOptionIdsToInclude", () => {
     });
 
     it("restricts to the intersection of requested org units and dataSet org units", () => {
-        const dataSet = givenADataSet(["ou1", "ou2"]);
+        const dataSet = givenDataSetOrgUnits(["ou1", "ou2"]);
         const categoryOptions = [
             givenACategoryOption({ id: "co1", organisationUnitIds: ["ou1"] }),
             givenACategoryOption({ id: "co2", organisationUnitIds: ["ou2"] }),
@@ -72,7 +69,7 @@ describe("getCategoryOptionIdsToInclude", () => {
     });
 
     it("includes a category option with no start/end date regardless of the requested date range", () => {
-        const dataSet = givenADataSet([]);
+        const dataSet = givenDataSetOrgUnits([]);
         const categoryOptions = [givenACategoryOption({ id: "co1" })];
 
         const result = getCategoryOptionIdsToInclude(dataSet, [], categoryOptions, {
@@ -84,7 +81,7 @@ describe("getCategoryOptionIdsToInclude", () => {
     });
 
     it("includes a category option whose date range overlaps the requested range", () => {
-        const dataSet = givenADataSet([]);
+        const dataSet = givenDataSetOrgUnits([]);
         const categoryOptions = [
             givenACategoryOption({ id: "co1", startDate: "2024-01-01", endDate: "2024-12-31" }),
         ];
@@ -98,7 +95,7 @@ describe("getCategoryOptionIdsToInclude", () => {
     });
 
     it("excludes a category option that ends before the requested range starts", () => {
-        const dataSet = givenADataSet([]);
+        const dataSet = givenDataSetOrgUnits([]);
         const categoryOptions = [
             givenACategoryOption({ id: "co1", startDate: "2023-01-01", endDate: "2023-12-31" }),
         ];
@@ -112,7 +109,7 @@ describe("getCategoryOptionIdsToInclude", () => {
     });
 
     it("excludes a category option that starts after the requested range ends", () => {
-        const dataSet = givenADataSet([]);
+        const dataSet = givenDataSetOrgUnits([]);
         const categoryOptions = [
             givenACategoryOption({ id: "co1", startDate: "2025-01-01", endDate: "2025-12-31" }),
         ];

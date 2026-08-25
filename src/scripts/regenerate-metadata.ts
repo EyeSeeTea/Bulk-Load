@@ -95,7 +95,7 @@ function main() {
             const fileContents = fileBuffer.toString("base64");
             console.debug(`Regenerating Metadata for ${args.input} (form ${args.formId})`);
 
-            const outputBase64 = await compositionRoot.templates.regenerateMetadata(api, {
+            const outputBase64 = await compositionRoot.templates.regenerateMetadata({
                 type: args.formType,
                 id: args.formId,
                 fileContents,

@@ -1,5 +1,4 @@
 import { UseCase } from "../../CompositionRoot";
-import { D2Api } from "../../types/d2-api";
 // TODO: Settings and SheetBuilder live in webapp/logic, so this use case breaks the
 // domain → presentation dependency rule. Moving them to domain requires a wider
 // refactor (shared by other use cases) and is tracked as its own task.
@@ -7,7 +6,8 @@ import Settings from "../../webapp/logic/settings";
 import { SheetBuilder } from "../../webapp/logic/sheetBuilder";
 import { DataFormType } from "../entities/DataForm";
 import { GeneratedTemplate } from "../entities/Template";
-import { getElement, getElementMetadata } from "./DownloadTemplateUseCase";
+import { InstanceRepository } from "../repositories/InstanceRepository";
+import { TemplateMetadataRepository, toSheetBuilderMetadata } from "../repositories/TemplateMetadataRepository";
 
 export type RegenerateTemplateMetadataOptions = {
     type: DataFormType;
@@ -23,7 +23,12 @@ export type RegenerateTemplateMetadataOptions = {
 
 /** Regenerates only the Metadata sheet of a template, leaving all other sheets untouched. */
 export class RegenerateTemplateMetadataUseCase implements UseCase {
-    public async execute(api: D2Api, options: RegenerateTemplateMetadataOptions): Promise<string> {
+    constructor(
+        private templateMetadataRepository: TemplateMetadataRepository,
+        private instanceRepository: InstanceRepository
+    ) {}
+
+    public async execute(options: RegenerateTemplateMetadataOptions): Promise<string> {
         const {
             type,
             id,
@@ -35,12 +40,12 @@ export class RegenerateTemplateMetadataUseCase implements UseCase {
             orgUnitShortName,
         } = options;
 
-        const element = await getElement(api, type, id);
-        const orgUnitIds = element.organisationUnits.map((orgUnit: { id: string }) => orgUnit.id);
+        const dataFormOrgUnits = await this.instanceRepository.getDataFormOrgUnits(type, id);
+        const orgUnitIds = dataFormOrgUnits.map(orgUnit => orgUnit.id);
 
-        const result = await getElementMetadata({
-            api,
-            element,
+        const result = await this.templateMetadataRepository.get({
+            type,
+            id,
             downloadRelationships: false,
             orgUnitIds,
             startDate: undefined,
@@ -61,6 +66,7 @@ export class RegenerateTemplateMetadataUseCase implements UseCase {
 
         const sheetBuilder = new SheetBuilder({
             ...result,
+            ...toSheetBuilderMetadata(result),
             language,
             template,
             settings,

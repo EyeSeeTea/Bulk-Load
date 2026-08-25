@@ -58,7 +58,7 @@ type TemplateListTableProps = Pick<
 
 export default function TemplateListTable(props: TemplateListTableProps) {
     const { settings, setSettings, customTemplates, setCustomTemplates } = props;
-    const { api, compositionRoot } = useAppContext();
+    const { compositionRoot } = useAppContext();
     const { currentUser } = settings;
     const snackbar = useSnackbar();
     const loading = useLoading();
@@ -151,7 +151,7 @@ export default function TemplateListTable(props: TemplateListTableProps) {
                     mimeType: fileMimeType,
                 });
             } else if (row) {
-                compositionRoot.templates.download(api, {
+                compositionRoot.templates.download({
                     type: row.dataFormType,
                     id: row.dataFormId,
                     templateId: getGeneratedTemplateId(row.dataFormType),
@@ -171,7 +171,7 @@ export default function TemplateListTable(props: TemplateListTableProps) {
                 return;
             }
         },
-        [customTemplates, compositionRoot, rows, snackbar, api, settings]
+        [customTemplates, compositionRoot, rows, snackbar, settings]
     );
 
     const closeWarningDialog = React.useCallback(() => {

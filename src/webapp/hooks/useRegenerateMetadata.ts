@@ -52,7 +52,7 @@ export type UseRegenerateMetadataState = {
 
 export function useRegenerateMetadata(options: UseRegenerateMetadataOptions): UseRegenerateMetadataState {
     const { settings, onClose } = options;
-    const { api, compositionRoot } = useAppContext();
+    const { compositionRoot } = useAppContext();
     const snackbar = useSnackbar();
     const loading = useLoading();
 
@@ -111,7 +111,7 @@ export function useRegenerateMetadata(options: UseRegenerateMetadataOptions): Us
 
         try {
             const fileContents = await toBase64(file);
-            const contents = await compositionRoot.templates.regenerateMetadata(api, {
+            const contents = await compositionRoot.templates.regenerateMetadata({
                 type: dataForm.type,
                 id: dataForm.id,
                 fileContents,
@@ -137,7 +137,7 @@ export function useRegenerateMetadata(options: UseRegenerateMetadataOptions): Us
             loading.hide();
             setIsRunning(false);
         }
-    }, [api, compositionRoot, flags, loading, onClose, resolution, settings, snackbar]);
+    }, [compositionRoot, flags, loading, onClose, resolution, settings, snackbar]);
 
     // Reason: ConfirmationDialog has no disable-cancel prop, and backdrop clicks and Escape reach onCancel as well.
     const cancel = useCallback(() => {

@@ -3,14 +3,13 @@ import * as fs from "fs";
 import _ from "lodash";
 import { Moment } from "moment";
 import { UseCase } from "../../CompositionRoot";
-import { getRelationshipMetadata, RelationshipOrgUnitFilter } from "../../data/Dhis2RelationshipTypes";
-import { D2Api } from "../../types/d2-api";
+import { RelationshipOrgUnitFilter } from "../../data/Dhis2RelationshipTypes";
 import { getExtensionFile, XLSX_EXTENSION } from "../../utils/files";
-import { promiseMap } from "../../utils/promises";
 import Settings from "../../webapp/logic/settings";
 import { getGeneratedTemplateId, SheetBuilder } from "../../webapp/logic/sheetBuilder";
-import { DataForm, DataFormType, dataFormTypeMap } from "../entities/DataForm";
-import { Id, Ref } from "../entities/ReferenceObject";
+import { DataForm, DataFormType } from "../entities/DataForm";
+import { OrgUnit } from "../entities/OrgUnit";
+import { Id } from "../entities/ReferenceObject";
 import {
     getDataFormRef,
     hasMultiTextDataElementDelimiter,
@@ -22,6 +21,7 @@ import { ExcelBuilder } from "../helpers/ExcelBuilder";
 import { ExcelRepository } from "../repositories/ExcelRepository";
 import { InstanceRepository } from "../repositories/InstanceRepository";
 import { ModulesRepositories } from "../repositories/ModulesRepositories";
+import { TemplateMetadataRepository, toSheetBuilderMetadata } from "../repositories/TemplateMetadataRepository";
 import { TemplateRepository } from "../repositories/TemplateRepository";
 import { UsersRepository } from "../repositories/UsersRepository";
 import { buildAllPossiblePeriods } from "../../webapp/utils/periods";
@@ -64,10 +64,11 @@ export class DownloadTemplateUseCase implements UseCase {
         private excelRepository: ExcelRepository,
         private modulesRepositories: ModulesRepositories,
         private usersRepository: UsersRepository,
-        private dataElementDisaggregationsMappingRepository: DataElementDisaggregationsMappingRepository
+        private dataElementDisaggregationsMappingRepository: DataElementDisaggregationsMappingRepository,
+        private templateMetadataRepository: TemplateMetadataRepository
     ) {}
 
-    public async execute(api: D2Api, options: DownloadTemplateProps): Promise<void> {
+    public async execute(options: DownloadTemplateProps): Promise<void> {
         const {
             type,
             id,
@@ -99,18 +100,20 @@ export class DownloadTemplateUseCase implements UseCase {
         const currentUser = await this.usersRepository.getCurrentUser();
         const template = await this.templateRepository.getTemplate(templateId);
         const theme = themeId ? await this.templateRepository.getTheme(themeId) : undefined;
-        const element = await getElement(api, type, id);
-        const name = element.displayName ?? element.name;
+        const [dataForm] = await this.instanceRepository.getDataForms({ ids: [id] });
+        if (!dataForm) throw new Error(`Data form not found: ${id}`);
+        const name = dataForm.name;
+        const dataFormOrgUnits = await this.instanceRepository.getDataFormOrgUnits(type, id);
 
         const orgUnitIds =
             _.isEmpty(orgUnits) && settings.orgUnitSelection === "import"
-                ? getCaptureOrgUnitIdsForDataForm(element.organisationUnits, currentUser.orgUnits)
+                ? getCaptureOrgUnitIdsForDataForm(dataFormOrgUnits, currentUser.orgUnits)
                 : orgUnits;
 
-        async function getGenerateFile(maxTeiRows?: number) {
-            const result = await getElementMetadata({
-                api,
-                element,
+        const getGenerateFile = async (maxTeiRows?: number) => {
+            const result = await this.templateMetadataRepository.get({
+                type,
+                id,
                 downloadRelationships,
                 orgUnitIds,
                 startDate: startDate?.toDate(),
@@ -124,6 +127,7 @@ export class DownloadTemplateUseCase implements UseCase {
             // FIXME: Legacy code, sheet generator
             const sheetBuilder = new SheetBuilder({
                 ...result,
+                ...toSheetBuilderMetadata(result),
                 startDate,
                 endDate,
                 language,
@@ -140,7 +144,7 @@ export class DownloadTemplateUseCase implements UseCase {
 
             const workbook = await sheetBuilder.generate();
             return workbook.writeToBuffer();
-        }
+        };
 
         const enablePopulate = populate && !!populateStartDate && !!populateEndDate;
 
@@ -173,7 +177,7 @@ export class DownloadTemplateUseCase implements UseCase {
         if (dataPackage?.type === "dataSets" && template.type === "custom" && template.orgUnitSort === "ALPHABETICAL") {
             dataPackage = {
                 ...dataPackage,
-                dataEntries: sortDataEntriesByOrgUnitName(dataPackage.dataEntries, element.organisationUnits),
+                dataEntries: sortDataEntriesByOrgUnitName(dataPackage.dataEntries, dataFormOrgUnits),
             };
         }
 
@@ -226,7 +230,7 @@ export class DownloadTemplateUseCase implements UseCase {
         }
 
         if (template.type === "custom" && template.fixedPeriod) {
-            const periods = buildAllPossiblePeriods(element.periodType, populateStartDate, populateEndDate);
+            const periods = buildAllPossiblePeriods(dataForm?.periodType, populateStartDate, populateEndDate);
             await this.excelRepository.writeCell(
                 template.id,
                 template.fixedPeriod,
@@ -272,8 +276,6 @@ export class DownloadTemplateUseCase implements UseCase {
     }
 }
 
-type OrgUnitNameRef = { id: Id; path: string; displayName: string };
-
 // Joins an org unit's ancestor names into one sortable key. The NUL char is the separator because it is
 // the only one guaranteed to sort before every real character and to never appear in a name, so a
 // parent's key is always a prefix of its children's. Sorting these keys reproduces the org unit tree:
@@ -282,7 +284,7 @@ const ANCESTOR_NAME_SEPARATOR = "\u0000";
 
 function sortDataEntriesByOrgUnitName<T extends { orgUnit: Id }>(
     dataEntries: T[],
-    organisationUnits: OrgUnitNameRef[]
+    organisationUnits: Pick<OrgUnit, "id" | "path" | "name">[]
 ): T[] {
     const ouById = _.keyBy(organisationUnits, ou => ou.id);
 
@@ -290,212 +292,8 @@ function sortDataEntriesByOrgUnitName<T extends { orgUnit: Id }>(
         _(ouById[orgUnitId]?.path ?? orgUnitId)
             .split("/")
             .compact()
-            .map(segmentId => ouById[segmentId]?.displayName ?? segmentId)
+            .map(segmentId => ouById[segmentId]?.name ?? segmentId)
             .join(ANCESTOR_NAME_SEPARATOR);
 
     return _.sortBy(dataEntries, entry => ancestorNameKey(entry.orgUnit));
-}
-
-export async function getElement(api: D2Api, type: DataFormType, id: string) {
-    const endpoint = type === dataFormTypeMap.dataSets ? "dataSets" : "programs";
-    const fields = [
-        "id",
-        "displayName",
-        "organisationUnits[id,path,displayName]",
-        "attributeValues[attribute[code],value]",
-        "categoryCombo",
-        "dataSetElements",
-        "formType",
-        "sections[id,sortOrder,dataElements[id]]",
-        "periodType",
-        "programStages[id,access,featureType]",
-        "programType",
-        "enrollmentDateLabel",
-        "incidentDateLabel",
-        "trackedEntityType[id,featureType]",
-        "captureCoordinates",
-        "programTrackedEntityAttributes[trackedEntityAttribute[id,name,valueType,confidential,optionSet[id,name,options[id]]]],",
-    ].join(",");
-    const response = await api.get<any>(`/${endpoint}/${id}`, { fields }).getData();
-    return { ...response, type };
-}
-
-export async function getElementMetadata({
-    element,
-    api,
-    orgUnitIds,
-    startDate,
-    endDate,
-    populateStartDate,
-    populateEndDate,
-    downloadRelationships,
-    relationshipsOuFilter,
-    orgUnitShortName,
-}: {
-    element: any;
-    api: D2Api;
-    orgUnitIds: string[];
-    startDate: Date | undefined;
-    endDate: Date | undefined;
-    populateStartDate?: Date;
-    populateEndDate?: Date;
-    downloadRelationships: boolean;
-    relationshipsOuFilter?: RelationshipOrgUnitFilter;
-    orgUnitShortName: boolean;
-}) {
-    const elementMetadataMap = new Map();
-    const endpoint = element.type === dataFormTypeMap.dataSets ? "dataSets" : "programs";
-    const elementMetadata = await api.get<ElementMetadata>(`/${endpoint}/${element.id}/metadata.json`).getData();
-
-    const rawMetadata = await filterRawMetadata({ api, element, elementMetadata, orgUnitIds, startDate, endDate });
-
-    _.forOwn(rawMetadata, (value, type) => {
-        if (Array.isArray(value)) {
-            _.forEach(value, (object: any) => {
-                if (object.id) elementMetadataMap.set(object.id, { ...object, type });
-            });
-        }
-    });
-
-    // FIXME: This is needed for getting all possible org units for a program/dataSet
-    const requestOrgUnits: Id[] =
-        relationshipsOuFilter === "DESCENDANTS" || relationshipsOuFilter === "CHILDREN"
-            ? elementMetadataMap.get(element.id)?.organisationUnits?.map(({ id }: { id: string }) => id) ?? orgUnitIds
-            : orgUnitIds;
-
-    const responses = await promiseMap(_.chunk(_.uniq(requestOrgUnits), 400), orgUnits =>
-        api.models.organisationUnits
-            .get({
-                paging: false,
-                fields: { id: true, displayName: true, code: true, translations: true, displayShortName: true },
-                filter: { id: { in: orgUnits } },
-                order: orgUnitShortName ? "displayShortName:asc" : "displayName:asc",
-            })
-            .getData()
-    );
-
-    const organisationUnits = _.flatMap(responses, ({ objects }) =>
-        objects.map(orgUnit => ({
-            type: "organisationUnits",
-            ...orgUnit,
-        }))
-    );
-
-    const metadata =
-        element.type === "trackerPrograms" && downloadRelationships
-            ? await getRelationshipMetadata(element, api, {
-                  organisationUnits,
-                  startDate: populateStartDate,
-                  endDate: populateEndDate,
-                  ouMode: relationshipsOuFilter,
-              })
-            : {};
-
-    return { element, metadata, elementMetadata: elementMetadataMap, organisationUnits, rawMetadata };
-}
-
-interface ElementMetadata {
-    categoryOptionCombos: CategoryOptionCombo[];
-}
-
-interface CategoryOptionCombo {
-    categoryOptions: Ref[];
-}
-
-export interface TemplateElement {
-    type: "dataSets" | "programs";
-    organisationUnits: Ref[];
-}
-
-/* Return the raw metadata filtering out non-relevant category option combos.
-
-    /api/dataSets/ID/metadata returns categoryOptionCombos that may not be relevant for the
-    data set. Here we filter out category option combos with categoryOptions not matching these
-    conditions:
-
-     - categoryOption.startDate/endDate outside the startDate -> endDate interval
-     - categoryOption.orgUnit EMPTY or assigned to the dataSet orgUnits (intersected with the requested).
-*/
-
-async function filterRawMetadata(options: {
-    api: D2Api;
-    element: TemplateElement;
-    elementMetadata: ElementMetadata;
-    orgUnitIds: Id[];
-    startDate: Date | undefined;
-    endDate: Date | undefined;
-}): Promise<ElementMetadata & unknown> {
-    const { api, element, elementMetadata, orgUnitIds } = options;
-
-    if (element.type === "dataSets") {
-        const categoryOptions = await getCategoryOptions(api);
-        const categoryOptionIdsToInclude = getCategoryOptionIdsToInclude(element, orgUnitIds, categoryOptions, options);
-
-        const categoryOptionCombosFiltered = elementMetadata.categoryOptionCombos.filter(coc =>
-            _(coc.categoryOptions).every(categoryOption => {
-                return categoryOptionIdsToInclude.has(categoryOption.id);
-            })
-        );
-
-        return { ...elementMetadata, categoryOptionCombos: categoryOptionCombosFiltered };
-    } else {
-        return elementMetadata;
-    }
-}
-
-export interface DataSetCategoryOption {
-    id: Id;
-    startDate?: string;
-    endDate?: String;
-    organisationUnits: Ref[];
-}
-
-export function getCategoryOptionIdsToInclude(
-    element: TemplateElement,
-    orgUnitIds: string[],
-    categoryOptions: DataSetCategoryOption[],
-    options: { startDate: Date | undefined; endDate: Date | undefined }
-) {
-    const dataSetOrgUnitIds = element.organisationUnits.map(ou => ou.id);
-
-    const orgUnitIdsToInclude = new Set(
-        _.isEmpty(orgUnitIds) ? dataSetOrgUnitIds : _.intersection(orgUnitIds, dataSetOrgUnitIds)
-    );
-
-    const startDate = options.startDate?.toISOString();
-    const endDate = options.endDate?.toISOString();
-
-    const categoryOptionIdsToInclude = new Set(
-        categoryOptions
-            .filter(categoryOption => {
-                const noStartDateIntersect = startDate && categoryOption.endDate && startDate > categoryOption.endDate;
-                const noEndDateIntersect = endDate && categoryOption.startDate && endDate < categoryOption.startDate;
-                const dateCondition = !noStartDateIntersect && !noEndDateIntersect;
-
-                const categoryOptionOrgUnitCondition =
-                    _.isEmpty(categoryOption.organisationUnits) ||
-                    _(categoryOption.organisationUnits).some(orgUnit => orgUnitIdsToInclude.has(orgUnit.id));
-
-                return dateCondition && categoryOptionOrgUnitCondition;
-            })
-            .map(categoryOption => categoryOption.id)
-    );
-    return categoryOptionIdsToInclude;
-}
-
-async function getCategoryOptions(api: D2Api): Promise<DataSetCategoryOption[]> {
-    const { categoryOptions } = await api.metadata
-        .get({
-            categoryOptions: {
-                fields: {
-                    id: true,
-                    startDate: true,
-                    endDate: true,
-                    organisationUnits: { id: true },
-                },
-            },
-        })
-        .getData();
-
-    return categoryOptions;
 }
