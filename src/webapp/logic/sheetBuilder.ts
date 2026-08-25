@@ -14,9 +14,9 @@ import { Sheet, StyleOptions, Workbook } from "./Workbook";
 import { Maybe } from "../../types/utils";
 import { MetadataService } from "./MetadataService";
 
-export const dataSetId = "DATASET_GENERATED_v2";
-export const programId = "PROGRAM_GENERATED_v4";
-export const trackerProgramId = "TRACKER_PROGRAM_GENERATED_v3";
+export const dataSetId = "DATASET_GENERATED_v3";
+export const programId = "PROGRAM_GENERATED_v5";
+export const trackerProgramId = "TRACKER_PROGRAM_GENERATED_v4";
 
 const Excel = Workbook;
 const teiSheetName = "TEI Instances";
@@ -42,6 +42,7 @@ export interface SheetBuilderParams {
         id: string;
         displayName: string;
         translations: any;
+        code?: string;
     }[];
     rawMetadata: any;
     startDate?: Moment;
@@ -55,6 +56,7 @@ export interface SheetBuilderParams {
     useCodesForMetadata: boolean;
     orgUnitShortName: boolean;
     maxTeiRows?: number;
+    includeMetadataCodes?: boolean;
 }
 
 export class SheetBuilder {
@@ -160,6 +162,17 @@ export class SheetBuilder {
         return workbook;
     }
 
+    // Regenerates ONLY the Metadata sheet of an existing custom template, leaving every
+    // other sheet (custom form, dropdowns, VBA) untouched. The sheet is cleared and refilled
+    // in place — not deleted — so its codeName/VBA binding survives.
+    public async generateMetadataOnly(fileContents: string): Promise<Workbook> {
+        const workbook = await Workbook.fromBase64Data(fileContents);
+        const metadataSheet = workbook.addWorksheet("Metadata", protectedSheet);
+        metadataSheet.clear();
+        this.fillMetadataSheet(metadataSheet, this.builder.orgUnitShortName);
+        return workbook;
+    }
+
     private fillRelationshipSheets(relationshipsSheets: Array<[relationshipType: any, sheet: Sheet]>) {
         const { element: program } = this.builder;
 
@@ -258,6 +271,15 @@ export class SheetBuilder {
                           })
                         : i18n.t("Date", { lng: this.builder.language })
                 } *` + dateFormatInfo
+            );
+
+            this.createColumn(
+                sheet,
+                itemRow,
+                columnId++,
+                i18n.t("Completed", { lng: this.builder.language }),
+                null,
+                this.validations.get("BOOLEAN")
             );
 
             // Include attribute look-up from TEI Instances sheet
@@ -701,6 +723,11 @@ export class SheetBuilder {
         const { workbook } = metadataSheet;
         const { elementMetadata: metadata, organisationUnits } = this.builder;
 
+        const codeColumn = 8;
+        const writeCode = (rowId: number, code: string | undefined) => {
+            if (this.builder.includeMetadataCodes) metadataSheet.cell(rowId, codeColumn).string(code ?? "");
+        };
+
         // Freeze and format column titles
         metadataSheet.row(2).freeze();
         metadataSheet.column(1).setWidth(30);
@@ -736,6 +763,12 @@ export class SheetBuilder {
             .cell(1, 7, 2, 7, true)
             .string(i18n.t("Metadata version", { lng: this.builder.language }))
             .style(baseStyle);
+        if (this.builder.includeMetadataCodes) {
+            metadataSheet
+                .cell(1, codeColumn, 2, codeColumn, true)
+                .string(i18n.t("Code", { lng: this.builder.language }))
+                .style(baseStyle);
+        }
 
         let rowId = 3;
 
@@ -763,6 +796,7 @@ export class SheetBuilder {
             metadataSheet.cell(rowId, 5).string(optionSetName ?? "");
             metadataSheet.cell(rowId, 6).string(options ?? "");
             metadataSheet.cell(rowId, 7).string(`${item.version ?? ""}`);
+            writeCode(rowId, item.code);
 
             if (name !== undefined) {
                 workbook.definedNameCollection.addDefinedName({
@@ -779,6 +813,7 @@ export class SheetBuilder {
             metadataSheet.cell(rowId, 1).string(orgUnit.id !== undefined ? orgUnit.id : "");
             metadataSheet.cell(rowId, 2).string("organisationUnit");
             metadataSheet.cell(rowId, 3).string(name ?? "");
+            writeCode(rowId, orgUnit.code);
 
             if (name !== undefined)
                 workbook.definedNameCollection.addDefinedName({
@@ -946,6 +981,15 @@ export class SheetBuilder {
             .style({ ...baseStyle, font: { size: 16, bold: true } });
 
         if (element.type === "dataSets") {
+            this.createColumn(
+                dataEntrySheet,
+                itemRow,
+                columnId++,
+                i18n.t("Completed", { lng: this.builder.language }),
+                null,
+                this.validations.get("BOOLEAN")
+            );
+
             const dataSet = element;
             const dataElementsAll = getDataSetDataElements(dataSet, metadata);
             const dataElements = includedDataElementIds
@@ -1028,6 +1072,15 @@ export class SheetBuilder {
                               })
                             : i18n.t("Date", { lng: this.builder.language })
                     } *` + dateFormatInfo
+                );
+
+                this.createColumn(
+                    dataEntrySheet,
+                    itemRow,
+                    columnId++,
+                    i18n.t("Completed", { lng: this.builder.language }),
+                    null,
+                    this.validations.get("BOOLEAN")
                 );
 
                 if (programStage.programStageSections.length === 0) {

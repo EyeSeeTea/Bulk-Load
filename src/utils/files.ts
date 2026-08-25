@@ -52,8 +52,9 @@ export const fromBase64 = async (uri: string, filename?: string, options?: { mim
 };
 
 export function getBlobFromBase64(contents: string): Blob {
-    const buffer = Buffer.from(contents, "base64");
-    return new Blob([buffer]);
+    const bytes = Uint8Array.from(window.atob(contents), character => character.charCodeAt(0));
+
+    return new Blob([bytes]);
 }
 
 export function isExcelFile(fileName: string): boolean {
