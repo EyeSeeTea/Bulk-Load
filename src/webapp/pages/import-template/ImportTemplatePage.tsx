@@ -17,6 +17,7 @@ import { useAppContext } from "../../contexts/app-context";
 import { orgUnitListParams } from "../../utils/template";
 import { RouteComponentProps } from "../Router";
 import { TemplateDataPackage, templateToDataPackage } from "../../../domain/entities/Template";
+import { WarningAlert } from "../../components/warning-alert/WarningAlert";
 
 const importAcceptedMimeTypes = ["application/zip", "application/x-zip-compressed", xlsxMimeType, xlsxMacroMimeType];
 
@@ -40,6 +41,7 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
     const [overwriteOrgUnits, setOverwriteOrgUnits] = useState<boolean>(() => {
         return settings.orgUnitSelection === "import";
     });
+    const [markCompleted, setMarkCompleted] = useState<boolean>(settings.markCompletedOnImport);
     const [orgUnitTreeFilter, setOrgUnitTreeFilter] = useState<string[]>([]);
     const [importState, setImportState] = useState<ImportState>();
     const [messages, setMessages] = useState<string[]>([]);
@@ -106,7 +108,7 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
                 throw new Error(i18n.t("Select at least one organisation unit to import data"));
             }
 
-            await startImport({ file, settings, useBuilderOrgUnits, selectedOrgUnits });
+            await startImport({ file, settings, useBuilderOrgUnits, selectedOrgUnits, markCompleted });
         } catch (reason: any) {
             console.error(reason);
             snackbar.error(reason.message || reason.toString());
@@ -279,7 +281,7 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
     };
 
     const downloadInvalidOrganisations = (dataPackage: TemplateDataPackage) => {
-        const object = compositionRoot.form.convertDataPackage(templateToDataPackage(dataPackage));
+        const object = compositionRoot.form.convertDataPackage(templateToDataPackage(dataPackage), markCompleted);
         const json = JSON.stringify(object, null, 4);
         const blob = new Blob([json], { type: "application/json" });
         const date = moment().format("YYYYMMDDHHmm");
@@ -303,6 +305,10 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
         setOverwriteOrgUnits(overwriteOrgUnits);
     }, []);
 
+    const onMarkCompletedChange = useCallback((_event, markCompleted) => {
+        setMarkCompleted(markCompleted);
+    }, []);
+
     return (
         <React.Fragment>
             {dialogProps && <ModalDialog isOpen={true} maxWidth={"xl"} {...dialogProps} />}
@@ -310,6 +316,15 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
             {syncResults && isSyncDialogOpen && <SyncSummaryDialog results={syncResults} onClose={closeSyncDialog} />}
 
             <h3>{i18n.t("Bulk data import")}</h3>
+
+            {!settings.canUploadDocument() && (
+                <WarningAlert
+                    message={i18n.t(
+                        "The data will be imported as usual, but the file itself will not be saved because you do not have any of the required authorities ({{authorities}}). The import will still be recorded in the history, without a file available for download.",
+                        { authorities: settings.getDocumentUploadAuthorities().join(", ") }
+                    )}
+                />
+            )}
 
             <TemplateDropzone
                 accept={importAcceptedMimeTypes}
@@ -362,6 +377,13 @@ export default function ImportTemplatePage({ settings }: RouteComponentProps) {
                     />
                 </div>
             )}
+
+            <div>
+                <FormControlLabel
+                    control={<Checkbox checked={markCompleted} onChange={onMarkCompletedChange} />}
+                    label={i18n.t("Mark imported records as completed")}
+                />
+            </div>
 
             {overwriteOrgUnits &&
                 (orgUnitTreeRootIds.length > 0 ? (

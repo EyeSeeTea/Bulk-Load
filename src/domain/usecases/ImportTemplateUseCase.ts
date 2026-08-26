@@ -6,7 +6,7 @@ import { isString, removeCharacters } from "../../utils/string";
 import Settings from "../../webapp/logic/settings";
 import { DuplicateExclusion, DuplicateToleranceUnit } from "../entities/AppSettings";
 import { DataForm, dataFormTypeMap, DataOption } from "../entities/DataForm";
-import { DataPackageDataValue } from "../entities/DataPackage";
+import { DataPackage, DataPackageDataValue } from "../entities/DataPackage";
 import { Either } from "../entities/Either";
 import { OrgUnit } from "../entities/OrgUnit";
 import { ErrorMessage, SynchronizationResult } from "../entities/SynchronizationResult";
@@ -36,6 +36,8 @@ import { buildHistorySharing, HistoryEntry, HistoryEntryDocument } from "../enti
 import { DocumentRepository } from "../repositories/DocumentRepository";
 import { DataElementDisaggregationsMappingRepository } from "../repositories/DataElementDisaggregationsMappingRepository";
 import { DuplicateImportStrategy, ImportTemplateConfiguration } from "../entities/ImportTemplateConfiguration";
+import { Id } from "../entities/ReferenceObject";
+import { parseBooleanCell } from "../../utils/booleans";
 
 export type ImportTemplateError =
     | {
@@ -53,6 +55,26 @@ export type ImportTemplateUseCaseParams = {
     file: File;
     settings: Settings;
 } & ImportTemplateConfiguration;
+
+/* The import outcome plus the org units the data ended up in, which the history entry records
+   and the result returned to the caller does not carry. */
+type ImportRunResult = {
+    result: Either<ImportTemplateError, SynchronizationResult[]>;
+    orgUnitsImported: Id[];
+};
+
+function notImportedResult(error: ImportTemplateError): ImportRunResult {
+    return { result: Either.error(error), orgUnitsImported: [] };
+}
+
+function getOrgUnitIds(dataPackage: TemplateDataPackage): Id[] {
+    const teiOrgUnitIds =
+        dataPackage.type === dataFormTypeMap.trackerPrograms
+            ? dataPackage.trackedEntityInstances.map(({ orgUnit }) => orgUnit.id)
+            : [];
+
+    return _.uniq([...dataPackage.dataEntries.map(({ orgUnit }) => orgUnit), ...teiOrgUnitIds]);
+}
 
 type CustomErrorMatch = {
     regex: RegExp;
@@ -108,16 +130,23 @@ export class ImportTemplateUseCase implements UseCase {
                         params,
                         dataForm: undefined,
                         result: errorResult,
+                        orgUnitsImported: [],
                     });
                     return errorResult;
                 },
                 success: async retrievedDataForm => {
                     dataForm = retrievedDataForm;
-                    const importResult = await this.run(params, retrievedDataForm, spreadSheet, images);
+                    const { result: importResult, orgUnitsImported } = await this.run(
+                        params,
+                        retrievedDataForm,
+                        spreadSheet,
+                        images
+                    );
                     await this.saveHistoryIfNeeded({
                         params,
                         dataForm: retrievedDataForm,
                         result: importResult,
+                        orgUnitsImported,
                     });
                     return importResult;
                 },
@@ -136,6 +165,7 @@ export class ImportTemplateUseCase implements UseCase {
                 dataForm: errorDataForm,
                 syncResults: undefined,
                 importConfiguration: params,
+                orgUnitsImported: [],
             });
             await this.historyRepository.save(historyEntry);
             throw error;
@@ -146,10 +176,12 @@ export class ImportTemplateUseCase implements UseCase {
         params,
         dataForm,
         result,
+        orgUnitsImported,
     }: {
         params: ImportTemplateUseCaseParams;
         dataForm: DataForm | undefined;
         result: Either<ImportTemplateError, SynchronizationResult[]>;
+        orgUnitsImported: ReadonlyArray<Id>;
     }): Promise<void> {
         if (!HistoryEntry.shouldSaveImportResult(result)) {
             return;
@@ -162,6 +194,7 @@ export class ImportTemplateUseCase implements UseCase {
             dataForm,
             result,
             importConfiguration: params,
+            orgUnitsImported,
         });
         await this.historyRepository.save(historyEntry);
     }
@@ -200,12 +233,13 @@ export class ImportTemplateUseCase implements UseCase {
             selectedOrgUnits = [],
             duplicateStrategy = "ERROR",
             organisationUnitStrategy = "ERROR",
+            markCompleted,
             settings,
         }: ImportTemplateUseCaseParams,
         dataForm: DataForm,
         spreadSheet: Blob,
         images: FileResource[]
-    ): Promise<Either<ImportTemplateError, SynchronizationResult[]>> {
+    ): Promise<ImportRunResult> {
         const templateId = await this.excelRepository.loadTemplate({ type: "file", file: spreadSheet });
         const template = await this.templateRepository.getTemplate(templateId);
 
@@ -213,7 +247,7 @@ export class ImportTemplateUseCase implements UseCase {
 
         const dataPackage = await this.readTemplate(template, dataForm);
         if (!dataPackage) {
-            return Either.error({ type: "MALFORMED_TEMPLATE" });
+            return notImportedResult({ type: "MALFORMED_TEMPLATE" });
         }
 
         const orgUnits = await this.instanceRepository.getDataFormOrgUnits(dataForm.type, dataFormId);
@@ -235,17 +269,21 @@ export class ImportTemplateUseCase implements UseCase {
         );
 
         if (organisationUnitStrategy === "ERROR" && invalidDataValues.dataEntries.length > 0) {
-            return Either.error({ type: "INVALID_ORG_UNITS", dataValues, invalidDataValues });
+            return notImportedResult({ type: "INVALID_ORG_UNITS", dataValues, invalidDataValues });
         }
 
         if (duplicateStrategy === "ERROR" && existingDataValues.dataEntries.length > 0) {
-            return Either.error({
+            return notImportedResult({
                 type: "DUPLICATE_VALUES",
                 dataValues,
                 existingDataValues,
                 instanceDataValues,
             });
         }
+
+        /* Org units of the data actually sent to DHIS2: after the override has been applied and
+           after the invalid and duplicated rows have been removed. */
+        const orgUnitsImported = getOrgUnitIds(dataValues);
 
         const rowLookup = ImportRowLookup.fromTemplateDataPackage(dataValues);
 
@@ -258,13 +296,19 @@ export class ImportTemplateUseCase implements UseCase {
 
         const importResult = await this.instanceRepository.importDataPackage(templateToDataPackage(dataValues), {
             createAndUpdate: duplicateStrategy === "IMPORT_WITHOUT_DELETE" || duplicateStrategy === "ERROR",
+            markCompleted: markCompleted ?? settings.markCompletedOnImport,
             multiTextTeiDelimiter: this.getMultiTextTeiDelimiter(template),
             rowLookup,
         });
 
-        const importResultHasErrors = importResult.flatMap(result => result.errors);
-        if (importResultHasErrors.length > 0 || deleteResult) {
-            const importResultWithErrorsDetails = this.getImportResultsWithDetailsErrors(importResult, orgUnits);
+        // Rows ignored as duplicates never reach the import, so complete their registrations here.
+        const completionResult = await this.completeExistingRegistrations(existingDataValues, rowLookup);
+
+        const allResults = [...importResult, ...completionResult];
+
+        const hasImportErrors = allResults.some(result => !_.isEmpty(result.errors));
+        if (hasImportErrors || deleteResult) {
+            const importResultWithErrorsDetails = this.getImportResultsWithDetailsErrors(allResults, orgUnits);
 
             const deleteResultWithErrorsDetails = deleteResult
                 ? {
@@ -273,10 +317,32 @@ export class ImportTemplateUseCase implements UseCase {
                   }
                 : undefined;
 
-            return Either.success(_.compact([deleteResultWithErrorsDetails, ...importResultWithErrorsDetails]));
+            return {
+                result: Either.success(_.compact([deleteResultWithErrorsDetails, ...importResultWithErrorsDetails])),
+                orgUnitsImported,
+            };
         } else {
-            return Either.success(_.compact([deleteResult, ...importResult]));
+            return { result: Either.success(_.compact([deleteResult, ...allResults])), orgUnitsImported };
         }
+    }
+
+    /**
+     * Completes the registrations of aggregated rows that matched existing data and were ignored as duplicates.
+     * Only the completion is applied; the data values are not re-imported.
+     */
+    private async completeExistingRegistrations(
+        existingDataValues: TemplateDataPackage,
+        rowLookup: ImportRowLookup
+    ): Promise<SynchronizationResult[]> {
+        const completionOnlyPackage = buildCompletionOnlyPackage(existingDataValues);
+        if (!completionOnlyPackage) return [];
+
+        return this.instanceRepository.importDataPackage(completionOnlyPackage, {
+            createAndUpdate: true,
+            markCompleted: false,
+            multiTextTeiDelimiter: undefined,
+            rowLookup,
+        });
     }
 
     /**
@@ -722,24 +788,22 @@ export const compareDataPackages = (
     return true;
 };
 
-const trueValues = ["y", "yes", "true", "1"];
-const falseValues = ["n", "no", "false", "0"];
+/**
+ * Builds a data package that only completes the registrations of aggregated rows flagged as completed,
+ * without their data values. Returns undefined when there is nothing to complete or the type is not aggregated.
+ */
+export function buildCompletionOnlyPackage(existingDataValues: TemplateDataPackage): Maybe<DataPackage> {
+    if (existingDataValues.type !== dataFormTypeMap.dataSets) return undefined;
+
+    const dataEntries = existingDataValues.dataEntries
+        .filter(entry => entry.completed)
+        .map(entry => ({ ...entry, dataValues: [] }));
+
+    return _.isEmpty(dataEntries) ? undefined : templateToDataPackage({ ...existingDataValues, dataEntries });
+}
 
 function getBooleanValue(item: TemplateDataPackageDataValue): Maybe<boolean> {
-    const strValue = String(item.value).toLowerCase();
-
-    switch (true) {
-        case String(item.optionId) === "true" || item.optionId === "true":
-            return true;
-        case String(item.optionId) === "false" || item.optionId === "false":
-            return false;
-        case trueValues.includes(strValue):
-            return true;
-        case falseValues.includes(strValue):
-            return false;
-        default:
-            return undefined;
-    }
+    return parseBooleanCell(item.value, item.optionId);
 }
 
 function getOptionValue(originalValue: string, options?: DataOption[]): Maybe<DataOption> {

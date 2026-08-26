@@ -8,6 +8,8 @@ export interface User {
     username: string;
     name: string;
     authorities: Set<string>;
+    /* We should remove all the references to authorities in the rest of the app and use this property instead.*/
+    canUploadDocuments: boolean;
     userGroups: Ref[];
     orgUnits: OrgUnit[];
     orgUnitsView: OrgUnit[];

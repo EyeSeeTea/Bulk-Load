@@ -11,6 +11,7 @@ import { Document, UnsavedDocument } from "./Document";
 import { defaultSharing, Sharing } from "./Sharing";
 import Settings from "../../webapp/logic/settings";
 import { ImportTemplateConfiguration } from "./ImportTemplateConfiguration";
+import { cleanOrgUnitPaths } from "../../utils/dhis";
 
 export class HistoryEntry {
     public readonly id: Id;
@@ -21,6 +22,7 @@ export class HistoryEntry {
     public readonly syncResults: Maybe<SynchronizationResult[]>;
     public readonly errorDetails: Maybe<ErrorDetails>;
     public readonly importConfiguration: ImportTemplateConfiguration;
+    public readonly orgUnitsImported: ReadonlyArray<Id>;
 
     constructor({
         id = generateUid(),
@@ -31,6 +33,7 @@ export class HistoryEntry {
         syncResults,
         errorDetails,
         importConfiguration,
+        orgUnitsImported,
     }: Partial<HistoryEntry> & {
         dataForm: Maybe<DataForm>;
         user: User;
@@ -38,6 +41,7 @@ export class HistoryEntry {
         syncResults: Maybe<SynchronizationResult[]>;
         errorDetails: Maybe<ErrorDetails>;
         importConfiguration: ImportTemplateConfiguration;
+        orgUnitsImported: ReadonlyArray<Id>;
     }) {
         this.id = id;
         this.dataForm = dataForm;
@@ -47,6 +51,7 @@ export class HistoryEntry {
         this.syncResults = syncResults;
         this.errorDetails = errorDetails;
         this.importConfiguration = importConfiguration;
+        this.orgUnitsImported = orgUnitsImported;
         if (!this.syncResults && !this.errorDetails) {
             throw new Error("Either syncResults or errorDetails must be provided");
         }
@@ -59,6 +64,7 @@ export class HistoryEntry {
         syncResults: Maybe<SynchronizationResult[]>;
         errorDetails: Maybe<ErrorDetails>;
         importConfiguration: ImportTemplateConfiguration;
+        orgUnitsImported: ReadonlyArray<Id>;
     }): HistoryEntry {
         return new HistoryEntry(data);
     }
@@ -69,6 +75,7 @@ export class HistoryEntry {
         dataForm: Maybe<DataForm>;
         result: Either<ImportTemplateError, SynchronizationResult[]>;
         importConfiguration: ImportTemplateConfiguration;
+        orgUnitsImported: ReadonlyArray<Id>;
     }): HistoryEntry {
         if (data.result.isError()) {
             return new HistoryEntry({
@@ -78,6 +85,7 @@ export class HistoryEntry {
                 syncResults: undefined,
                 errorDetails: data.result.value.error,
                 importConfiguration: data.importConfiguration,
+                orgUnitsImported: data.orgUnitsImported,
             });
         } else {
             return new HistoryEntry({
@@ -87,6 +95,7 @@ export class HistoryEntry {
                 syncResults: data.result.value.data,
                 errorDetails: undefined,
                 importConfiguration: data.importConfiguration,
+                orgUnitsImported: data.orgUnitsImported,
             });
         }
     }
@@ -131,7 +140,9 @@ export class HistoryEntry {
                 "selectedOrgUnits",
                 "duplicateStrategy",
                 "organisationUnitStrategy",
+                "markCompleted",
             ]),
+            orgUnitsImported: [...this.orgUnitsImported],
         };
     }
 
@@ -166,6 +177,9 @@ export interface HistoryEntryDetails {
     results: Maybe<SynchronizationResult[]>;
     errorDetails: Maybe<ErrorDetails>;
     configuration: Maybe<ImportTemplateConfiguration>;
+    /* Every org unit the data ended up in, whether it came from the file or from the override.
+       Optional: entries saved before this field existed do not have it. */
+    orgUnitsImported?: Id[];
 }
 
 interface UnhandledException {
@@ -176,6 +190,21 @@ interface UnhandledException {
 type ErrorDetails = ImportTemplateError | UnhandledException;
 
 export type HistoryEntryDocument = Document | UnsavedDocument;
+
+export function getHistoryEntryOrgUnitIds(details: HistoryEntryDetails): Id[] {
+    return details.orgUnitsImported ?? getOverriddenOrgUnitIds(details);
+}
+
+/* Fallback for entries saved before `orgUnitsImported` existed: back then the only org unit
+   recorded was the one selected to override the file, and only as a path. Entries that took
+   the org units from the file have nothing to show. */
+function getOverriddenOrgUnitIds(details: HistoryEntryDetails): Id[] {
+    const { configuration } = details;
+    if (!configuration?.useBuilderOrgUnits) {
+        return [];
+    }
+    return cleanOrgUnitPaths(configuration.selectedOrgUnits ?? []);
+}
 
 export function buildHistorySharing(
     templatePermissions: Settings["templatePermissions"],

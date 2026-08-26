@@ -35,6 +35,7 @@ import { InstanceRepository } from "../repositories/InstanceRepository";
 import { Coordinates, Geometry } from "../entities/DhisDataPackage";
 import { Maybe } from "../../types/utils";
 import { DataElementDisaggregationsMappingRepository } from "../repositories/DataElementDisaggregationsMappingRepository";
+import { parseBooleanCell, resolveAnyYesWins } from "../../utils/booleans";
 
 const dateFormat = "YYYY-MM-DD";
 
@@ -115,6 +116,7 @@ export class ExcelReader {
                     coordinate: items[0]?.coordinate,
                     geometry: items[0]?.geometry,
                     sheet: items[0]?.sheet,
+                    completed: resolveAnyYesWins(items.map(item => item.completed)),
                 };
             })
             .compact()
@@ -151,10 +153,11 @@ export class ExcelReader {
             const dataFormId = await this.readCellValue(template, template.dataFormId, cell);
             if (!dataFormId) return undefined;
 
-            const [category, attribute, eventId, latitude, longitude, contentType] = await Promise.all([
+            const [category, attribute, eventId, completedRaw, latitude, longitude, contentType] = await Promise.all([
                 this.readCellValue(template, dataSource.categoryOption, cell),
                 this.readCellValue(template, dataSource.attribute, cell),
                 this.readCellValue(template, dataSource.eventId, cell),
+                this.readCellValue(template, dataSource.completed, cell),
                 this.readCellValue(template, dataSource.coordinates?.latitude, cell),
                 this.readCellValue(template, dataSource.coordinates?.longitude, cell),
                 this.excelRepository.getContentType(template.id, cell),
@@ -179,6 +182,7 @@ export class ExcelReader {
                 trackedEntityInstance: undefined,
                 programStage: undefined,
                 geometry: isDefined(geometry) ? this.formatGeometry(geometry, dataForm.featureType) : undefined,
+                completed: parseBooleanCell(completedRaw),
                 dataValues: [
                     {
                         dataElement: this.formatValue(dataElement),
@@ -228,10 +232,11 @@ export class ExcelReader {
         const dataFormId = await this.readCellValue(template, template.dataFormId);
         if (!dataFormId) return [];
 
-        const [category, attribute, eventId, contentType] = await Promise.all([
+        const [category, attribute, eventId, completedRaw, contentType] = await Promise.all([
             this.readCellValue(template, dataSource.categoryOption),
             this.readCellValue(template, dataSource.attribute),
             this.readCellValue(template, dataSource.eventId),
+            this.readCellValue(template, dataSource.completed),
             this.excelRepository.getContentType(template.id, cell),
         ]);
 
@@ -252,6 +257,7 @@ export class ExcelReader {
                 trackedEntityInstance: undefined,
                 programStage: undefined,
                 geometry: undefined,
+                completed: parseBooleanCell(completedRaw),
                 dataValues: [
                     {
                         dataElement: String(dataElement),
@@ -335,10 +341,15 @@ export class ExcelReader {
         const events = await promiseMap(dataValuesByRow, async ([row, dataItems]) => {
             const rowIdx = parseInt(row);
 
-            const teiId = await this.getCellValue(template, dataSource.teiId, rowIdx);
-            const cocId = await this.getFormulaValue(template, dataSource.categoryOptionCombo, rowIdx);
-            const eventId = await this.getCellValue(template, dataSource.eventId, rowIdx);
-            const date = parseDate(await this.getCellValue(template, dataSource.date, rowIdx));
+            const [teiId, cocId, eventId, dateRaw, completedRaw] = await Promise.all([
+                this.getCellValue(template, dataSource.teiId, rowIdx),
+                this.getFormulaValue(template, dataSource.categoryOptionCombo, rowIdx),
+                this.getCellValue(template, dataSource.eventId, rowIdx),
+                this.getCellValue(template, dataSource.date, rowIdx),
+                this.getCellValue(template, dataSource.completed, rowIdx),
+            ]);
+            const date = parseDate(dateRaw);
+            const completed = parseBooleanCell(completedRaw);
             if (!teiId || !date) return [];
 
             const tei = teiById[String(teiId)];
@@ -365,6 +376,7 @@ export class ExcelReader {
                     geometry: undefined,
                     trackedEntityInstance: String(teiId),
                     programStage: String(programStageId),
+                    completed: completed,
                     dataValues: [
                         {
                             dataElement: String(dataElementId),

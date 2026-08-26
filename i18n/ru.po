@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2026-07-29T11:52:52.301Z\n"
+"POT-Creation-Date: 2026-08-19T14:35:59.584Z\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -47,6 +47,9 @@ msgid "No data values to import"
 msgstr "значения данных"
 
 msgid "Failed to import data values"
+msgstr ""
+
+msgid "Failed to register data set(s) as completed"
 msgstr ""
 
 msgid ""
@@ -248,6 +251,10 @@ msgstr "Статус"
 msgid "Import strategy"
 msgstr "Импортные данные"
 
+#, fuzzy
+msgid "Org. Unit"
+msgstr "Оргподразделение *"
+
 msgid "File"
 msgstr ""
 
@@ -256,6 +263,9 @@ msgid ""
 msgstr ""
 
 msgid "The original file is not available for download"
+msgstr ""
+
+msgid "and {{total}} more"
 msgstr ""
 
 msgid "Default"
@@ -661,6 +671,13 @@ msgstr "Фильтр обнаружения дубликатов для собы
 
 msgid "Data elements used for duplicates identification"
 msgstr "Элементы данных, используемые для выявления дубликатов"
+
+msgid "Completion status"
+msgstr ""
+
+#, fuzzy
+msgid "Mark data as completed on import"
+msgstr "значения данных"
 
 #, fuzzy
 msgid "Template configuration"
@@ -1340,6 +1357,10 @@ msgstr "Опции"
 msgid "Date"
 msgstr "Дата"
 
+#, fuzzy
+msgid "Completed"
+msgstr "Удалено"
+
 msgid "TEI id"
 msgstr "идентификатор TEI"
 
@@ -1603,6 +1624,13 @@ msgstr "Загрузка значений данных с недопустимы
 msgid "Bulk data import"
 msgstr "Массовый импорт данных"
 
+msgid ""
+"The data will be imported as usual, but the file itself will not be saved "
+"because you do not have any of the required authorities ({{authorities}}). "
+"The import will still be recorded in the history, without a file available "
+"for download."
+msgstr ""
+
 msgid "Drag and drop file to import"
 msgstr "Перетащите файл для импорта"
 
@@ -1620,6 +1648,9 @@ msgstr "значения данных"
 
 msgid "Override import Organisation Unit"
 msgstr "Выберите импортируемое организационное подразделение"
+
+msgid "Mark imported records as completed"
+msgstr ""
 
 msgid "No capture org unit match element org units"
 msgstr "Нет захвата орг единицы соответствие элемента орг единицы"

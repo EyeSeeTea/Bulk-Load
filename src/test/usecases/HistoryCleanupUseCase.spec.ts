@@ -28,6 +28,7 @@ describe("HistoryCleanupUseCase", () => {
             username: "testuser",
             name: "Test User",
             authorities: new Set(),
+            canUploadDocuments: false,
             userGroups: [],
             orgUnits: [],
             orgUnitsView: [],

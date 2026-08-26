@@ -48,7 +48,7 @@ const useStyles = makeStyles({
 
 export function HistoryDetailsDialog({ isOpen, entry, onClose }: HistoryDetailsDialogProps) {
     const classes = useStyles();
-    const { details, loading } = useHistoryDetails({
+    const { details, orgUnits, loading } = useHistoryDetails({
         isOpen,
         entryId: entry.id,
     });
@@ -74,7 +74,7 @@ export function HistoryDetailsDialog({ isOpen, entry, onClose }: HistoryDetailsD
 
         return (
             <>
-                <HistoryImportSummary summary={entry} details={details} />
+                <HistoryImportSummary summary={entry} details={details} orgUnits={orgUnits} />
 
                 {results && results.length > 0 && (
                     <div className={classes.section}>
