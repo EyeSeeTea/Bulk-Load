@@ -11,8 +11,7 @@ export function getCaptureOrgUnitIdsForDataForm(
         .filter(dataFormOrgUnit =>
             userOrgUnits.some(
                 userOrgUnit =>
-                    dataFormOrgUnit.path === userOrgUnit.path ||
-                    dataFormOrgUnit.path.startsWith(`${userOrgUnit.path}/`)
+                    dataFormOrgUnit.path === userOrgUnit.path || dataFormOrgUnit.path.startsWith(`${userOrgUnit.path}/`)
             )
         )
         .map(orgUnit => orgUnit.id);

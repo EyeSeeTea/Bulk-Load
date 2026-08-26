@@ -5,8 +5,8 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2026-07-29T11:52:52.301Z\n"
-"PO-Revision-Date: 2026-07-29T11:52:52.301Z\n"
+"POT-Creation-Date: 2026-08-19T14:35:59.584Z\n"
+"PO-Revision-Date: 2026-08-19T14:35:59.584Z\n"
 
 msgid "Events - Create/update"
 msgstr ""
@@ -222,6 +222,9 @@ msgstr ""
 msgid "Import strategy"
 msgstr ""
 
+msgid "Org. Unit"
+msgstr ""
+
 msgid "File"
 msgstr ""
 
@@ -229,6 +232,9 @@ msgid "The original file has been deleted and is no longer available for downloa
 msgstr ""
 
 msgid "The original file is not available for download"
+msgstr ""
+
+msgid "and {{total}} more"
 msgstr ""
 
 msgid "Default"
@@ -1475,6 +1481,13 @@ msgid "Download data values with invalid organisation units"
 msgstr ""
 
 msgid "Bulk data import"
+msgstr ""
+
+msgid ""
+"The data will be imported as usual, but the file itself will not be saved "
+"because you do not have any of the required authorities ({{authorities}}). "
+"The import will still be recorded in the history, without a file available "
+"for download."
 msgstr ""
 
 msgid "Drag and drop file to import"

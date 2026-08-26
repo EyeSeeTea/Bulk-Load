@@ -1,12 +1,7 @@
 /** @format */
 
 module.exports = {
-    extends: [
-        "react-app",
-        "eslint:recommended",
-        "plugin:react/recommended",
-        "plugin:@typescript-eslint/recommended",
-    ],
+    extends: ["react-app", "eslint:recommended", "plugin:react/recommended", "plugin:@typescript-eslint/recommended"],
     parser: "@typescript-eslint/parser",
     rules: {
         "no-console": ["warn", { allow: ["debug", "warn", "error"] }],

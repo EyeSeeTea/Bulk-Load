@@ -7,14 +7,16 @@ import i18n from "../../../utils/i18n";
 import { HistoryStatusIndicator } from "./HistoryStatusIndicator";
 import { useDownloadDocument } from "../../hooks/useDownloadDocument";
 import { DataFormType } from "../../../domain/entities/DataForm";
+import { OrgUnitReference } from "../../../domain/entities/OrgUnit";
 import { Maybe } from "../../../types/utils";
 
 interface HistoryImportSummaryProps {
     summary: HistoryEntrySummary;
     details?: HistoryEntryDetails;
+    orgUnits?: OrgUnitReference[];
 }
 
-export function HistoryImportSummary({ summary, details }: HistoryImportSummaryProps) {
+export function HistoryImportSummary({ summary, details, orgUnits = [] }: HistoryImportSummaryProps) {
     const classes = useStyles();
     const { downloadDocument } = useDownloadDocument();
 
@@ -39,6 +41,12 @@ export function HistoryImportSummary({ summary, details }: HistoryImportSummaryP
                 <div className={classes.infoRow}>
                     <Typography className={classes.infoLabel}>{i18n.t("Import strategy")}:</Typography>
                     <Typography variant="body2">{getImportStrategyLabel(details, summary.dataFormType)}</Typography>
+                </div>
+            )}
+            {orgUnits.length > 0 && (
+                <div className={classes.infoRow}>
+                    <Typography className={classes.infoLabel}>{i18n.t("Org. Unit")}:</Typography>
+                    <OrgUnitsValue orgUnits={orgUnits} />
                 </div>
             )}
             <div className={classes.infoRow}>
@@ -78,6 +86,41 @@ export function HistoryImportSummary({ summary, details }: HistoryImportSummaryP
                 )}
             </div>
         </div>
+    );
+}
+
+/* An import can span hundreds of org units, so only the first ones are listed inline
+   and the rest are left to the tooltip */
+const MAX_ORG_UNITS_SHOWN = 10;
+
+function OrgUnitsValue({ orgUnits }: { orgUnits: OrgUnitReference[] }) {
+    const classes = useStyles();
+    const hiddenCount = orgUnits.length - MAX_ORG_UNITS_SHOWN;
+    const getLabel = (orgUnit: OrgUnitReference) => orgUnit.name ?? orgUnit.id;
+
+    if (hiddenCount <= 0) {
+        return <Typography variant="body2">{orgUnits.map(getLabel).join(", ")}</Typography>;
+    }
+
+    const shownNames = orgUnits.slice(0, MAX_ORG_UNITS_SHOWN).map(getLabel).join(", ");
+
+    return (
+        <Tooltip
+            title={
+                <div className={classes.orgUnitList}>
+                    {orgUnits.map(orgUnit => (
+                        <div key={orgUnit.id}>{getLabel(orgUnit)}</div>
+                    ))}
+                </div>
+            }
+            interactive
+            arrow
+            placement="top"
+        >
+            <Typography variant="body2" className={classes.truncatedOrgUnits}>
+                {`${shownNames} ${i18n.t("and {{total}} more", { total: hiddenCount })}`}
+            </Typography>
+        </Tooltip>
     );
 }
 
@@ -126,6 +169,14 @@ const useStyles = makeStyles({
         minWidth: "auto",
         padding: "4px 8px",
         fontSize: "0.75rem",
+    },
+    truncatedOrgUnits: {
+        cursor: "help",
+        textDecoration: "underline dotted",
+    },
+    orgUnitList: {
+        maxHeight: 300,
+        overflowY: "auto",
     },
     deletedFile: {
         display: "flex",

@@ -58,6 +58,9 @@ import { ModulesRepositories } from "./domain/repositories/ModulesRepositories";
 import { ImportSourceNodeRepository } from "./data/ImportSourceNodeRepository";
 import { DataElementDisaggregationsMappingD2Repository } from "./data/DataElementDisaggregationsMappingD2Repository";
 import { GetDataElementDisaggregationsMappingUseCase } from "./domain/usecases/GetDataElementDisaggregationsMappingUseCase";
+import { OrgUnitD2Repository } from "./data/OrgUnitD2Repository";
+import { OrgUnitRepository } from "./domain/repositories/OrgUnitRepository";
+import { GetOrgUnitsByIdsUseCase } from "./domain/usecases/GetOrgUnitsByIdsUseCase";
 
 export interface CompositionRootOptions {
     appConfig: JsonConfig;
@@ -87,6 +90,7 @@ export function getCompositionRoot({ appConfig, dhisInstance, mockApi, importSou
     const importSourceRepository =
         importSource === "zip" ? new ImportSourceZipRepository() : new ImportSourceNodeRepository();
     const historyRepository: HistoryRepository = new HistoryDataStoreRepository(dhisInstance, mockApi);
+    const orgUnitRepository: OrgUnitRepository = new OrgUnitD2Repository(dhisInstance, mockApi);
 
     const dataElementDisaggregationsMappingRepository = new DataElementDisaggregationsMappingD2Repository(api);
 
@@ -94,6 +98,7 @@ export function getCompositionRoot({ appConfig, dhisInstance, mockApi, importSou
         orgUnits: getExecute({
             getUserRoots: new GetOrgUnitRootsUseCase(instance),
             getRootsByForm: new GetFormOrgUnitRootsUseCase(instance),
+            getByIds: new GetOrgUnitsByIdsUseCase(orgUnitRepository),
         }),
         form: getExecute({
             getDataPackage: new GetFormDataPackageUseCase(instance),
