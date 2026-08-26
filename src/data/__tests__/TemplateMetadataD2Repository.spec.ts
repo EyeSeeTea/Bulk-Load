@@ -82,9 +82,7 @@ describe("getCategoryOptionIdsToInclude", () => {
 
     it("includes a category option whose date range overlaps the requested range", () => {
         const dataSet = givenDataSetOrgUnits([]);
-        const categoryOptions = [
-            givenACategoryOption({ id: "co1", startDate: "2024-01-01", endDate: "2024-12-31" }),
-        ];
+        const categoryOptions = [givenACategoryOption({ id: "co1", startDate: "2024-01-01", endDate: "2024-12-31" })];
 
         const result = getCategoryOptionIdsToInclude(dataSet, [], categoryOptions, {
             startDate: new Date("2024-06-01"),
@@ -96,9 +94,7 @@ describe("getCategoryOptionIdsToInclude", () => {
 
     it("excludes a category option that ends before the requested range starts", () => {
         const dataSet = givenDataSetOrgUnits([]);
-        const categoryOptions = [
-            givenACategoryOption({ id: "co1", startDate: "2023-01-01", endDate: "2023-12-31" }),
-        ];
+        const categoryOptions = [givenACategoryOption({ id: "co1", startDate: "2023-01-01", endDate: "2023-12-31" })];
 
         const result = getCategoryOptionIdsToInclude(dataSet, [], categoryOptions, {
             startDate: new Date("2024-06-01"),
@@ -110,9 +106,7 @@ describe("getCategoryOptionIdsToInclude", () => {
 
     it("excludes a category option that starts after the requested range ends", () => {
         const dataSet = givenDataSetOrgUnits([]);
-        const categoryOptions = [
-            givenACategoryOption({ id: "co1", startDate: "2025-01-01", endDate: "2025-12-31" }),
-        ];
+        const categoryOptions = [givenACategoryOption({ id: "co1", startDate: "2025-01-01", endDate: "2025-12-31" })];
 
         const result = getCategoryOptionIdsToInclude(dataSet, [], categoryOptions, {
             startDate: new Date("2024-06-01"),

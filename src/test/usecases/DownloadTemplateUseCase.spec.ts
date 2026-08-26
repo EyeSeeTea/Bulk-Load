@@ -214,7 +214,18 @@ function givenADataSet(options: {
             response: (req: MockRequest) => {
                 const fields = req.params.get("fields") ?? "";
                 return fields.includes("organisationUnits")
-                    ? { dataSets: [{ organisationUnits: orgUnitIds.map(ouId => ({ id: ouId, name: "Org unit 1", level: 1, path: `/${ouId}` })) }] }
+                    ? {
+                          dataSets: [
+                              {
+                                  organisationUnits: orgUnitIds.map(ouId => ({
+                                      id: ouId,
+                                      name: "Org unit 1",
+                                      level: 1,
+                                      path: `/${ouId}`,
+                                  })),
+                              },
+                          ],
+                      }
                     : {
                           dataSets: [
                               {
