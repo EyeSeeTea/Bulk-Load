@@ -358,31 +358,24 @@ export async function getElementMetadata({
     });
 
     // FIXME: This is needed for getting all possible org units for a program/dataSet
-    const requestOrgUnits =
+    const requestOrgUnits: Id[] =
         relationshipsOuFilter === "DESCENDANTS" || relationshipsOuFilter === "CHILDREN"
             ? elementMetadataMap.get(element.id)?.organisationUnits?.map(({ id }: { id: string }) => id) ?? orgUnitIds
             : orgUnitIds;
 
     const responses = await promiseMap(_.chunk(_.uniq(requestOrgUnits), 400), orgUnits =>
-        api
-            .get<{
-                organisationUnits: {
-                    id: string;
-                    displayShortName: string;
-                    displayName: string;
-                    code?: string;
-                    translations: unknown;
-                }[];
-            }>("/metadata", {
-                fields: "id,displayName,code,translations,displayShortName",
-                filter: `id:in:[${orgUnits}]`,
+        api.models.organisationUnits
+            .get({
+                paging: false,
+                fields: { id: true, displayName: true, code: true, translations: true, displayShortName: true },
+                filter: { id: { in: orgUnits } },
                 order: orgUnitShortName ? "displayShortName:asc" : "displayName:asc",
             })
             .getData()
     );
 
-    const organisationUnits = _.flatMap(responses, ({ organisationUnits }) =>
-        organisationUnits.map(orgUnit => ({
+    const organisationUnits = _.flatMap(responses, ({ objects }) =>
+        objects.map(orgUnit => ({
             type: "organisationUnits",
             ...orgUnit,
         }))
