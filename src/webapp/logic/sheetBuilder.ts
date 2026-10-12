@@ -1432,7 +1432,8 @@ function getDataElementsForSectionDataSet(dataSet: any, metadata: any, cocsByCat
         .map(dataElement => ({
             dataElement,
             categoryOptionCombos: cocsByCatComboId[categoryComboIdByDataElementId[dataElement.id]] || [],
-        }));
+        }))
+        .value();
 }
 
 function getDataElementsForDefaultDataSet(dataSet: any, metadata: any, cocsByCatComboId: any) {
