@@ -46,6 +46,7 @@ export class RegenerateTemplateMetadataUseCase implements UseCase {
             startDate: undefined,
             endDate: undefined,
             orgUnitShortName,
+            categoryOptionOrgUnitFilter: settings.categoryOptionOrgUnitFilter,
         });
 
         // Minimal template: generateMetadataOnly only needs type/id, not the form sheets.

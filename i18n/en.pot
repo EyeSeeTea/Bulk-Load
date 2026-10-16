@@ -5,8 +5,8 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2026-08-19T14:35:59.584Z\n"
-"PO-Revision-Date: 2026-08-19T14:35:59.584Z\n"
+"POT-Creation-Date: 2026-09-04T03:02:52.457Z\n"
+"PO-Revision-Date: 2026-09-04T03:02:52.457Z\n"
 
 msgid "Events - Create/update"
 msgstr ""
@@ -527,6 +527,12 @@ msgstr ""
 msgid "Select Organisation Units on template generation and import"
 msgstr ""
 
+msgid "Only for their assigned Organisation Units"
+msgstr ""
+
+msgid "For their assigned Organisation Units and all descendants"
+msgstr ""
+
 msgid "Yes"
 msgstr ""
 
@@ -579,6 +585,12 @@ msgid "Data model"
 msgstr ""
 
 msgid "Organisation Unit Visibility"
+msgstr ""
+
+msgid ""
+"Controls whether a category option assigned to a parent organisation unit "
+"is also treated as available for its descendant organisation units when "
+"generating a template."
 msgstr ""
 
 msgid "Columns layout"
