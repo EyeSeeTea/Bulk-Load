@@ -21,6 +21,7 @@ import { ThemeStyle } from "../../../domain/entities/Theme";
 import { ExcelRepository } from "../../../domain/repositories/ExcelRepository";
 import { MSFModuleMetadataRepository } from "../../../domain/repositories/templates/MSFModuleMetadataRepository";
 import { Maybe } from "../../../types/utils";
+import { promiseMap } from "../../../utils/promises";
 import { getOptionsKey } from "../../../webapp/logic/sheetBuilder";
 import { Workbook } from "../../../webapp/logic/Workbook";
 import i18n from "../../../utils/i18n";
@@ -30,6 +31,13 @@ const DEFAULT_COLUMN_COLOR = "#000000";
 const DEFAULT_SECTION_BG_COLOR = "#f2f2f2";
 const DEFAULT_DE_CELL_BG_COLOR = "#ffffff";
 const DEFAULT_GREYED_CELL_BG_COLOR = "#cccccc";
+
+const DATA_ENTRY_SHEET = "Data Entry";
+const COMPLETED_COLUMN = "D";
+const DATA_COLUMN_START = "E";
+const DATA_ELEMENT_ROW = 4;
+const CATEGORY_OPTION_ROW = 5;
+const DATA_ROW_START = 6;
 
 export class MSFModule101 implements CustomTemplateWithUrl {
     public readonly type = "custom";
@@ -41,18 +49,19 @@ export class MSFModule101 implements CustomTemplateWithUrl {
 
     public readonly generateMetadata = true;
 
-    public readonly dataFormId = { type: "cell" as const, sheet: "Data Entry", ref: "A4" };
+    public readonly dataFormId = { type: "cell" as const, sheet: DATA_ENTRY_SHEET, ref: "A4" };
     public readonly dataFormType = { type: "value" as const, id: "dataSets" as const };
 
     public readonly dataSources: DataSource[] = [
         {
             type: "row",
-            orgUnit: { sheet: "Data Entry", type: "column", ref: "A" },
-            period: { sheet: "Data Entry", type: "column", ref: "B" },
-            attribute: { sheet: "Data Entry", type: "column", ref: "C" },
-            range: { sheet: "Data Entry", rowStart: 6, columnStart: "D" },
-            dataElement: { sheet: "Data Entry", type: "row", ref: 4 },
-            categoryOption: { sheet: "Data Entry", type: "row", ref: 5 },
+            orgUnit: { sheet: DATA_ENTRY_SHEET, type: "column", ref: "A" },
+            period: { sheet: DATA_ENTRY_SHEET, type: "column", ref: "B" },
+            attribute: { sheet: DATA_ENTRY_SHEET, type: "column", ref: "C" },
+            completed: { sheet: DATA_ENTRY_SHEET, type: "column", ref: COMPLETED_COLUMN },
+            range: { sheet: DATA_ENTRY_SHEET, rowStart: DATA_ROW_START, columnStart: DATA_COLUMN_START },
+            dataElement: { sheet: DATA_ENTRY_SHEET, type: "row", ref: DATA_ELEMENT_ROW },
+            categoryOption: { sheet: DATA_ENTRY_SHEET, type: "row", ref: CATEGORY_OPTION_ROW },
         },
     ];
 
@@ -77,7 +86,7 @@ class DownloadCustomization {
 
     password = "Wiscentd2019!";
 
-    sheets = { mapping: "mapping", entryForm: "Entry form", dataEntry: "Data Entry", validation: "Validation" };
+    sheets = { mapping: "mapping", entryForm: "Entry form", dataEntry: DATA_ENTRY_SHEET, validation: "Validation" };
 
     sectionCellStyle = {
         bold: true,
@@ -143,7 +152,7 @@ class DownloadCustomization {
             metadata.categoryOptionCombos,
             allCategories,
             allCategoryCombos
-        ) as Record<Id, CategoryOptionCombo[]>;
+        );
 
         const allDataElements = metadata.dataSet.dataSetElements.map(dse => dse.dataElement);
 
@@ -172,33 +181,35 @@ class DownloadCustomization {
         categoryOptionCombos: CategoryOptionCombo[],
         categories: Category[],
         categoryCombos: CategoryCombo[]
-    ) {
+    ): Record<Id, Maybe<CategoryOptionCombo>[]> {
         const unsortedCocsByCatComboId = _.groupBy(categoryOptionCombos, coc => coc.categoryCombo.id);
         const categoryById = _.keyBy(categories, category => category.id);
         const cocsByKey = _.groupBy(categoryOptionCombos, coc => getOptionsKey(coc.categoryOptions));
 
-        const cocsByCategoryPairs = categoryCombos.map(categoryCombo => {
-            const unsortedCocsForCategoryCombo = unsortedCocsByCatComboId[categoryCombo.id] || [];
-            const categoryOptionsList = categoryCombo.categories.map(
-                category => categoryById[category.id]?.categoryOptions || []
-            );
+        return Object.fromEntries(
+            categoryCombos.map(categoryCombo => {
+                const unsortedCocsForCategoryCombo = unsortedCocsByCatComboId[categoryCombo.id] || [];
+                const categoryOptionsList = categoryCombo.categories.map(
+                    category => categoryById[category.id]?.categoryOptions || []
+                );
 
-            const categoryOptionsProduct = _.product(...categoryOptionsList);
-            const cocsForCategoryCombo = _(categoryOptionsProduct)
-                .map(getOptionsKey)
-                .map(optionsKey =>
-                    _(cocsByKey[optionsKey] || [])
+                const categoryOptionsProduct = _.product(...categoryOptionsList);
+
+                const cocsForCategoryCombo = categoryOptionsProduct.map(categoryOptions =>
+                    _(cocsByKey[getOptionsKey(categoryOptions)] || [])
                         .intersectionBy(unsortedCocsForCategoryCombo, "id")
                         .first()
-                )
-                .compact()
-                .value();
-            if (cocsForCategoryCombo.length !== categoryOptionsProduct.length)
-                console.warn(`Fewer COCs than expected for CC: ${categoryCombo.id}`);
-            return [categoryCombo.id, cocsForCategoryCombo];
-        });
+                );
 
-        return _.fromPairs(cocsByCategoryPairs);
+                const missing = cocsForCategoryCombo.filter(coc => !coc).length;
+                if (missing > 0)
+                    console.error(
+                        `No categoryOptionCombo for ${missing} of ${categoryOptionsProduct.length} combinations of categoryCombo ${categoryCombo.id}`
+                    );
+
+                return [categoryCombo.id, cocsForCategoryCombo];
+            })
+        );
     }
 
     private async fillHeaderSection(metadata: MSFModuleMetadata): Promise<void> {
@@ -324,38 +335,32 @@ class DownloadCustomization {
         const dataEntrySheet = this.sheets.dataEntry;
         const cellsCatOptComb = await this.excelRepository.getCellsInRange(this.templateId, {
             sheet: dataEntrySheet,
-            columnStart: "D",
-            rowStart: 5,
-            rowEnd: 5,
+            columnStart: DATA_COLUMN_START,
+            rowStart: CATEGORY_OPTION_ROW,
+            rowEnd: CATEGORY_OPTION_ROW,
         });
 
-        const result: CellWithCombinationId[] = [];
-
-        for (const cell of cellsCatOptComb) {
+        const cells = await promiseMap(cellsCatOptComb, async (cell): Promise<Maybe<CellWithCombinationId>> => {
             const value = await this.excelRepository.readCell(this.templateId, cell);
-            if (value) {
-                const column = this.removeLastChar(cell.ref);
-                const lastChar = Number(_(cell.ref).last());
-                const deValue = await this.excelRepository.readCell(this.templateId, {
-                    ...cell,
-                    ref: `${column}${lastChar - 1}`,
-                });
-                if (!deValue) throw Error(`Cannot get dataElement for categoryOptionCombo from cell: ${cell.ref}`);
-                result.push({
-                    sheet: dataEntrySheet,
-                    ref: cell.ref,
-                    value: value.toString(),
-                    column: column,
-                    dataElementId: deValue.toString().replace("_", ""),
-                });
-            }
-        }
+            if (!value) return undefined;
 
-        return result;
-    }
+            const column = cell.ref.replace(/\d+$/, "");
+            const deValue = await this.excelRepository.readCell(this.templateId, {
+                ...cell,
+                ref: `${column}${DATA_ELEMENT_ROW}`,
+            });
+            if (!deValue) throw Error(`Cannot get dataElement for categoryOptionCombo from cell: ${cell.ref}`);
 
-    private removeLastChar(value: string): string {
-        return value.slice(0, -1);
+            return {
+                sheet: dataEntrySheet,
+                ref: cell.ref,
+                value: value.toString(),
+                column: column,
+                dataElementId: deValue.toString().replace("_", ""),
+            };
+        });
+
+        return _.compact(cells);
     }
 
     private getIdFromCellFormula(value: string): string {
@@ -364,7 +369,7 @@ class DownloadCustomization {
 
     private createSectionCells(
         metadata: MSFModuleMetadata,
-        dataElementsByCombination: { dataElement: DataElement; categoryOptionCombos: CategoryOptionCombo[] }[]
+        dataElementsByCombination: { dataElement: DataElement; categoryOptionCombos: Maybe<CategoryOptionCombo>[] }[]
     ): Cell[] {
         const initialSectionRefCell = Workbook.getColumnIndex("G");
         const initialSectionletter = Workbook.getExcelAlpha(initialSectionRefCell);
@@ -577,8 +582,8 @@ class DownloadCustomization {
                                             sectionDe.valueType,
                                             combinationCellRef,
                                             {
-                                                booleanFormula: `=${this.sheets.validation}!$D$${3}:$D${4}`,
-                                                trueOnlyFormula: `=${this.sheets.validation}!$D$${3}`,
+                                                booleanFormula: `=${this.sheets.validation}!$D$3:$D4`,
+                                                trueOnlyFormula: `=${this.sheets.validation}!$D$3`,
                                             }
                                         ),
                                         merge: undefined,
@@ -690,89 +695,94 @@ class DownloadCustomization {
             })
             .value();
 
-        const cells = _(combinationCells)
-            .flatMap((cell, index) => {
-                if (!cell.metadata) return undefined;
-                const rowNumber = index + 1;
+        const mappedCells = _(combinationCells)
+            .map(cell => {
+                const combinationId = cell.metadata?.categoryCombinationId;
+                if (!combinationId) {
+                    console.error(`No categoryOptionCombo for Entry form cell ${cell.ref}, not mapped`);
+                    return undefined;
+                }
 
-                const combinationCell: Cell = {
-                    sheet: this.sheets.mapping,
-                    includeInMapping: false,
-                    value: cell.ref,
-                    ref: `A${rowNumber}`,
-                    style: undefined,
-                    merge: undefined,
-                    metadata: undefined,
-                };
-
-                const combinationId = cell.metadata.categoryCombinationId;
-                if (!combinationId) return undefined;
-
-                const dataEntryCell = dataEntryCells.find(dec => {
-                    const condition =
+                const dataEntryCell = dataEntryCells.find(
+                    dec =>
                         this.getIdFromCellFormula(dec.value) === combinationId &&
-                        dec.dataElementId === cell.metadata?.dataElement.id;
-                    return condition;
-                });
-
-                if (!dataEntryCell) return undefined;
-
-                const greyedField = greyedFields.find(
-                    greyedField =>
-                        greyedField.dataElement.id === dataEntryCell.dataElementId &&
-                        greyedField.categoryOptionCombo.id === dataEntryCell.value.replace("_", "")
+                        dec.dataElementId === cell.metadata?.dataElement.id
                 );
 
-                const dataEntryCocCell: Cell = {
-                    sheet: this.sheets.mapping,
-                    includeInMapping: false,
-                    value: dataEntryCell.column,
-                    ref: `B${rowNumber}`,
-                    style: undefined,
-                    merge: undefined,
-                    metadata: undefined,
-                };
+                if (!dataEntryCell) {
+                    console.error(
+                        `No Data Entry column for categoryOptionCombo ${combinationId} of dataElement ${cell.metadata?.dataElement.id}, Entry form cell ${cell.ref} not mapped`
+                    );
+                    return undefined;
+                }
 
-                const dataElementCell: Cell = {
-                    sheet: this.sheets.mapping,
-                    value: cell.metadata?.dataElement.name || "",
-                    ref: `E${rowNumber}`,
-                    includeInMapping: false,
-                    style: undefined,
-                    merge: undefined,
-                    metadata: undefined,
-                };
-
-                const blockCell: Cell = {
-                    sheet: this.sheets.mapping,
-                    includeInMapping: false,
-                    value: greyedField ? cell.ref : "",
-                    ref: `G${rowNumber}`,
-                    style: undefined,
-                    merge: undefined,
-                    metadata: undefined,
-                };
-
-                const combinationCellWithStyle =
-                    blockCell.value === combinationCell.value
-                        ? {
-                              ...combinationCell,
-                              style: this.greyedFieldCellStyle,
-                          }
-                        : combinationCell;
-
-                return [
-                    combinationCellWithStyle,
-                    dataEntryCocCell,
-                    dataElementCell,
-                    { ...dataElementCell, ref: `F${rowNumber}` },
-                    blockCell,
-                ];
+                return { cell, dataEntryCell };
             })
             .compact()
             .value();
 
-        return cells;
+        return mappedCells.flatMap(({ cell, dataEntryCell }, index) => {
+            const rowNumber = index + 1;
+
+            const greyedField = greyedFields.find(
+                greyedField =>
+                    greyedField.dataElement.id === dataEntryCell.dataElementId &&
+                    greyedField.categoryOptionCombo.id === dataEntryCell.value.replace("_", "")
+            );
+
+            const combinationCell: Cell = {
+                sheet: this.sheets.mapping,
+                includeInMapping: false,
+                value: cell.ref,
+                ref: `A${rowNumber}`,
+                style: undefined,
+                merge: undefined,
+                metadata: undefined,
+            };
+
+            const dataEntryCocCell: Cell = {
+                sheet: this.sheets.mapping,
+                includeInMapping: false,
+                value: dataEntryCell.column,
+                ref: `B${rowNumber}`,
+                style: undefined,
+                merge: undefined,
+                metadata: undefined,
+            };
+
+            const dataElementCell: Cell = {
+                sheet: this.sheets.mapping,
+                value: cell.metadata?.dataElement.name || "",
+                ref: `E${rowNumber}`,
+                includeInMapping: false,
+                style: undefined,
+                merge: undefined,
+                metadata: undefined,
+            };
+
+            const blockCell: Cell = {
+                sheet: this.sheets.mapping,
+                includeInMapping: false,
+                value: greyedField ? cell.ref : "",
+                ref: `G${rowNumber}`,
+                style: undefined,
+                merge: undefined,
+                metadata: undefined,
+            };
+
+            const combinationCellWithStyle =
+                blockCell.value === combinationCell.value
+                    ? { ...combinationCell, style: this.greyedFieldCellStyle }
+                    : combinationCell;
+
+            return [
+                combinationCellWithStyle,
+                dataEntryCocCell,
+                dataElementCell,
+                { ...dataElementCell, ref: `F${rowNumber}` },
+                blockCell,
+            ];
+        });
     }
 
     private generateColumnsCombinations({ categoryCombo }: { categoryCombo: CategoryCombo }): Cell[][] {
