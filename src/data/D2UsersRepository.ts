@@ -2,6 +2,7 @@ import { DhisInstance } from "../domain/entities/DhisInstance";
 import { User } from "../domain/entities/User";
 import { SearchResults, UsersRepository } from "../domain/repositories/UsersRepository";
 import { D2OrganisationUnit, D2Api } from "../types/d2-api";
+import { canUploadDocuments } from "./d2-authorities";
 
 export class D2UsersRepository implements UsersRepository {
     private api: D2Api;
@@ -36,11 +37,14 @@ export class D2UsersRepository implements UsersRepository {
             })
             .getData();
 
+        const authorities = new Set(apiUser.authorities);
+
         return {
             id: apiUser.id,
             name: apiUser.name,
             username: apiUser.username ?? apiUser.userCredentials?.username ?? "",
-            authorities: new Set(apiUser.authorities),
+            authorities,
+            canUploadDocuments: canUploadDocuments(authorities),
             userGroups: apiUser.userGroups,
             orgUnitsView: apiUser.dataViewOrganisationUnits.map(this.buildOrgUnit),
             orgUnits: apiUser.organisationUnits.map(this.buildOrgUnit),

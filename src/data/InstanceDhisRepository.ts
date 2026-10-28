@@ -76,6 +76,7 @@ import {
     resolveRegistrations,
     resolveRequestedRegistrationKeys,
 } from "./Dhis2DataSetCompletion";
+import { chunkDataValuesByPeriod } from "./Dhis2DataValueChunks";
 import { Maybe } from "../types/utils";
 
 const bulkOperationChunkSize = 1000;
@@ -520,7 +521,7 @@ export class InstanceDhisRepository implements InstanceRepository {
             };
         }
 
-        const chunks = _.chunk(dataValues, bulkOperationChunkSize);
+        const chunks = chunkDataValuesByPeriod(dataValues, bulkOperationChunkSize);
 
         const chunkResults = await promiseMap(chunks, async chunk => {
             const { response } = await this.api.dataValues

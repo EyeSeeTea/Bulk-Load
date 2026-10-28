@@ -46,7 +46,7 @@ export default ({ mode }): UserConfig => {
             },
         },
         server: {
-            port: parseInt(env.VITE_PORT || env.PORT || "8081"),
+            port: parseInt(env.VITE_PORT || "8081"),
             strictPort: true,
         },
         define: {

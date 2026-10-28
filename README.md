@@ -4,6 +4,7 @@ The Bulk Load application generates templates (an Excel sheet) and imports multi
 
 -   Settings are only visible for superusers (`ALL` authority) or users that belong to the settings groups.
 -   The generation box is only visible for users that belong to the configurable `Template Generation` groups (initial value: `HMIS Officers`).
+-   Imported files are stored as documents (and can be downloaded later from the history) only for users with the `ALL` or `F_DOCUMENT_PRIVATE_ADD` authority. Users without them see a warning in the import page: their data is imported as usual and the import is still recorded in the history, but without the file.
 
 ## Setup
 
