@@ -11,7 +11,12 @@ import {
     TextField,
 } from "@material-ui/core";
 import React, { ChangeEvent, useCallback, useMemo, useState } from "react";
-import { DuplicateToleranceUnit, Model, OrgUnitSelectionSetting } from "../../../domain/entities/AppSettings";
+import {
+    CategoryOptionOrgUnitFilter,
+    DuplicateToleranceUnit,
+    Model,
+    OrgUnitSelectionSetting,
+} from "../../../domain/entities/AppSettings";
 import i18n from "../../../utils/i18n";
 import Settings, { PermissionSetting } from "../../logic/settings";
 import { Select, SelectOption } from "../select/Select";
@@ -54,6 +59,13 @@ export default function SettingsFields(props: SettingsFieldsProps & CustomTempla
     const setOrgUnitSelection = useCallback(
         ({ value }: SelectOption) => {
             onChange(settings.update({ orgUnitSelection: value as OrgUnitSelectionSetting }));
+        },
+        [settings, onChange]
+    );
+
+    const setCategoryOptionOrgUnitFilter = useCallback(
+        ({ value }: SelectOption) => {
+            onChange(settings.update({ categoryOptionOrgUnitFilter: value as CategoryOptionOrgUnitFilter }));
         },
         [settings, onChange]
     );
@@ -120,6 +132,20 @@ export default function SettingsFields(props: SettingsFieldsProps & CustomTempla
             {
                 value: "both",
                 label: i18n.t("Select Organisation Units on template generation and import"),
+            },
+        ],
+        []
+    );
+
+    const categoryOptionOrgUnitFilterOptions: SelectOption[] = useMemo(
+        () => [
+            {
+                value: "assigned",
+                label: i18n.t("Only for their assigned Organisation Units"),
+            },
+            {
+                value: "assignedAndDescendants",
+                label: i18n.t("For their assigned Organisation Units and all descendants"),
             },
         ],
         []
@@ -256,6 +282,26 @@ export default function SettingsFields(props: SettingsFieldsProps & CustomTempla
                         options={orgUnitSelectionOptions}
                         value={settings.orgUnitSelection}
                     />
+                </div>
+            </FormGroup>
+
+            <h3 className={classes.title}>
+                {i18n.t("Dataset attribute options (category options): organisation unit filter mode")}
+            </h3>
+
+            <FormGroup className={classes.content} row={true}>
+                <div className={classes.fullWidth}>
+                    <Select
+                        onChange={setCategoryOptionOrgUnitFilter}
+                        options={categoryOptionOrgUnitFilterOptions}
+                        value={settings.categoryOptionOrgUnitFilter}
+                    />
+
+                    <p className={classes.categoryOptionFilterDescription}>
+                        {i18n.t(
+                            "Controls whether a category option assigned to a parent organisation unit is also treated as available for its descendant organisation units when generating a template."
+                        )}
+                    </p>
                 </div>
             </FormGroup>
 
@@ -451,4 +497,5 @@ const useStyles = makeStyles({
     eventDateTime: { marginBottom: 15, alignItems: "center" },
     duplicateTolerance: { margin: 0, marginRight: 15, width: 35 },
     duplicateToleranceLabel: { margin: 0, marginRight: 15, alignSelf: "center" },
+    categoryOptionFilterDescription: { fontSize: 13, color: "rgba(0, 0, 0, 0.6)", margin: 0, marginTop: 6 },
 });
