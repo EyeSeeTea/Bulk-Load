@@ -107,6 +107,7 @@
         "http-proxy-middleware": "^2.0.7",
         "husky": "7.0.4",
         "jsdom": "^21.1.2",
+        "msw": "^2",
         "node-stdlib-browser": "^1.2.0",
         "prettier": "2.5.1",
         "ts-node": "10.4.0",

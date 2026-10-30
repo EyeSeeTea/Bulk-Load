@@ -58,6 +58,7 @@ import { ModulesRepositories } from "./domain/repositories/ModulesRepositories";
 import { ImportSourceNodeRepository } from "./data/ImportSourceNodeRepository";
 import { DataElementDisaggregationsMappingD2Repository } from "./data/DataElementDisaggregationsMappingD2Repository";
 import { GetDataElementDisaggregationsMappingUseCase } from "./domain/usecases/GetDataElementDisaggregationsMappingUseCase";
+import { TemplateMetadataD2Repository } from "./data/TemplateMetadataD2Repository";
 import { OrgUnitD2Repository } from "./data/OrgUnitD2Repository";
 import { OrgUnitRepository } from "./domain/repositories/OrgUnitRepository";
 import { GetOrgUnitsByIdsUseCase } from "./domain/usecases/GetOrgUnitsByIdsUseCase";
@@ -93,6 +94,7 @@ export function getCompositionRoot({ appConfig, dhisInstance, mockApi, importSou
     const orgUnitRepository: OrgUnitRepository = new OrgUnitD2Repository(dhisInstance, mockApi);
 
     const dataElementDisaggregationsMappingRepository = new DataElementDisaggregationsMappingD2Repository(api);
+    const templateMetadataRepository = new TemplateMetadataD2Repository(api);
 
     return {
         orgUnits: getExecute({
@@ -120,7 +122,8 @@ export function getCompositionRoot({ appConfig, dhisInstance, mockApi, importSou
                 excelReader,
                 modulesRepository,
                 usersRepository,
-                dataElementDisaggregationsMappingRepository
+                dataElementDisaggregationsMappingRepository,
+                templateMetadataRepository
             ),
             import: new ImportTemplateUseCase(
                 instance,
@@ -132,7 +135,7 @@ export function getCompositionRoot({ appConfig, dhisInstance, mockApi, importSou
                 documentRepository,
                 dataElementDisaggregationsMappingRepository
             ),
-            regenerateMetadata: new RegenerateTemplateMetadataUseCase(),
+            regenerateMetadata: new RegenerateTemplateMetadataUseCase(templateMetadataRepository, instance),
             resolveFromFile: new ResolveTemplateFromFileUseCase(instance, templateManager, excelReader),
             list: new ListDataFormsUseCase(instance),
             getDataFormsForGeneration: new GetDataFormsForGenerationUseCase(instance),
