@@ -1,7 +1,9 @@
+import { vi } from "vitest";
 import { DataSetPackageData } from "../../domain/entities/DataPackage";
-import { DataValueSetsPostResponse } from "../../types/d2-api";
+import { D2Api, DataValueSetsPostResponse } from "../../types/d2-api";
 import {
     buildCompletionLookup,
+    completeDataSetRegistrations,
     CompletableDataValue,
     CompleteDataSetRegistrationsGetResponse,
     registrationKey,
@@ -286,5 +288,58 @@ describe("buildCompletionLookup", () => {
 
     it("returns an empty set for empty input", () => {
         expect(buildCompletionLookup([], []).size).toBe(0);
+    });
+});
+
+describe("completeDataSetRegistrations", () => {
+    const registration = { dataSet: "ds1", period: "202401", organisationUnit: "ou1", attributeOptionCombo: undefined };
+
+    function buildApi(post: ReturnType<typeof vi.fn>): D2Api {
+        const api = new D2Api({ baseUrl: "http://localhost" });
+        api.post = post;
+        return api;
+    }
+
+    it("returns no errors nor responses without registrations", async () => {
+        const post = vi.fn();
+
+        const result = await completeDataSetRegistrations(buildApi(post), [], 1000);
+
+        expect(result).toEqual({ errors: [], rawResponses: [] });
+        expect(post).not.toHaveBeenCalled();
+    });
+
+    it("returns no errors nor responses when all requests succeed", async () => {
+        const post = vi.fn().mockReturnValue({ getData: () => Promise.resolve({ status: "SUCCESS" }) });
+
+        const result = await completeDataSetRegistrations(buildApi(post), [registration], 1000);
+
+        expect(result).toEqual({ errors: [], rawResponses: [] });
+    });
+
+    it("returns the error and the raw API response of each failed chunk", async () => {
+        const responseData = { status: "ERROR", message: "Not allowed" };
+        const post = vi
+            .fn()
+            .mockReturnValueOnce({ getData: () => Promise.resolve({ status: "SUCCESS" }) })
+            .mockReturnValueOnce({ getData: () => Promise.reject({ response: { data: responseData } }) });
+
+        const registrations = [registration, { ...registration, organisationUnit: "ou2" }];
+
+        const result = await completeDataSetRegistrations(buildApi(post), registrations, 1);
+
+        expect(post).toHaveBeenCalledTimes(2);
+        expect(result.rawResponses).toEqual([responseData]);
+        expect(result.errors).toHaveLength(1);
+        expect(result.errors[0]).toMatchObject({ id: "completeDataSetRegistrations" });
+    });
+
+    it("returns the error without raw response when the failure has no response body", async () => {
+        const post = vi.fn().mockReturnValue({ getData: () => Promise.reject(new Error("Network down")) });
+
+        const result = await completeDataSetRegistrations(buildApi(post), [registration], 1000);
+
+        expect(result.errors).toHaveLength(1);
+        expect(result.rawResponses).toEqual([]);
     });
 });
