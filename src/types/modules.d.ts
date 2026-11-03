@@ -47,6 +47,3 @@ declare module "json-stringify-deterministic" {
 }
 
 declare module "*.png";
-
-/** Subpath sin tipos en @testing-library/jest-dom 5.x (Vitest + expect.extend). */
-declare module "@testing-library/jest-dom/matchers";

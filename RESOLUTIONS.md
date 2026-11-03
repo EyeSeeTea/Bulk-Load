@@ -63,8 +63,7 @@ Add, update or remove a resolution and its entry here in the same change.
 -   **Versioned-parent paths also go stale silently** when the parent patch-bumps. There is no entry
     of that shape in this file; if you add one, mark it as a decay risk.
 -   **Prefer re-resolution to a new constraint.** Most transitive findings are a stale lockfile rather
-    than a missing fix: the declared range already admits the patched release and `yarn up -R
-    <package>` reaches it with no manifest change at all.
+    than a missing fix: the declared range already admits the patched release and `yarn up -R <package>` reaches it with no manifest change at all.
 -   **Removing a constraint is not the same as upgrading it away.** For a package no direct dependency
     requests, deleting the entry hands version selection back to the parents, and a parent may be the
     reason the old version was there. Some packages resolve _downwards_ when their entry is removed.
@@ -138,6 +137,23 @@ Add, update or remove a resolution and its entry here in the same change.
 -   **Drop when:** `@eyeseetea/d2-ui-components` drops `react-linkify` or moves to a release requesting
     a patched `linkify-it`.
 
+### `vitest@npm:3.2.7/tinypool: ^2.1.2`
+
+-   **Why:** `vitest@3.2.7` requests `tinypool@^1.1.1`, and the 1.x line has no fix. Moving to vitest 4
+    removes `tinypool` from the tree, but its type declarations use instantiation expressions
+    (TypeScript >= 4.7) and this repository is on TypeScript 4.5.4. Raising TypeScript to 4.9.5 was
+    tried and makes `tsc` fail on `src/domain/entities/Template.ts` (`in` operator on
+    `NonNullable<T>`), so it is a toolchain migration with its own testing, not part of this change.
+-   **Fixes:** GHSA-5gmw-xhrv-c9v3 (`<= 2.1.0`) and GHSA-85c8-ppgw-ccpr (`< 2.1.2`), both critical.
+    Resolves to 2.2.0.
+-   **Binding:** the path uses the **resolved locator** `vitest@npm:3.2.7`. The descriptor form
+    `vitest@npm:^3.2.7/tinypool` was tried first and matched nothing; yarn gave no warning. Confirm
+    with `yarn why tinypool -R`.
+-   **Compatibility was checked, not assumed.** It forces a major that vitest 3 has not tested. The
+    full suite (26 files, 239 tests) passes with it, which exercises the worker pool.
+-   **Drop when:** vitest is migrated to 4.x (needs TypeScript >= 4.7 first). The resolution becomes
+    inert as soon as vitest moves off 3.2.7, so remove it in the same change.
+
 ---
 
 ## Inherited constraints with no recorded rationale
@@ -156,16 +172,16 @@ at a time.
 A `^` range keeps every consumer on the same major the exact version already forced it onto — it only
 allows newer releases within that line.
 
-| Resolution                 | Now resolves to | Note                                                                                                                                                                                                     |
-| -------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@babel/runtime: ^7.26.10` | 7.29.7          | Was exact `7.26.10`; no recorded reason                                                                                                                                                                  |
-| `i18next: 19.8.5`          | 19.8.5          | ⚠️ **Deliberately still exact.** Far below the current release line, and a resolution on this package can break application startup, so it is changed only deliberately and verified by starting the app |
-| `moment: ^2.29.4`          | 2.30.1          | Was exact; the direct dependency was reopened to the same range, which previously contradicted it                                                                                                        |
+| Resolution                 | Now resolves to | Note                                                                                                                                                                                                                                                                                             |
+| -------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `@babel/runtime: ^7.26.10` | 7.29.7          | Was exact `7.26.10`; no recorded reason                                                                                                                                                                                                                                                          |
+| `i18next: 19.8.5`          | 19.8.5          | ⚠️ **Deliberately still exact.** Far below the current release line, and a resolution on this package can break application startup, so it is changed only deliberately and verified by starting the app                                                                                         |
+| `moment: ^2.29.4`          | 2.30.1          | Was exact; the direct dependency was reopened to the same range, which previously contradicted it                                                                                                                                                                                                |
 | `nanoid: ^3.3.8`           | 3.3.18          | Was exact `3.3.8`, which held `postcss` below the `^3.3.16` it declares. ✅ **The range has since paid for itself.** GHSA-2v37-7h3g-55p8 (high) landed on 2026-08-07 affecting `< 3.3.18`; `yarn up -R nanoid` reached the patch with no manifest change, which an exact pin could not have done |
-| `node-fetch: ^2.6.7`       | 2.7.0           | Was exact `2.6.7`, below the `^2.7.0` one consumer declares. Load-bearing: the tree also has a consumer on `^1.0.1`, and this floor is what lifts it onto a patched line                                 |
-| `diff: ^5.2.2`             | 5.2.2           | Was exact; already the newest 5.x                                                                                                                                                                        |
-| `debug: ^4.4.3`            | 4.4.3           | ⚠️ **The floor value matters here.** GHSA-4x49-vf9v-38px reports `debug@4.4.2` as carrying malware after an npm account takeover, so `^4.4.3` is the meaningful lower bound. The previous `^4.3.4` resolved to 4.4.3 in practice but would have admitted 4.4.2 |
-| `ua-parser-js: ^0.7.24`    | 0.7.41          | Was exact; `^0.7.x` stays inside the 0.7 line                                                                                                                                                            |
+| `node-fetch: ^2.6.7`       | 2.7.0           | Was exact `2.6.7`, below the `^2.7.0` one consumer declares. Load-bearing: the tree also has a consumer on `^1.0.1`, and this floor is what lifts it onto a patched line                                                                                                                         |
+| `diff: ^5.2.2`             | 5.2.2           | Was exact; already the newest 5.x                                                                                                                                                                                                                                                                |
+| `debug: ^4.4.3`            | 4.4.3           | ⚠️ **The floor value matters here.** GHSA-4x49-vf9v-38px reports `debug@4.4.2` as carrying malware after an npm account takeover, so `^4.4.3` is the meaningful lower bound. The previous `^4.3.4` resolved to 4.4.3 in practice but would have admitted 4.4.2                                   |
+| `ua-parser-js: ^0.7.24`    | 0.7.41          | Was exact; `^0.7.x` stays inside the 0.7 line                                                                                                                                                                                                                                                    |
 
 **Drop when:** for each, confirm no consumer requires the constrained line, then remove it and
 re-install, comparing **resolved versions** rather than lockfile bytes. Treat each individually — they
@@ -187,11 +203,11 @@ see [Removed](#removed).
 The entry's own note said the tree had consumers declaring `^3.1.0` and `^6.0.1` that it pulled onto
 the 5.x line. Removing it lets all three coexist:
 
-| Version | Reached by | In an advisory range? |
-| ------- | ---------- | --------------------- |
-| 3.1.0 | `glob-stream@6.1.0`, declaring `^3.1.0` | no |
-| 5.1.2 | eslint, chokidar, fast-glob | no |
-| 6.0.2 | the `^6.0.1` consumer | no |
+| Version | Reached by                              | In an advisory range? |
+| ------- | --------------------------------------- | --------------------- |
+| 3.1.0   | `glob-stream@6.1.0`, declaring `^3.1.0` | no                    |
+| 5.1.2   | eslint, chokidar, fast-glob             | no                    |
+| 6.0.2   | the `^6.0.1` consumer                   | no                    |
 
 **The advisory decides it.** `GHSA-ww39-953v-wcq6` affects `>= 4.0.0, < 5.1.2`, so 3.1.0 sits below
 its lower bound and was never in range; `GHSA-cj88-88mr-972w` affects `= 6.0.0` only, and 6.0.2 is
@@ -268,6 +284,26 @@ type-check, the unit suite, `yarn localize` and a production build.
 
 ---
 
+## Resolved by upgrading the parent
+
+Entries here are not resolutions: they record why a finding was removed by moving a direct
+dependency, so nobody reaches for a pin that would break something.
+
+### `@testing-library/jest-dom` 5.16.1 → 6.9.1 — `decode-uri-component` (affected range `<= 0.5.0`)
+
+`jest-dom@5.16.1` → `css@3.0.0` → `source-map-resolve@0.6.0` → `decode-uri-component@^0.2.0`. The only
+fixed release, 0.5.1, is **ESM-only** (`"type": "module"`), and `source-map-resolve` loads it with
+`require`, which returns `{ default }` instead of a function. A resolution would install cleanly and
+break at call time, so it was not used. `jest-dom@6` does not depend on `css`; the whole chain
+(`css`, `source-map-resolve`, `decode-uri-component`) leaves the tree.
+
+The 6.x line was kept at 6.9.1 because 6.10 and 7 require Node >= 22. The v6 API change is
+`@testing-library/jest-dom/matchers` having no default export: `src/tests/setup.js` now imports
+`@testing-library/jest-dom/vitest`, and the hand-written `declare module` for the old subpath was
+removed because v6 ships its own types.
+
+---
+
 ## Findings with no remediation available
 
 Recorded so they are not investigated again from scratch. None of these is a resolution; they are
@@ -310,6 +346,34 @@ different databases pick up withdrawals at different times. It does not describe
 should be dismissed rather than remediated — do not upgrade `eslint` on account of it.
 
 -   **Advisories against this component:** **none** live against `eslint@8.57.1`. The one above is withdrawn, and one other exists against the package, patched below this version.
+
+### Findings that wait for the vitest 4 migration — `vitest` and `@vitest/mocker` (moderate)
+
+Patched in vitest `4.1.11` / `4.1.12`; the 3.x line has no fix. Same blocker as the `tinypool`
+resolution above (TypeScript >= 4.7). **Revisit when:** that migration is scheduled — one change
+retires the `tinypool` resolution and these findings together.
+
+### Findings held back by `npmMinimalAgeGate: 7d` — `glob@13.0.6` and `minimatch@10.2.6` (moderate)
+
+Reached through `node-gyp` → `make-fetch-happen` → `cacache@20.0.4`, which requests `glob@^13.0.0`.
+Fixes exist (`glob` 14.0.2 from 2026-10-27, `minimatch` 11.0.1 or later) but were published inside
+the age gate when this was checked on 2026-11-02, and `cacache` requests the 13.x line. This is
+scheduled work, not an exception — **the gate was not lowered.** **Revisit when:** a `cacache`
+release requests `glob@^14`, then re-run `yarn up -R glob minimatch`.
+
+### Finding with no fixed release — `deepmerge@4.3.1` (low)
+
+The advisory affects `>= 4.2.0, <= 4.3.1` and 4.3.1 is the latest release. **Revisit when:** a newer
+release is published. (`elliptic` is recorded above.)
+
+### Deprecation notices reported as moderate
+
+`abab`, `babel-eslint`, `clone-buffer`, `core-js@1`, `domexception`, `glob@7`, `inflight`,
+`lodash.get`, `path-dirname`, `rimraf@3`, `whatwg-encoding`, the `@babel/plugin-proposal-*` packages,
+`acorn-*` plugins, `@humanwhocodes/*`, `@material-ui/*` and `material-ui@0.20` are flagged because
+the packages are deprecated, not because of a published vulnerability. They are reached through
+`@dhis2/d2-i18n-*`, `eslint-config-react-app` and the legacy UI libraries, and are removed only by
+replacing those parents (see below).
 
 ---
 

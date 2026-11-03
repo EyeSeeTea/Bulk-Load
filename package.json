@@ -73,7 +73,7 @@
         "@babel/preset-typescript": "^7.26.0",
         "@dhis2/d2-i18n-extract": "1.0.8",
         "@dhis2/d2-i18n-generate": "1.2.0",
-        "@testing-library/jest-dom": "5.16.1",
+        "@testing-library/jest-dom": "6.9.1",
         "@testing-library/react": "12.1.2",
         "@types/file-saver": "2.0.5",
         "@types/jest": "27.4.0",
@@ -130,7 +130,8 @@
         "qs": "^6.15.3",
         "diff": "^5.2.2",
         "debug": "^4.4.3",
-        "ua-parser-js": "^0.7.24"
+        "ua-parser-js": "^0.7.24",
+        "vitest@npm:3.2.7/tinypool": "^2.1.2"
     },
     "manifest.webapp": {
         "name": "Bulk Load",
