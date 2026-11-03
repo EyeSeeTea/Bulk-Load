@@ -1411,7 +1411,7 @@ function getCategoryComboIdByDataElementId(dataSet: any, metadata: any) {
         .value();
 }
 
-function getDataElementsForSectionDataSet(dataSet: any, metadata: any, cocsByCatComboId: any) {
+export function getDataElementsForSectionDataSet(dataSet: any, metadata: any, cocsByCatComboId: any) {
     const categoryComboIdByDataElementId = getCategoryComboIdByDataElementId(dataSet, metadata);
 
     const dataElementsInSections = _(dataSet.sections)
@@ -1429,14 +1429,10 @@ function getDataElementsForSectionDataSet(dataSet: any, metadata: any, cocsByCat
     return _(allDataElements)
         .map(dataElement => metadata.get(dataElement.id))
         .compact()
-        .groupBy(dataElement => categoryComboIdByDataElementId[dataElement.id])
-        .toPairs()
-        .flatMap(([categoryComboId, dataElements]) => {
-            return dataElements.map(dataElement => ({
-                dataElement,
-                categoryOptionCombos: cocsByCatComboId[categoryComboId] || [],
-            }));
-        })
+        .map(dataElement => ({
+            dataElement,
+            categoryOptionCombos: cocsByCatComboId[categoryComboIdByDataElementId[dataElement.id]] || [],
+        }))
         .value();
 }
 
