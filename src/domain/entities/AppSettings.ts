@@ -9,6 +9,20 @@ export type Model = GetArrayInnerType<typeof models>;
 export type Models = Record<Model, boolean>;
 
 export type OrgUnitSelectionSetting = "generation" | "import" | "both";
+
+/* How a category option assigned to org units is matched against the selected org units:
+    - "assigned": the selected org unit must itself be assigned to the category option.
+    - "assignedAndDescendants": a category option assigned to an ancestor of the selected
+      org unit is also included.
+*/
+export const categoryOptionOrgUnitFilters = ["assigned", "assignedAndDescendants"] as const;
+
+export type CategoryOptionOrgUnitFilter = typeof categoryOptionOrgUnitFilters[number];
+
+export function isCategoryOptionOrgUnitFilter(value: string): value is CategoryOptionOrgUnitFilter {
+    return (categoryOptionOrgUnitFilters as readonly string[]).includes(value);
+}
+
 export type DuplicateToleranceUnit = "day" | "week" | "month" | "year";
 export type DuplicateExclusion = Record<Id, Id[]>;
 
@@ -32,6 +46,7 @@ export interface AppSettings {
     allPermissionsForImport: boolean;
     allPermissionsForHistory: boolean;
     orgUnitSelection: OrgUnitSelectionSetting;
+    categoryOptionOrgUnitFilter: CategoryOptionOrgUnitFilter;
     duplicateEnabled: boolean;
     duplicateExclusion: DuplicateExclusion;
     duplicateTolerance: number;

@@ -2,6 +2,7 @@ import _ from "lodash";
 import { CompositionRoot } from "../../CompositionRoot";
 import {
     AppSettings,
+    CategoryOptionOrgUnitFilter,
     DataSetDataElementsFilter,
     DuplicateExclusion,
     DuplicateToleranceUnit,
@@ -34,6 +35,7 @@ const publicFields = [
     "models",
     "permissions",
     "orgUnitSelection",
+    "categoryOptionOrgUnitFilter",
     "duplicateEnabled",
     "duplicateExclusion",
     "duplicateTolerance",
@@ -75,6 +77,7 @@ export default class Settings {
     public templatePermissions: Record<Id, PermissionValue>;
     public models: Models;
     public orgUnitSelection: OrgUnitSelectionSetting;
+    public categoryOptionOrgUnitFilter: CategoryOptionOrgUnitFilter;
     public duplicateEnabled: boolean;
     public duplicateExclusion: DuplicateExclusion;
     public duplicateTolerance: number;
@@ -95,6 +98,7 @@ export default class Settings {
         this.templatePermissions = options.templatePermissions;
         this.models = options.models;
         this.orgUnitSelection = options.orgUnitSelection;
+        this.categoryOptionOrgUnitFilter = options.categoryOptionOrgUnitFilter;
         this.duplicateEnabled = options.duplicateEnabled;
         this.duplicateExclusion = options.duplicateExclusion;
         this.duplicateTolerance = options.duplicateTolerance;
@@ -200,6 +204,8 @@ export default class Settings {
             permissions,
             models: data.models ?? defaultSettings.models,
             orgUnitSelection: data.orgUnitSelection ?? defaultSettings.orgUnitSelection,
+            categoryOptionOrgUnitFilter:
+                data.categoryOptionOrgUnitFilter ?? defaultSettings.categoryOptionOrgUnitFilter,
             duplicateEnabled: data.duplicateEnabled ?? true,
             duplicateExclusion: data.duplicateExclusion ?? defaultSettings.duplicateExclusion,
             duplicateTolerance: data.duplicateTolerance ?? defaultSettings.duplicateTolerance,
@@ -226,6 +232,7 @@ export default class Settings {
             models,
             permissions,
             orgUnitSelection,
+            categoryOptionOrgUnitFilter,
             duplicateEnabled,
             duplicateExclusion,
             duplicateTolerance,
@@ -276,6 +283,7 @@ export default class Settings {
             allPermissionsForImport: permissions.import.type === "all",
             allPermissionsForHistory: permissions.history.type === "all",
             orgUnitSelection,
+            categoryOptionOrgUnitFilter,
             duplicateEnabled,
             duplicateExclusion,
             duplicateTolerance,

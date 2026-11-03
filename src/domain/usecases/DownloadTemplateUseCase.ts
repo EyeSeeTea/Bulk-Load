@@ -9,6 +9,7 @@ import { getExtensionFile, XLSX_EXTENSION } from "../../utils/files";
 import { promiseMap } from "../../utils/promises";
 import Settings from "../../webapp/logic/settings";
 import { getGeneratedTemplateId, SheetBuilder } from "../../webapp/logic/sheetBuilder";
+import { CategoryOptionOrgUnitFilter } from "../entities/AppSettings";
 import { DataForm, DataFormType, dataFormTypeMap } from "../entities/DataForm";
 import { Id, Ref } from "../entities/ReferenceObject";
 import {
@@ -19,6 +20,7 @@ import {
     TemplateType,
 } from "../entities/Template";
 import { ExcelBuilder } from "../helpers/ExcelBuilder";
+import { OrgUnitRepository } from "../repositories/OrgUnitRepository";
 import { ExcelRepository } from "../repositories/ExcelRepository";
 import { InstanceRepository } from "../repositories/InstanceRepository";
 import { ModulesRepositories } from "../repositories/ModulesRepositories";
@@ -64,7 +66,8 @@ export class DownloadTemplateUseCase implements UseCase {
         private excelRepository: ExcelRepository,
         private modulesRepositories: ModulesRepositories,
         private usersRepository: UsersRepository,
-        private dataElementDisaggregationsMappingRepository: DataElementDisaggregationsMappingRepository
+        private dataElementDisaggregationsMappingRepository: DataElementDisaggregationsMappingRepository,
+        private orgUnitRepository: OrgUnitRepository
     ) {}
 
     public async execute(api: D2Api, options: DownloadTemplateProps): Promise<void> {
@@ -107,9 +110,12 @@ export class DownloadTemplateUseCase implements UseCase {
                 ? getCaptureOrgUnitIdsForDataForm(element.organisationUnits, currentUser.orgUnits)
                 : orgUnits;
 
+        const orgUnitRepository = this.orgUnitRepository;
+
         async function getGenerateFile(maxTeiRows?: number) {
             const result = await getElementMetadata({
                 api,
+                orgUnitRepository,
                 element,
                 downloadRelationships,
                 orgUnitIds,
@@ -119,6 +125,7 @@ export class DownloadTemplateUseCase implements UseCase {
                 populateEndDate: populateEndDate?.toDate(),
                 relationshipsOuFilter,
                 orgUnitShortName: useShortNameInOrgUnit,
+                categoryOptionOrgUnitFilter: settings.categoryOptionOrgUnitFilter,
             });
 
             // FIXME: Legacy code, sheet generator
@@ -323,6 +330,7 @@ export async function getElement(api: D2Api, type: DataFormType, id: string) {
 export async function getElementMetadata({
     element,
     api,
+    orgUnitRepository,
     orgUnitIds,
     startDate,
     endDate,
@@ -331,9 +339,11 @@ export async function getElementMetadata({
     downloadRelationships,
     relationshipsOuFilter,
     orgUnitShortName,
+    categoryOptionOrgUnitFilter,
 }: {
     element: any;
     api: D2Api;
+    orgUnitRepository: OrgUnitRepository;
     orgUnitIds: string[];
     startDate: Date | undefined;
     endDate: Date | undefined;
@@ -342,12 +352,22 @@ export async function getElementMetadata({
     downloadRelationships: boolean;
     relationshipsOuFilter?: RelationshipOrgUnitFilter;
     orgUnitShortName: boolean;
+    categoryOptionOrgUnitFilter: CategoryOptionOrgUnitFilter;
 }) {
     const elementMetadataMap = new Map();
     const endpoint = element.type === dataFormTypeMap.dataSets ? "dataSets" : "programs";
     const elementMetadata = await api.get<ElementMetadata>(`/${endpoint}/${element.id}/metadata.json`).getData();
 
-    const rawMetadata = await filterRawMetadata({ api, element, elementMetadata, orgUnitIds, startDate, endDate });
+    const rawMetadata = await filterRawMetadata({
+        api,
+        orgUnitRepository,
+        element,
+        elementMetadata,
+        orgUnitIds,
+        startDate,
+        endDate,
+        categoryOptionOrgUnitFilter,
+    });
 
     _.forOwn(rawMetadata, (value, type) => {
         if (Array.isArray(value)) {
@@ -402,7 +422,7 @@ interface CategoryOptionCombo {
     categoryOptions: Ref[];
 }
 
-interface Element {
+export interface Element {
     type: "dataSets" | "programs";
     organisationUnits: Ref[];
 }
@@ -414,22 +434,32 @@ interface Element {
     conditions:
 
      - categoryOption.startDate/endDate outside the startDate -> endDate interval
-     - categoryOption.orgUnit EMPTY or assigned to the dataSet orgUnits (intersected with the requested).
+     - categoryOption.orgUnit EMPTY or assigned to a selected data set org unit. Depending on the
+       categoryOptionOrgUnitFilter setting, an assignment to an ancestor of the selected org unit
+       may also be accepted.
 */
 
 async function filterRawMetadata(options: {
     api: D2Api;
+    orgUnitRepository: OrgUnitRepository;
     element: Element;
     elementMetadata: ElementMetadata;
     orgUnitIds: Id[];
     startDate: Date | undefined;
     endDate: Date | undefined;
+    categoryOptionOrgUnitFilter: CategoryOptionOrgUnitFilter;
 }): Promise<ElementMetadata & unknown> {
-    const { api, element, elementMetadata, orgUnitIds } = options;
+    const { api, orgUnitRepository, element, elementMetadata, orgUnitIds, categoryOptionOrgUnitFilter } = options;
 
     if (element.type === "dataSets") {
         const categoryOptions = await getCategoryOptions(api);
-        const categoryOptionIdsToInclude = getCategoryOptionIdsToInclude(element, orgUnitIds, categoryOptions, options);
+        const selectedOrgUnits = await getSelectedOrgUnits(
+            orgUnitRepository,
+            element,
+            orgUnitIds,
+            categoryOptionOrgUnitFilter
+        );
+        const categoryOptionIdsToInclude = getCategoryOptionIdsToInclude(selectedOrgUnits, categoryOptions, options);
 
         const categoryOptionCombosFiltered = elementMetadata.categoryOptionCombos.filter(coc =>
             _(coc.categoryOptions).every(categoryOption => {
@@ -443,44 +473,83 @@ async function filterRawMetadata(options: {
     }
 }
 
-interface CategoryOption {
+export interface CategoryOption {
     id: Id;
     startDate?: string;
     endDate?: String;
     organisationUnits: Ref[];
 }
 
-function getCategoryOptionIdsToInclude(
+export type OrgUnitPathRef = {
+    id: Id;
+    path?: string;
+};
+
+async function getSelectedOrgUnits(
+    orgUnitRepository: OrgUnitRepository,
     element: Element,
-    orgUnitIds: string[],
+    orgUnitIds: Id[],
+    categoryOptionOrgUnitFilter: CategoryOptionOrgUnitFilter
+): Promise<OrgUnitPathRef[]> {
+    const selectedOrgUnitIds = getSelectedOrgUnitIds(element, orgUnitIds);
+
+    if (_.isEmpty(selectedOrgUnitIds)) return [];
+
+    // Only the "assignedAndDescendants" filter looks at ancestors, so skip requesting paths otherwise.
+    if (categoryOptionOrgUnitFilter === "assigned") return selectedOrgUnitIds.map(id => ({ id }));
+
+    const orgUnits = await orgUnitRepository.getByIds(selectedOrgUnitIds);
+    return orgUnits.map(({ id, path }) => ({ id, path }));
+}
+
+/* Selected org units limited to the data set org units (all of them if none selected) */
+export function getSelectedOrgUnitIds(element: Element, orgUnitIds: Id[]): Id[] {
+    const dataSetOrgUnitIds = element.organisationUnits.map(orgUnit => orgUnit.id);
+    return _.isEmpty(orgUnitIds) ? dataSetOrgUnitIds : _.intersection(orgUnitIds, dataSetOrgUnitIds);
+}
+
+export function getCategoryOptionIdsToInclude(
+    selectedOrgUnits: OrgUnitPathRef[],
     categoryOptions: CategoryOption[],
     options: { startDate: Date | undefined; endDate: Date | undefined }
 ) {
-    const dataSetOrgUnitIds = element.organisationUnits.map(ou => ou.id);
-
-    const orgUnitIdsToInclude = new Set(
-        _.isEmpty(orgUnitIds) ? dataSetOrgUnitIds : _.intersection(orgUnitIds, dataSetOrgUnitIds)
-    );
-
     const startDate = options.startDate?.toISOString();
     const endDate = options.endDate?.toISOString();
 
-    const categoryOptionIdsToInclude = new Set(
+    return new Set(
         categoryOptions
             .filter(categoryOption => {
                 const noStartDateIntersect = startDate && categoryOption.endDate && startDate > categoryOption.endDate;
                 const noEndDateIntersect = endDate && categoryOption.startDate && endDate < categoryOption.startDate;
                 const dateCondition = !noStartDateIntersect && !noEndDateIntersect;
 
-                const categoryOptionOrgUnitCondition =
-                    _.isEmpty(categoryOption.organisationUnits) ||
-                    _(categoryOption.organisationUnits).some(orgUnit => orgUnitIdsToInclude.has(orgUnit.id));
+                const categoryOptionOrgUnitCondition = isCategoryOptionAssignedToSelectedOrgUnit(
+                    categoryOption,
+                    selectedOrgUnits
+                );
 
                 return dateCondition && categoryOptionOrgUnitCondition;
             })
             .map(categoryOption => categoryOption.id)
     );
-    return categoryOptionIdsToInclude;
+}
+
+function isCategoryOptionAssignedToSelectedOrgUnit(
+    categoryOption: CategoryOption,
+    selectedOrgUnits: OrgUnitPathRef[]
+): boolean {
+    // No restriction means available everywhere.
+    if (_.isEmpty(categoryOption.organisationUnits)) return true;
+
+    const assignedOrgUnitIds = new Set(categoryOption.organisationUnits.map(orgUnit => orgUnit.id));
+
+    return selectedOrgUnits.some(selectedOrgUnit => {
+        // Paths contain the selected OU and all of its ancestors. Without a path,
+        // fall back to checking the selected OU ID directly.
+        const pathOrgUnitIds = selectedOrgUnit.path?.split("/").filter(Boolean) ?? [selectedOrgUnit.id];
+
+        return pathOrgUnitIds.some(orgUnitId => assignedOrgUnitIds.has(orgUnitId));
+    });
 }
 
 async function getCategoryOptions(api: D2Api): Promise<CategoryOption[]> {
