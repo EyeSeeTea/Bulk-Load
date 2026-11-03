@@ -5,11 +5,8 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-"POT-Creation-Date: 2026-11-03T10:21:44.076Z\n"
-"PO-Revision-Date: 2026-11-03T10:21:44.077Z\n"
-
-msgid "Failed to register data set(s) as completed"
-msgstr ""
+"POT-Creation-Date: 2026-11-03T21:05:38.460Z\n"
+"PO-Revision-Date: 2026-11-03T21:05:38.496Z\n"
 
 msgid "Events - Create/update"
 msgstr ""
@@ -45,6 +42,9 @@ msgid "No data values to import"
 msgstr ""
 
 msgid "Failed to import data values"
+msgstr ""
+
+msgid "Failed to register data set(s) as completed"
 msgstr ""
 
 msgid ""
