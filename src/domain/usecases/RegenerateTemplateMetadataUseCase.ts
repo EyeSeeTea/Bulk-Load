@@ -6,6 +6,7 @@ import { D2Api } from "../../types/d2-api";
 import Settings from "../../webapp/logic/settings";
 import { SheetBuilder } from "../../webapp/logic/sheetBuilder";
 import { DataFormType } from "../entities/DataForm";
+import { OrgUnitRepository } from "../repositories/OrgUnitRepository";
 import { GeneratedTemplate } from "../entities/Template";
 import { getElement, getElementMetadata } from "./DownloadTemplateUseCase";
 
@@ -23,6 +24,8 @@ export type RegenerateTemplateMetadataOptions = {
 
 /** Regenerates only the Metadata sheet of a template, leaving all other sheets untouched. */
 export class RegenerateTemplateMetadataUseCase implements UseCase {
+    constructor(private orgUnitRepository: OrgUnitRepository) {}
+
     public async execute(api: D2Api, options: RegenerateTemplateMetadataOptions): Promise<string> {
         const {
             type,
@@ -40,12 +43,14 @@ export class RegenerateTemplateMetadataUseCase implements UseCase {
 
         const result = await getElementMetadata({
             api,
+            orgUnitRepository: this.orgUnitRepository,
             element,
             downloadRelationships: false,
             orgUnitIds,
             startDate: undefined,
             endDate: undefined,
             orgUnitShortName,
+            categoryOptionOrgUnitFilter: settings.categoryOptionOrgUnitFilter,
         });
 
         // Minimal template: generateMetadataOnly only needs type/id, not the form sheets.

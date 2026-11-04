@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load\n"
-"POT-Creation-Date: 2026-08-19T14:35:59.584Z\n"
+"POT-Creation-Date: 2026-11-03T21:05:38.460Z\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -583,6 +583,12 @@ msgstr "Выберите организационные единицы при и
 msgid "Select Organisation Units on template generation and import"
 msgstr "Выберите организационные единицы при создании и импорте шаблона"
 
+msgid "Only for their assigned Organisation Units"
+msgstr ""
+
+msgid "For their assigned Organisation Units and all descendants"
+msgstr ""
+
 msgid "Yes"
 msgstr "Да"
 
@@ -638,6 +644,16 @@ msgstr "Модель данных"
 
 msgid "Organisation Unit Visibility"
 msgstr "Видимость организационной единицы"
+
+msgid ""
+"Dataset attribute options (category options): organisation unit filter mode"
+msgstr ""
+
+msgid ""
+"Controls whether a category option assigned to a parent organisation unit is "
+"also treated as available for its descendant organisation units when "
+"generating a template."
+msgstr ""
 
 msgid "Columns layout"
 msgstr "Расположение колонок"

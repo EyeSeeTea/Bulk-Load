@@ -120,7 +120,8 @@ export function getCompositionRoot({ appConfig, dhisInstance, mockApi, importSou
                 excelReader,
                 modulesRepository,
                 usersRepository,
-                dataElementDisaggregationsMappingRepository
+                dataElementDisaggregationsMappingRepository,
+                orgUnitRepository
             ),
             import: new ImportTemplateUseCase(
                 instance,
@@ -132,7 +133,7 @@ export function getCompositionRoot({ appConfig, dhisInstance, mockApi, importSou
                 documentRepository,
                 dataElementDisaggregationsMappingRepository
             ),
-            regenerateMetadata: new RegenerateTemplateMetadataUseCase(),
+            regenerateMetadata: new RegenerateTemplateMetadataUseCase(orgUnitRepository),
             resolveFromFile: new ResolveTemplateFromFileUseCase(instance, templateManager, excelReader),
             list: new ListDataFormsUseCase(instance),
             getDataFormsForGeneration: new GetDataFormsForGenerationUseCase(instance),

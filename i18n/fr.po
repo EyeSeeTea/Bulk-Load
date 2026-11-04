@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Bulk Load App\n"
-"POT-Creation-Date: 2026-08-19T14:35:59.584Z\n"
+"POT-Creation-Date: 2026-11-03T21:05:38.460Z\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -559,6 +559,12 @@ msgstr ""
 "Sélectionnez les unités d'organisation lors de la génération et de "
 "l'importation de modèles"
 
+msgid "Only for their assigned Organisation Units"
+msgstr ""
+
+msgid "For their assigned Organisation Units and all descendants"
+msgstr ""
+
 msgid "Yes"
 msgstr ""
 
@@ -615,6 +621,16 @@ msgstr "Modèle de données"
 
 msgid "Organisation Unit Visibility"
 msgstr "Visibilité de l'unité d'organisation"
+
+msgid ""
+"Dataset attribute options (category options): organisation unit filter mode"
+msgstr ""
+
+msgid ""
+"Controls whether a category option assigned to a parent organisation unit is "
+"also treated as available for its descendant organisation units when "
+"generating a template."
+msgstr ""
 
 msgid "Columns layout"
 msgstr ""
