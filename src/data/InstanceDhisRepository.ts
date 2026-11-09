@@ -31,7 +31,6 @@ import { OrgUnit } from "../domain/entities/OrgUnit";
 import { NamedRef, Ref } from "../domain/entities/ReferenceObject";
 import {
     computeOverallSyncStatus,
-    ErrorMessage,
     SynchronizationResult,
     SynchronizationStats,
     SynchronizationStatus,
@@ -64,7 +63,6 @@ import { postEvents } from "./Dhis2Events";
 import { getProgram, getTrackedEntityInstances, updateTrackedEntityInstances } from "./Dhis2TrackedEntityInstances";
 import { Sharing } from "../domain/entities/Sharing";
 import { getMetadataDetailsFromErrors, resolveEventStatus } from "./Dhis2Import";
-import { getApiErrorMessage } from "./ApiError";
 import {
     buildCompletionLookup,
     CompletableDataValue,
@@ -75,6 +73,7 @@ import {
     resolveCompletableRegistrationKeys,
     resolveRegistrations,
     resolveRequestedRegistrationKeys,
+    completeDataSetRegistrations,
 } from "./Dhis2DataSetCompletion";
 import { chunkDataValuesByPeriod } from "./Dhis2DataValueChunks";
 import { Maybe } from "../types/utils";
@@ -508,8 +507,8 @@ export class InstanceDhisRepository implements InstanceRepository {
 
         if (dataValues.length === 0) {
             const registrations = this.resolveRegistrationsToComplete(markCompleted, importStrategy, dataPackage);
-            const completionErrors =
-                registrations.length > 0 ? await this.completeDataSetRegistrations(registrations) : [];
+            const { errors: completionErrors, rawResponses: completionRawResponses } =
+                await completeDataSetRegistrations(this.api, registrations, bulkOperationChunkSize);
 
             return {
                 title,
@@ -517,7 +516,7 @@ export class InstanceDhisRepository implements InstanceRepository {
                 message: i18n.t("No data values to import"),
                 stats: [{ imported: 0, deleted: 0, updated: 0, ignored: 0 }],
                 errors: completionErrors,
-                rawResponse: {},
+                rawResponse: completionRawResponses,
             };
         }
 
@@ -562,11 +561,9 @@ export class InstanceDhisRepository implements InstanceRepository {
             }
         );
 
-        const [errorDetails, completionErrors] = await Promise.all([
+        const [errorDetails, { errors: completionErrors, rawResponses: completionRawResponses }] = await Promise.all([
             getMetadataDetailsFromErrors(this.api, errors, rowLookup),
-            registrationsToComplete.length > 0
-                ? this.completeDataSetRegistrations(registrationsToComplete)
-                : Promise.resolve([]),
+            completeDataSetRegistrations(this.api, registrationsToComplete, bulkOperationChunkSize),
         ]);
 
         const status = computeOverallSyncStatus([
@@ -580,7 +577,7 @@ export class InstanceDhisRepository implements InstanceRepository {
             message: mergedDescription,
             stats: [mergedImportCount, ...nullChunkStats],
             errors: [...errorDetails, ...completionErrors],
-            rawResponse: summaries,
+            rawResponse: [...summaries, ...completionRawResponses],
         };
     }
 
@@ -602,30 +599,6 @@ export class InstanceDhisRepository implements InstanceRepository {
         const keys = completableKeys ? _.intersection(completableKeys, requestedKeys) : requestedKeys;
 
         return resolveRegistrations(dataPackage.dataEntries, keys);
-    }
-
-    private async completeDataSetRegistrations(registrations: Registration[]): Promise<ErrorMessage[]> {
-        if (registrations.length === 0) return [];
-
-        const chunks = _.chunk(registrations, bulkOperationChunkSize);
-
-        const chunkErrors = await promiseMap(chunks, async chunk => {
-            try {
-                await this.api
-                    .post<{ status: string }>(
-                        "/completeDataSetRegistrations",
-                        {},
-                        { completeDataSetRegistrations: chunk }
-                    )
-                    .getData();
-                return undefined;
-            } catch (error: unknown) {
-                const message = getApiErrorMessage(error) ?? i18n.t("Failed to register data set(s) as completed");
-                return { id: "completeDataSetRegistrations", message, details: undefined };
-            }
-        });
-
-        return _.compact(chunkErrors);
     }
 
     private mergeChunkResults(chunks: AggregatedDataValue[][], chunkResults: Array<Maybe<DataValueSetsPostResponse>>) {

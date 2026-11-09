@@ -5,6 +5,11 @@ import { Id } from "../domain/entities/ReferenceObject";
 import { Maybe } from "../types/utils";
 import { DataValueSetsPostResponse } from "../types/d2-api";
 import { resolveAnyYesWins } from "../utils/booleans";
+import i18n from "../utils/i18n";
+import { promiseMap } from "../utils/promises";
+import { ErrorMessage } from "../domain/entities/SynchronizationResult";
+import { D2Api } from "../types/d2-api";
+import { getApiErrorMessage } from "./ApiError";
 
 export interface Registration {
     dataSet: Id;
@@ -123,4 +128,45 @@ export function resolveRegistrations(
     return _.uniq(Array.from(keys))
         .map(key => registrationsByKey.get(key))
         .filter((registration): registration is Registration => registration !== undefined);
+}
+
+type ChunkCompletionResult = { error?: ErrorMessage; rawResponse?: object };
+
+export type CompletionResult = { errors: ErrorMessage[]; rawResponses: object[] };
+
+/* Complete the registrations. Return the errors and the API responses (for the JSON Response) of failed requests. */
+export async function completeDataSetRegistrations(
+    api: D2Api,
+    registrations: Registration[],
+    chunkSize: number
+): Promise<CompletionResult> {
+    if (registrations.length === 0) return { errors: [], rawResponses: [] };
+
+    const chunkResults = await promiseMap(
+        _.chunk(registrations, chunkSize),
+        async (chunk): Promise<ChunkCompletionResult> => {
+            try {
+                await api
+                    .post<{ status: string }>(
+                        "/completeDataSetRegistrations",
+                        {},
+                        { completeDataSetRegistrations: chunk }
+                    )
+                    .getData();
+                return {};
+            } catch (error: unknown) {
+                const message = getApiErrorMessage(error) ?? i18n.t("Failed to register data set(s) as completed");
+                const rawResponse: unknown = _.get(error, "response.data");
+                return {
+                    error: { id: "completeDataSetRegistrations", message, details: undefined },
+                    rawResponse: _.isObject(rawResponse) ? rawResponse : undefined,
+                };
+            }
+        }
+    );
+
+    return {
+        errors: _.compact(chunkResults.map(result => result.error)),
+        rawResponses: _.compact(chunkResults.map(result => result.rawResponse)),
+    };
 }
