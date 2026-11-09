@@ -74,7 +74,6 @@ import {
     resolveRegistrations,
     resolveRequestedRegistrationKeys,
     completeDataSetRegistrations,
-    CompletionResult,
 } from "./Dhis2DataSetCompletion";
 import { chunkDataValuesByPeriod } from "./Dhis2DataValueChunks";
 import { Maybe } from "../types/utils";
@@ -509,7 +508,7 @@ export class InstanceDhisRepository implements InstanceRepository {
         if (dataValues.length === 0) {
             const registrations = this.resolveRegistrationsToComplete(markCompleted, importStrategy, dataPackage);
             const { errors: completionErrors, rawResponses: completionRawResponses } =
-                await this.completeDataSetRegistrations(registrations);
+                await completeDataSetRegistrations(this.api, registrations, bulkOperationChunkSize);
 
             return {
                 title,
@@ -564,7 +563,7 @@ export class InstanceDhisRepository implements InstanceRepository {
 
         const [errorDetails, { errors: completionErrors, rawResponses: completionRawResponses }] = await Promise.all([
             getMetadataDetailsFromErrors(this.api, errors, rowLookup),
-            this.completeDataSetRegistrations(registrationsToComplete),
+            completeDataSetRegistrations(this.api, registrationsToComplete, bulkOperationChunkSize),
         ]);
 
         const status = computeOverallSyncStatus([
@@ -600,10 +599,6 @@ export class InstanceDhisRepository implements InstanceRepository {
         const keys = completableKeys ? _.intersection(completableKeys, requestedKeys) : requestedKeys;
 
         return resolveRegistrations(dataPackage.dataEntries, keys);
-    }
-
-    private completeDataSetRegistrations(registrations: Registration[]): Promise<CompletionResult> {
-        return completeDataSetRegistrations(this.api, registrations, bulkOperationChunkSize);
     }
 
     private mergeChunkResults(chunks: AggregatedDataValue[][], chunkResults: Array<Maybe<DataValueSetsPostResponse>>) {

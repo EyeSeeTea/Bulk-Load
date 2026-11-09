@@ -331,7 +331,7 @@ describe("completeDataSetRegistrations", () => {
         expect(post).toHaveBeenCalledTimes(2);
         expect(result.rawResponses).toEqual([responseData]);
         expect(result.errors).toHaveLength(1);
-        expect(result.errors[0]).toMatchObject({ id: "completeDataSetRegistrations" });
+        expect(result.errors[0]).toMatchObject({ id: "completeDataSetRegistrations", message: "Not allowed" });
     });
 
     it("returns the error without raw response when the failure has no response body", async () => {
