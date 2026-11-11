@@ -1414,9 +1414,18 @@ function getCategoryComboIdByDataElementId(dataSet: any, metadata: any) {
 export function getDataElementsForSectionDataSet(dataSet: any, metadata: any, cocsByCatComboId: any) {
     const categoryComboIdByDataElementId = getCategoryComboIdByDataElementId(dataSet, metadata);
 
+    // Same order as the DHIS2 Data Entry app: inside each section, data elements are grouped
+    // by category combo, unless the section has "Disable data element auto group" (disableDataElementAutoGroup) turned on.
     const dataElementsInSections = _(dataSet.sections)
         .sortBy(section => section.sortOrder)
-        .flatMap(section => section.dataElements)
+        .flatMap(section =>
+            section.disableDataElementAutoGroup
+                ? section.dataElements
+                : _(section.dataElements)
+                      .groupBy(dataElement => categoryComboIdByDataElementId[dataElement.id])
+                      .flatMap(dataElements => dataElements)
+                      .value()
+        )
         .value();
 
     const dataElementsOutsideSections = _(dataSet.dataSetElements)

@@ -306,7 +306,7 @@ export async function getElement(api: D2Api, type: DataFormType, id: string) {
         "categoryCombo",
         "dataSetElements",
         "formType",
-        "sections[id,sortOrder,dataElements[id]]",
+        "sections[id,sortOrder,disableDataElementAutoGroup,dataElements[id]]",
         "periodType",
         "programStages[id,access,featureType]",
         "programType",
