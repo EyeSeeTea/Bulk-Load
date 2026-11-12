@@ -14,10 +14,11 @@ import i18n from "../utils/i18n";
 import { D2Api, D2RelationshipType, Id, Ref } from "../types/d2-api";
 import { KeysOfUnion } from "../types/utils";
 import { promiseMap } from "../utils/promises";
-import { getUid } from "./dhis2-uid";
+import { getUid, isValidUid } from "./dhis2-uid";
 import {
     buildOrgUnitMode,
     fromApiRelationships,
+    fromApiRelationshipsByType,
     getApiRelationships,
     getRelationshipMetadata,
     RelationshipMetadata,
@@ -28,7 +29,7 @@ import { TrackedEntitiesApiRequest, TrackedEntitiesResponse, TrackedEntity } fro
 import { Params } from "@eyeseetea/d2-api/api/common";
 import { ImportDataPackageOptions } from "../domain/repositories/InstanceRepository";
 import { MULTI_TEXT_OPTION_DELIMITER } from "../domain/helpers/ExcelBuilder";
-import { getMajorVersion, getVersion } from "../utils/d2-api";
+import { getMajorVersion, getVersion, joinIdsParameter } from "../utils/d2-api";
 
 type GetOptions = {
     api: D2Api;
@@ -154,17 +155,11 @@ export async function updateTrackedEntityInstances(
         .first();
     if (!programId) throw new Error("Cannot get program from TEIs");
 
-    const orgUnitIds = _.uniq(teis.map(tei => tei.orgUnit.id));
-
-    const existingTeis = await getTrackedEntityInstances({
-        api,
-        program: { id: programId },
-        orgUnits: orgUnitIds.map(id => ({ id })),
-        relationshipsOuFilter: "SELECTED",
-    });
-
     const program = await getProgram(api, programId);
     if (!program) throw new Error(`Program not found: ${programId}`);
+
+    const sheetTeiIds = trackedEntityInstances.map(tei => tei.id).filter(isValidUid);
+    const existingTeis = await getExistingTeis(api, program, sheetTeiIds, metadata);
 
     const apiEvents = await getApiEvents({
         api: api,
@@ -257,7 +252,7 @@ async function uploadTeis(options: {
     program: Program;
     metadata: Metadata;
     teis: TrackedEntityInstance[];
-    existingTeis: TrackedEntityInstance[];
+    existingTeis: Record<Id, ExistingTei>;
     title: string;
     importOptions: ImportDataPackageOptions;
     eventsByTei: EventMap;
@@ -393,7 +388,7 @@ function getApiTeiToUpload(options: {
     program: Program;
     metadata: Metadata;
     tei: TrackedEntityInstance;
-    existingTeis: TrackedEntityInstance[];
+    existingTeis: Record<Id, ExistingTei>;
     importOptions: ImportDataPackageOptions;
     eventsByTei: EventMap;
 }): TrackedEntityToSave {
@@ -401,8 +396,12 @@ function getApiTeiToUpload(options: {
     const { orgUnit, enrollment, relationships } = tei;
     const optionById = _.keyBy(metadata.options, option => option.id);
 
-    const existingTei = existingTeis.find(tei_ => tei_.id === tei.id);
-    const apiRelationships = getApiRelationships(existingTei, relationships, metadata.relationshipTypesById);
+    const existingTei = existingTeis[tei.id];
+    const apiRelationships = getApiRelationships(
+        existingTei?.relationships ?? [],
+        relationships,
+        metadata.relationshipTypesById
+    );
 
     const enrollmentId = existingTei?.enrollment?.id || generateUidForTei(tei.id, orgUnit.id, program.id);
 
@@ -506,42 +505,91 @@ function getTeiConstraintRef(
         : undefined;
 }
 
-// Keep the URL short enough to avoid 414-uri-too-large (UID: 11 chars + separator)
-const maxTeiIdsPerRequest = 100;
-
 /* Check which of the given TEIs exist in the instance, querying them by ID instead of fetching all TEIs.
    DHIS 2.37+ requires either program or trackedEntityType, so use the type from the relationship constraint. */
 async function getExistingTeiIds(api: D2Api, teiIdsByType: Record<Id, Id[]>): Promise<Set<Id>> {
-    if (_.isEmpty(teiIdsByType)) return new Set();
-
-    const apiVersion = await getVersion(api);
-    const ouModeParam = buildOrgUnitMode(apiVersion, "CAPTURE");
-
-    const requests = _.flatMap(teiIdsByType, (ids, trackedEntityTypeId) =>
-        _.chunk(ids, maxTeiIdsPerRequest).map(idsChunk => ({ trackedEntityTypeId, ids: idsChunk }))
-    );
-
-    const existingIdsGroups = await promiseMap(requests, async ({ trackedEntityTypeId, ids }) => {
-        const { instances } = await getTrackedEntities(api, {
-            ...ouModeParam,
-            ...buildTrackedEntitiesParameter(apiVersion, ids),
-            trackedEntityType: trackedEntityTypeId,
-            pageSize: ids.length,
-            fields: "trackedEntity",
-        });
-
+    const existingIdsGroups = await promiseMap(_.toPairs(teiIdsByType), async ([trackedEntityType, ids]) => {
+        const instances = await getTrackedEntitiesByIds(api, { trackedEntityType, ids, fields: "trackedEntity" });
         return instances.map(tei => tei.trackedEntity);
     });
 
     return new Set(_.flatten(existingIdsGroups));
 }
 
-/* v38-41: trackedEntity (semicolon-separated, deprecated in 2.41); v42+: trackedEntities (comma-separated) */
+/* The part of an existing TEI the import needs: its enrollment and its relationships */
+interface ExistingTei extends Pick<TrackedEntityInstance, "relationships"> {
+    enrollment?: Pick<Enrollment, "id">;
+}
+
+async function getExistingTeis(
+    api: D2Api,
+    program: Program,
+    teiIds: Id[],
+    metadata: Metadata
+): Promise<Record<Id, ExistingTei>> {
+    const existingTeiFields = [
+        "trackedEntity",
+        "orgUnit",
+        "enrollments[enrollment,program,orgUnit]",
+        "relationships[relationship,relationshipType,relationshipName,from[trackedEntity[trackedEntity],event[event]],to[trackedEntity[trackedEntity],event[event]]]",
+    ].join(",");
+
+    const instances = await getTrackedEntitiesByIds(api, {
+        trackedEntityType: program.trackedEntityType.id,
+        ids: teiIds,
+        fields: existingTeiFields,
+    });
+
+    return _(instances)
+        .map(teiApi => {
+            // The program's enrollment in the TEI's own org unit, wherever the sheet row places the TEI
+            const enrollment = teiApi.enrollments.find(e => e.program === program.id && e.orgUnit === teiApi.orgUnit);
+
+            const existingTei: ExistingTei = {
+                enrollment: enrollment && { id: enrollment.enrollment },
+                relationships: fromApiRelationshipsByType(teiApi.relationships, metadata.relationshipTypesById, {
+                    id: teiApi.trackedEntity,
+                    trackedEntityTypeId: program.trackedEntityType.id,
+                }),
+            };
+            return [teiApi.trackedEntity, existingTei] as const;
+        })
+        .fromPairs()
+        .value();
+}
+
+async function getTrackedEntitiesByIds(
+    api: D2Api,
+    options: { trackedEntityType: Id; ids: Id[]; fields: string }
+): Promise<TrackedEntitiesApiRequest[]> {
+    const { trackedEntityType, ids, fields } = options;
+    if (_.isEmpty(ids)) return [];
+
+    const apiVersion = await getVersion(api);
+    const ouModeParam = buildOrgUnitMode(apiVersion, "CAPTURE");
+    const maxTeiIdsPerRequest = 100;
+
+    const instancesGroups = await promiseMap(_.chunk(_.uniq(ids), maxTeiIdsPerRequest), async idsChunk => {
+        const { instances } = await getTrackedEntities(api, {
+            ...ouModeParam,
+            ...buildTrackedEntitiesParameter(apiVersion, idsChunk),
+            trackedEntityType,
+            pageSize: idsChunk.length,
+            fields,
+        });
+        return instances;
+    });
+
+    return _.flatten(instancesGroups);
+}
+
 function buildTrackedEntitiesParameter(
     apiVersion: string,
     ids: Id[]
 ): Pick<TrackedEntityGetRequest, "trackedEntity" | "trackedEntities"> {
-    return getMajorVersion(apiVersion) >= 42 ? { trackedEntities: ids.join(",") } : { trackedEntity: ids.join(";") };
+    const majorVersion = getMajorVersion(apiVersion);
+    const idsParameter = joinIdsParameter(majorVersion, ids);
+    return majorVersion >= 42 ? { trackedEntities: idsParameter } : { trackedEntity: idsParameter };
 }
 
 type TeiKey = KeysOfUnion<TrackedEntitiesApiRequest>;

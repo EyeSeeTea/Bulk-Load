@@ -13,6 +13,11 @@ export function getMajorVersion(version: string): number {
     return majorVersion;
 }
 
+/* ID lists in tracker query parameters: comma-separated from DHIS2 2.42, semicolon-separated before */
+export function joinIdsParameter(majorVersion: number, ids: string[]): string {
+    return ids.join(majorVersion >= 42 ? "," : ";");
+}
+
 export function getD2APiFromInstance(instance: DhisInstance) {
     return new D2Api({
         baseUrl: instance.url,

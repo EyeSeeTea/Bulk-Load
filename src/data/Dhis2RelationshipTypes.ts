@@ -4,7 +4,7 @@ import moment from "moment";
 import { NamedRef } from "../domain/entities/ReferenceObject";
 import { Relationship } from "../domain/entities/Relationship";
 import { RelationshipConstraint, RelationshipType } from "../domain/entities/RelationshipType";
-import { isRelationshipValid, TrackedEntityInstance } from "../domain/entities/TrackedEntityInstance";
+import { isRelationshipValid } from "../domain/entities/TrackedEntityInstance";
 import { D2Api, D2RelationshipConstraint, D2RelationshipType, Id, Ref } from "../types/d2-api";
 import { memoizeAsync } from "../utils/cache";
 import { promiseMap } from "../utils/promises";
@@ -12,16 +12,15 @@ import { getUid } from "./dhis2-uid";
 import { getTrackedEntities, TrackedEntityGetRequest } from "./Dhis2TrackedEntityInstances";
 import { TrackerRelationship, RelationshipItem, TrackedEntitiesApiRequest } from "../domain/entities/TrackedEntity";
 import { EventsAPIResponse } from "../domain/entities/DhisDataPackage";
-import { getVersion, getMajorVersion } from "../utils/d2-api";
+import { getVersion, getMajorVersion, joinIdsParameter } from "../utils/d2-api";
 
 type RelationshipTypesById = Record<Id, Pick<D2RelationshipType, "id" | "toConstraint" | "fromConstraint">>;
 
 export type RelationshipOrgUnitFilter = TrackedEntityOURequestApi["ouMode"];
 
-function buildOrgUnitsParameter(apiVersion: number, orgUnitsIds: Ref[]): string {
-    const separator = apiVersion >= 42 ? "," : ";";
-    return orgUnitsIds.map(({ id }) => id).join(separator);
-}
+type OwnTei = { id: Id; trackedEntityTypeId: Id };
+type RelationshipEnd = "from" | "to";
+type ReadItemId = (end: RelationshipEnd, item: RelationshipItem) => Id | undefined;
 
 export function buildOrgUnitMode(apiVersion: string, ouMode: RelationshipOrgUnitFilter, orgUnits?: Ref[]) {
     const majorVersion = getMajorVersion(apiVersion);
@@ -32,7 +31,10 @@ export function buildOrgUnitMode(apiVersion: string, ouMode: RelationshipOrgUnit
         if (majorVersion >= 42) return { orgUnitMode: ouMode };
         else return { ouMode };
     } else if (orgUnits && orgUnits.length > 0) {
-        const orgUnitsParam = buildOrgUnitsParameter(majorVersion, orgUnits);
+        const orgUnitsParam = joinIdsParameter(
+            majorVersion,
+            orgUnits.map(({ id }) => id)
+        );
         if (majorVersion >= 42) return { orgUnitMode: ouMode, orgUnits: orgUnitsParam };
         else return { ouMode, orgUnit: orgUnitsParam };
     } else {
@@ -41,12 +43,10 @@ export function buildOrgUnitMode(apiVersion: string, ouMode: RelationshipOrgUnit
 }
 
 export function getApiRelationships(
-    existingTei: TrackedEntityInstance | undefined,
+    existingRelationships: Relationship[],
     relationships: Relationship[],
     relationshipTypesById: RelationshipTypesById
 ): TrackerRelationship[] {
-    const existingRelationships = existingTei?.relationships || [];
-
     const apiRelationships = _(relationships)
         .concat(existingRelationships)
         .filter(isRelationshipValid)
@@ -96,28 +96,26 @@ function getRelationshipConstraint(
         : { event: { event: id } };
 }
 
-export function fromApiRelationships(
-    metadata: RelationshipMetadata,
-    teiApi: TrackedEntitiesApiRequest
+/* Shared by populate and import: look up each relationship's type, accept it as stored or with
+   from/to swapped (DB may have invalid or even swapped items), and map it to a Relationship */
+function parseApiRelationships(
+    apiRelationships: TrackerRelationship[],
+    getItemReader: (relationshipTypeId: Id) => ReadItemId | undefined
 ): Relationship[] {
-    return _(teiApi.relationships)
+    return _(apiRelationships)
         .map((relApi): Relationship | null => {
-            const relationshipType = metadata.relationshipTypes.find(relType => relType.id === relApi.relationshipType);
-
-            if (!relationshipType) {
+            const readItemId = getItemReader(relApi.relationshipType);
+            if (!readItemId) {
                 console.error(`No relationship found for relationship ${relApi.relationship}`);
                 return null;
             }
 
-            // DB may have invalid or even swapped from/to TEIs, check the validity of A/B or B/A
             const fromToRelationship =
-                getFromToRelationship(relationshipType, relApi.from, relApi.to) ||
-                getFromToRelationship(relationshipType, relApi.to, relApi.from);
+                getFromTo(readItemId, relApi.from, relApi.to) || getFromTo(readItemId, relApi.to, relApi.from);
 
             if (!fromToRelationship) {
-                const from = relApi.from.trackedEntity?.trackedEntity || "undefined";
-                const to = relApi.to.trackedEntity?.trackedEntity || "undefined";
-                console.error(`No valid TEIs for relationship ${relApi.relationship}: ${from} -> ${to}`);
+                const [from, to] = [relApi.from, relApi.to].map(getAnyItemId);
+                console.error(`No valid items for relationship ${relApi.relationship}: ${from} -> ${to}`);
                 return null;
             }
 
@@ -132,15 +130,33 @@ export function fromApiRelationships(
         .value();
 }
 
-function getFromToRelationship(
-    relationshipType: RelationshipType,
+function getFromTo(
+    readItemId: ReadItemId,
     relItem1: RelationshipItem,
     relItem2: RelationshipItem
 ): { fromId: Id; toId: Id } | null {
-    const fromId = getRelationshipId(relationshipType.constraints.from, relItem1);
-    const toId = getRelationshipId(relationshipType.constraints.to, relItem2);
+    const fromId = readItemId("from", relItem1);
+    const toId = readItemId("to", relItem2);
 
     return fromId && toId ? { fromId, toId } : null;
+}
+
+function getAnyItemId(relItem: RelationshipItem): Id | undefined {
+    return relItem.trackedEntity?.trackedEntity ?? relItem.event?.event;
+}
+
+export function fromApiRelationships(
+    metadata: RelationshipMetadata,
+    teiApi: TrackedEntitiesApiRequest
+): Relationship[] {
+    const relationshipTypesById = _.keyBy(metadata.relationshipTypes, relType => relType.id);
+
+    return parseApiRelationships(teiApi.relationships, typeId => {
+        const relationshipType = relationshipTypesById[typeId];
+        if (!relationshipType) return undefined;
+
+        return (end, item) => getRelationshipId(relationshipType.constraints[end], item);
+    });
 }
 
 function getRelationshipId(constraint: RelationshipConstraint, relItem: RelationshipItem): Id | undefined {
@@ -151,6 +167,43 @@ function getRelationshipId(constraint: RelationshipConstraint, relItem: Relation
             return teiIsValid ? teiId : undefined;
         }
         case "eventInProgram":
+            return relItem.event?.event;
+        default:
+            return undefined;
+    }
+}
+
+export function fromApiRelationshipsByType(
+    apiRelationships: TrackerRelationship[],
+    relationshipTypesById: RelationshipTypesById,
+    ownTei?: OwnTei
+): Relationship[] {
+    return parseApiRelationships(apiRelationships, typeId => {
+        const relationshipType = relationshipTypesById[typeId];
+        if (!relationshipType) return undefined;
+
+        return (end, item) => {
+            const constraint = end === "from" ? relationshipType.fromConstraint : relationshipType.toConstraint;
+            return getRelationshipItemId(constraint, item, ownTei);
+        };
+    });
+}
+
+function getRelationshipItemId(
+    constraint: D2RelationshipType["fromConstraint"],
+    relItem: RelationshipItem,
+    ownTei: OwnTei | undefined
+): Id | undefined {
+    switch (constraint.relationshipEntity) {
+        case "TRACKED_ENTITY_INSTANCE": {
+            const teiId = relItem.trackedEntity?.trackedEntity;
+            const isOwnTeiOnWrongEnd =
+                ownTei !== undefined &&
+                teiId === ownTei.id &&
+                constraint.trackedEntityType?.id !== ownTei.trackedEntityTypeId;
+            return isOwnTeiOnWrongEnd ? undefined : teiId;
+        }
+        case "PROGRAM_STAGE_INSTANCE":
             return relItem.event?.event;
         default:
             return undefined;

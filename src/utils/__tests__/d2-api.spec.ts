@@ -1,4 +1,4 @@
-import { getMajorVersion } from "../d2-api";
+import { getMajorVersion, joinIdsParameter } from "../d2-api";
 
 describe("getMajorVersion", () => {
     it("parses a stable release version", () => {
@@ -23,5 +23,17 @@ describe("getMajorVersion", () => {
 
     it("throws on a non-numeric minor component", () => {
         expect(() => getMajorVersion("2.x")).toThrow();
+    });
+});
+
+describe("joinIdsParameter", () => {
+    const ids = ["id1", "id2", "id3"];
+
+    it("separates IDs with semicolons before v42", () => {
+        expect(joinIdsParameter(41, ids)).toEqual("id1;id2;id3");
+    });
+
+    it("separates IDs with commas from v42", () => {
+        expect(joinIdsParameter(42, ids)).toEqual("id1,id2,id3");
     });
 });
