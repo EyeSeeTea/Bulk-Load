@@ -43,13 +43,3 @@ export type TrackedEntitiesApiRequest = {
     relationships: TrackerRelationship[];
     trackedEntity: Id;
 };
-
-export type TrackedEntitiesResponse = {
-    instances: TrackedEntitiesApiRequest[];
-    pageCount: number;
-};
-
-export type TrackedEntitiesAPIResponse = Omit<TrackedEntitiesResponse, "instances"> & {
-    instances?: TrackedEntitiesApiRequest[];
-    trackedEntities?: TrackedEntitiesApiRequest[];
-};
