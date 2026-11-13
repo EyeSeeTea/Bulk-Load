@@ -37,12 +37,7 @@ export interface Event {
     dataValues: EventDataValue[];
 }
 
-export type EventsResponse = {
-    instances: Event[];
-    pageCount: number;
-};
-
-export type EventsAPIResponse = Omit<EventsResponse, "instances"> & {
+export type EventsAPIResponse = {
     instances?: Event[];
     events?: Event[];
 };

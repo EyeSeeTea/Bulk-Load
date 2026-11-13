@@ -9,10 +9,10 @@ import { D2Api, D2RelationshipConstraint, D2RelationshipType, Id, Ref } from "..
 import { memoizeAsync } from "../utils/cache";
 import { promiseMap } from "../utils/promises";
 import { getUid } from "./dhis2-uid";
-import { getTrackedEntities, TrackedEntityGetRequest } from "./Dhis2TrackedEntityInstances";
+import { getTrackedEntities } from "./Dhis2TrackedEntityInstances";
 import { TrackerRelationship, RelationshipItem, TrackedEntitiesApiRequest } from "../domain/entities/TrackedEntity";
 import { EventsAPIResponse } from "../domain/entities/DhisDataPackage";
-import { getVersion, getMajorVersion, joinIdsParameter } from "../utils/d2-api";
+import { getAllPages, getVersion, getMajorVersion, joinIdsParameter, pagedEventsOrder } from "../utils/d2-api";
 
 type RelationshipTypesById = Record<Id, Pick<D2RelationshipType, "id" | "toConstraint" | "fromConstraint">>;
 
@@ -340,18 +340,18 @@ async function getConstraintForTypeTei(
 
     const ouModeQuery = buildOrgUnitMode(apiVersion, ouMode, organisationUnits);
 
+    const pageSize = 1000;
     const query = {
         ...ouModeQuery,
         order: "createdAt:asc",
         program: constraint.program?.id,
         // Program and tracked entity cannot be specified simultaneously
         trackedEntityType: constraint.program ? undefined : constraint.trackedEntityType.id,
-        pageSize: 1000,
-        totalPages: true,
+        pageSize: pageSize,
         fields: "trackedEntity",
     } as const;
 
-    const results = await getAllTrackedEntities(api, query);
+    const results = await getAllPages(pageSize, page => getTrackedEntities(api, { ...query, page }));
     const trackedEntityInstances = results.map(({ trackedEntity, ...rest }) => ({
         ...rest,
         id: trackedEntity,
@@ -361,17 +361,6 @@ async function getConstraintForTypeTei(
     const name = trackedEntityTypesById[constraint.trackedEntityType.id]?.name ?? "Unknown";
 
     return { type: "tei", name, program: constraint.program, teis };
-}
-
-async function getAllTrackedEntities(api: D2Api, query: TrackedEntityGetRequest): Promise<TrackedEntitiesApiRequest[]> {
-    const { instances: firstPage, pageCount } = await getTrackedEntities(api, query);
-    const pages = _.range(2, pageCount + 1);
-    const otherPages = await promiseMap(pages, async page => {
-        const { instances } = await getTrackedEntities(api, { ...query, page });
-        return instances;
-    });
-
-    return [...firstPage, ..._.flatten(otherPages)];
 }
 
 async function getConstraintForTypeProgram(
@@ -384,63 +373,33 @@ async function getConstraintForTypeProgram(
     const { organisationUnits = [], startDate, endDate } = filters ?? {};
     const pageSize = 250;
 
-    async function fetchEvents(options: {
-        program: Id;
-        programStage: Id;
-        orgUnit: Id;
-        page: number;
-        pageSize: number;
-    }) {
-        const { program, programStage, orgUnit, page, pageSize } = options;
-        const { instances, events, pageCount } = await api
+    async function fetchEventIds(orgUnit: Id, page: number): Promise<Id[]> {
+        const { instances, events } = await api
             .get<EventsAPIResponse>("/tracker/events", {
-                program: program,
-                ...(programStage && { programStage }),
+                program: program?.id,
+                ...(programStage && { programStage: programStage.id }),
                 orgUnit: orgUnit,
                 occurredAfter: startDate ? moment(startDate).format("YYYY-MM-DD") : undefined,
                 occurredBefore: endDate ? moment(endDate).format("YYYY-MM-DD") : undefined,
                 fields: "event",
+                order: pagedEventsOrder,
                 page: page,
                 pageSize: pageSize,
-                totalPages: true,
             })
             .getData();
-        const instanceEventIds = (instances || events || []).reduce((acc, { event }) => {
-            if (event) acc.push({ event });
-            return acc;
-        }, [] as { event: Id }[]);
-        return { instances: instanceEventIds, pageCount };
+
+        return _.compact((instances || events || []).map(({ event }) => event));
     }
 
-    const events = await promiseMap(organisationUnits, async orgUnit => {
-        const { instances, pageCount } = await fetchEvents({
-            program: program.id,
-            programStage: programStage?.id ?? "",
-            orgUnit: orgUnit.id,
-            page: 1,
-            pageSize: pageSize,
-        });
-
-        const paginatedEvents = await promiseMap(_.range(2, pageCount + 1), async page => {
-            const { instances } = await fetchEvents({
-                program: program.id,
-                programStage: programStage?.id ?? "",
-                orgUnit: orgUnit.id,
-                page: page,
-                pageSize: pageSize,
-            });
-
-            return instances;
-        });
-
-        return [...instances, ..._.flatten(paginatedEvents)];
-    });
+    const eventIdsGroups = await promiseMap(organisationUnits, orgUnit =>
+        getAllPages(pageSize, page => fetchEventIds(orgUnit.id, page))
+    );
 
     return {
         type: "eventInProgram",
         program,
         programStage,
-        events: _.flatten(events).map(({ event }) => ({ id: event })),
+        events: _.flatten(eventIdsGroups).map(id => ({ id })),
     };
 }
 
