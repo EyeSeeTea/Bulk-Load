@@ -273,14 +273,16 @@ export class SheetBuilder {
                 } *` + dateFormatInfo
             );
 
-            this.createColumn(
-                sheet,
-                itemRow,
-                columnId++,
-                i18n.t("Completed", { lng: this.builder.language }),
-                null,
-                this.validations.get("BOOLEAN")
-            );
+            if (this.hasCompletedColumn(sheet)) {
+                this.createColumn(
+                    sheet,
+                    itemRow,
+                    columnId++,
+                    i18n.t("Completed", { lng: this.builder.language }),
+                    null,
+                    this.validations.get("BOOLEAN")
+                );
+            }
 
             // Include attribute look-up from TEI Instances sheet
             _.forEach(settingsFilter?.attributesIncluded, ({ id: attributeId }) => {
@@ -981,14 +983,16 @@ export class SheetBuilder {
             .style({ ...baseStyle, font: { size: 16, bold: true } });
 
         if (element.type === "dataSets") {
-            this.createColumn(
-                dataEntrySheet,
-                itemRow,
-                columnId++,
-                i18n.t("Completed", { lng: this.builder.language }),
-                null,
-                this.validations.get("BOOLEAN")
-            );
+            if (this.hasCompletedColumn(dataEntrySheet)) {
+                this.createColumn(
+                    dataEntrySheet,
+                    itemRow,
+                    columnId++,
+                    i18n.t("Completed", { lng: this.builder.language }),
+                    null,
+                    this.validations.get("BOOLEAN")
+                );
+            }
 
             const dataSet = element;
             const dataElementsAll = getDataSetDataElements(dataSet, metadata);
@@ -1074,14 +1078,16 @@ export class SheetBuilder {
                     } *` + dateFormatInfo
                 );
 
-                this.createColumn(
-                    dataEntrySheet,
-                    itemRow,
-                    columnId++,
-                    i18n.t("Completed", { lng: this.builder.language }),
-                    null,
-                    this.validations.get("BOOLEAN")
-                );
+                if (this.hasCompletedColumn(dataEntrySheet)) {
+                    this.createColumn(
+                        dataEntrySheet,
+                        itemRow,
+                        columnId++,
+                        i18n.t("Completed", { lng: this.builder.language }),
+                        null,
+                        this.validations.get("BOOLEAN")
+                    );
+                }
 
                 if (programStage.programStageSections.length === 0) {
                     programStage.programStageSections.push({
@@ -1152,6 +1158,18 @@ export class SheetBuilder {
                 });
             });
         }
+    }
+
+    // Generated templates always include the Completed column. A custom template has a fixed
+    // layout bound to its own file (macros, mapping sheet) and stored data source, so it only
+    // includes the column when its data source declares where it goes.
+    private hasCompletedColumn(sheet: Sheet): boolean {
+        const { template } = this.builder;
+        if (template.type !== "custom") return true;
+
+        return getDataSources(template, sheet.name).some(
+            dataSource => "completed" in dataSource && dataSource.completed !== undefined
+        );
     }
 
     getDataSource(options: { sheet: Sheet }) {

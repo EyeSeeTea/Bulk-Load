@@ -79,6 +79,8 @@ export interface DownloadCustomizationOptions {
     orgUnits: string[];
     language?: i18nShortCode;
     currentUser: User;
+    // Data sources in effect for this download (stored template ones take precedence over the class ones)
+    dataSources?: DataSource[];
 }
 
 export interface ImportCustomizationOptions {
