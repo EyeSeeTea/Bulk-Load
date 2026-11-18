@@ -1,7 +1,7 @@
 import { getCompositionRoot } from "../../../CompositionRoot";
 import { DataSetGenerated03 } from "../../../data/templates/generated-data-set/DataSetGenerated.03";
 import { MSFModule101 } from "../../../data/templates/msf/MSFModule1.01";
-import { GeneratedTemplate, Template } from "../../../domain/entities/Template";
+import { CustomTemplate, DataSource, GeneratedTemplate, Template } from "../../../domain/entities/Template";
 import Settings from "../../../webapp/logic/settings";
 import { SheetBuilder, SheetBuilderParams } from "../../../webapp/logic/sheetBuilder";
 import { Workbook } from "../../../webapp/logic/Workbook";
@@ -112,6 +112,33 @@ function msfLayoutTemplate(): GeneratedTemplate {
     };
 }
 
+// Data source of MSF templates stored before the Completed column existed (no "completed", data from D)
+const legacyMsfDataSources: DataSource[] = [
+    {
+        type: "row",
+        orgUnit: { sheet: dataEntrySheetName, type: "column", ref: "A" },
+        period: { sheet: dataEntrySheetName, type: "column", ref: "B" },
+        attribute: { sheet: dataEntrySheetName, type: "column", ref: "C" },
+        range: { sheet: dataEntrySheetName, rowStart: 6, columnStart: "D" },
+        dataElement: { sheet: dataEntrySheetName, type: "row", ref: 4 },
+        categoryOption: { sheet: dataEntrySheetName, type: "row", ref: 5 },
+    },
+];
+
+async function msfCustomTemplate(dataSources: DataSource[]): Promise<CustomTemplate> {
+    const contents = await (await Workbook.empty()).writeToBase64();
+
+    return {
+        ...new MSFModule101(),
+        type: "custom",
+        isDefault: true,
+        file: { name: "msf.xlsm", contents: `data:application/vnd.ms-excel;base64,${contents}` },
+        created: undefined,
+        lastUpdated: undefined,
+        dataSources,
+    };
+}
+
 function dataEntryCell(workbook: Workbook, cellRef: string): { value: unknown; formula: unknown } {
     const cell = workbook.xworkbook.sheet(dataEntrySheetName).cell(cellRef);
     return { value: cell.value(), formula: cell.formula() };
@@ -122,6 +149,8 @@ describe("MSFModule101", () => {
 
     beforeAll(async () => {
         settings = await Settings.build(api, compositionRoot);
+        // Custom templates load their file with the browser-only Workbook.fromBase64
+        vi.spyOn(Workbook, "fromBase64").mockImplementation(Workbook.fromBase64Data);
     });
 
     describe("Data Entry layout", () => {
@@ -133,6 +162,25 @@ describe("MSFModule101", () => {
             expect(dataEntryCell(workbook, "E4").formula).toEqual(`_${dataElement1.id}`);
             expect(dataEntryCell(workbook, "E5").formula).toEqual(`_${categoryOptionCombo1.id}`);
             expect(dataEntryCell(workbook, "F5").formula).toEqual(`_${categoryOptionCombo2.id}`);
+        });
+
+        it("keeps the legacy layout for a custom template whose data source has no completed column", async () => {
+            const template = await msfCustomTemplate(legacyMsfDataSources);
+            const workbook = await new SheetBuilder(buildParams(settings, template)).generate();
+
+            expect(dataEntryCell(workbook, "D4").formula).toEqual(`_${dataElement1.id}`);
+            expect(dataEntryCell(workbook, "D5").formula).toEqual(`_${categoryOptionCombo1.id}`);
+            expect(dataEntryCell(workbook, "E5").formula).toEqual(`_${categoryOptionCombo2.id}`);
+            expect(dataEntryCell(workbook, completedCell).value).not.toEqual(completedLabel);
+        });
+
+        it("adds the Completed column for a custom template whose data source declares it", async () => {
+            const template = await msfCustomTemplate(new MSFModule101().dataSources);
+            const workbook = await new SheetBuilder(buildParams(settings, template)).generate();
+
+            expect(dataEntryCell(workbook, completedCell).value).toEqual(completedLabel);
+            expect(dataEntryCell(workbook, "E4").formula).toEqual(`_${dataElement1.id}`);
+            expect(dataEntryCell(workbook, "E5").formula).toEqual(`_${categoryOptionCombo1.id}`);
         });
 
         it("leaves the generated data set template layout untouched", async () => {

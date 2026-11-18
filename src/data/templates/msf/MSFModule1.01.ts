@@ -6,6 +6,7 @@ import {
     DataSource,
     DownloadCustomizationOptions,
     DownloadCustomizationRepositories,
+    RowDataSource,
     StyleSource,
 } from "../../../domain/entities/Template";
 import {
@@ -331,11 +332,22 @@ class DownloadCustomization {
         }
     }
 
+    // The stored data source sets the layout: older templates start data at D (no Completed column)
+    private getDataColumnStart(): string {
+        const dataSource = _(this.options.dataSources)
+            .flatMap(dataSource =>
+                typeof dataSource === "function" ? dataSource(this.sheets.dataEntry) || [] : dataSource
+            )
+            .find((dataSource): dataSource is RowDataSource => dataSource?.type === "row");
+
+        return dataSource?.range.columnStart ?? DATA_COLUMN_START;
+    }
+
     private async getDataEntryCombinationsCells(): Promise<CellWithCombinationId[]> {
         const dataEntrySheet = this.sheets.dataEntry;
         const cellsCatOptComb = await this.excelRepository.getCellsInRange(this.templateId, {
             sheet: dataEntrySheet,
-            columnStart: DATA_COLUMN_START,
+            columnStart: this.getDataColumnStart(),
             rowStart: CATEGORY_OPTION_ROW,
             rowEnd: CATEGORY_OPTION_ROW,
         });

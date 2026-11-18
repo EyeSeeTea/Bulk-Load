@@ -795,7 +795,7 @@ export class ExcelBuilder {
                     modulesRepositories: this.modulesRepositories,
                     dataElementDisaggregationsMappingRepository: this.dataElementDisaggregationsMappingRepository,
                 },
-                options
+                { ...options, dataSources: template.dataSources }
             );
         }
     }
