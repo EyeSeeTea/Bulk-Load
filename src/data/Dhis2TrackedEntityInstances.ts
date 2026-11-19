@@ -14,21 +14,22 @@ import i18n from "../utils/i18n";
 import { D2Api, D2RelationshipType, Id, Ref } from "../types/d2-api";
 import { KeysOfUnion } from "../types/utils";
 import { promiseMap } from "../utils/promises";
-import { getUid } from "./dhis2-uid";
+import { getUid, isValidUid } from "./dhis2-uid";
 import {
     buildOrgUnitMode,
     fromApiRelationships,
+    fromApiRelationshipsByType,
     getApiRelationships,
     getRelationshipMetadata,
     RelationshipMetadata,
     RelationshipOrgUnitFilter,
 } from "./Dhis2RelationshipTypes";
 import { ImportPostResponse, postImport, resolveEventStatus } from "./Dhis2Import";
-import { TrackedEntitiesApiRequest, TrackedEntitiesResponse, TrackedEntity } from "../domain/entities/TrackedEntity";
+import { TrackedEntitiesApiRequest, TrackedEntity } from "../domain/entities/TrackedEntity";
 import { Params } from "@eyeseetea/d2-api/api/common";
 import { ImportDataPackageOptions } from "../domain/repositories/InstanceRepository";
 import { MULTI_TEXT_OPTION_DELIMITER } from "../domain/helpers/ExcelBuilder";
-import { getVersion } from "../utils/d2-api";
+import { getAllPages, getMajorVersion, getVersion, joinIdsParameter } from "../utils/d2-api";
 
 type GetOptions = {
     api: D2Api;
@@ -40,12 +41,13 @@ type GetOptions = {
     relationshipsOuFilter?: RelationshipOrgUnitFilter;
 };
 
-type TrackerParams = Params & Omit<TeiGetRequest, "ou" | "ouMode">;
+type TrackerParams = Params & Omit<TeiGetRequest, "ou" | "ouMode" | "totalPages">;
 
 export interface TrackedEntityGetRequest extends TrackerParams {
     orgUnit?: string;
     orgUnitMode?: TeiGetRequest["ouMode"];
     trackedEntity?: string;
+    trackedEntities?: string;
     enrollmentEnrolledAfter?: string;
     enrollmentEnrolledBefore?: string;
 }
@@ -72,31 +74,23 @@ export async function getTrackedEntityInstances(options: GetOptions): Promise<Tr
     });
 
     // Avoid 414-uri-too-large by spliting orgUnit in chunks
-    const orgUnitsList = _.chunk(orgUnits, 250);
-
-    // Get TEIs for the first page:
-    const apiTeis: TrackedEntitiesApiRequest[] = [];
-
-    for (const orgUnits of orgUnitsList) {
-        // Limit response size by requesting paginated TEIs
-        for (let page = 1; ; page++) {
-            const { pageCount, instances } = await getTeisFromApi({
+    const apiTeisGroups = await promiseMap(_.chunk(orgUnits, 250), orgUnitsChunk =>
+        getAllPages(pageSize, page =>
+            getTeisFromApi({
                 api,
                 apiVersion,
                 program,
-                orgUnits,
+                orgUnits: orgUnitsChunk,
                 page,
                 pageSize,
                 enrollmentStartDate,
                 enrollmentEndDate,
                 ouMode: relationshipsOuFilter,
-            });
-            apiTeis.push(...instances);
-            if (pageCount <= page) break;
-        }
-    }
+            })
+        )
+    );
 
-    return apiTeis.map(tei => buildTei(metadata, program, tei));
+    return _.flatten(apiTeisGroups).map(tei => buildTei(metadata, program, tei));
 }
 
 export async function getProgram(api: D2Api, id: Id): Promise<Program | undefined> {
@@ -152,17 +146,11 @@ export async function updateTrackedEntityInstances(
         .first();
     if (!programId) throw new Error("Cannot get program from TEIs");
 
-    const orgUnitIds = _.uniq(teis.map(tei => tei.orgUnit.id));
-
-    const existingTeis = await getTrackedEntityInstances({
-        api,
-        program: { id: programId },
-        orgUnits: orgUnitIds.map(id => ({ id })),
-        relationshipsOuFilter: "SELECTED",
-    });
-
     const program = await getProgram(api, programId);
     if (!program) throw new Error(`Program not found: ${programId}`);
+
+    const sheetTeiIds = trackedEntityInstances.map(tei => tei.id).filter(isValidUid);
+    const existingTeis = await getExistingTeis(api, program, sheetTeiIds, metadata);
 
     const apiEvents = await getApiEvents({
         api: api,
@@ -220,8 +208,7 @@ async function splitTeis(
     teis: TrackedEntityInstance[],
     metadata: Metadata
 ): Promise<{ preTeis: TrackedEntityInstance[]; postTeis: TrackedEntityInstance[] }> {
-    const existingTeis = await getExistingTeis(api);
-    const existingTeiIds = new Set(existingTeis.map(tei => tei.id));
+    const existingTeiIds = await getExistingTeiIds(api, getRelatedTeiIdsByType(teis, metadata));
 
     function canPostRelationship(relationship: Relationship, constraintKey: "from" | "to"): boolean {
         const relType = metadata.relationshipTypesById[relationship.typeId];
@@ -256,7 +243,7 @@ async function uploadTeis(options: {
     program: Program;
     metadata: Metadata;
     teis: TrackedEntityInstance[];
-    existingTeis: TrackedEntityInstance[];
+    existingTeis: Record<Id, ExistingTei>;
     title: string;
     importOptions: ImportDataPackageOptions;
     eventsByTei: EventMap;
@@ -392,7 +379,7 @@ function getApiTeiToUpload(options: {
     program: Program;
     metadata: Metadata;
     tei: TrackedEntityInstance;
-    existingTeis: TrackedEntityInstance[];
+    existingTeis: Record<Id, ExistingTei>;
     importOptions: ImportDataPackageOptions;
     eventsByTei: EventMap;
 }): TrackedEntityToSave {
@@ -400,8 +387,12 @@ function getApiTeiToUpload(options: {
     const { orgUnit, enrollment, relationships } = tei;
     const optionById = _.keyBy(metadata.options, option => option.id);
 
-    const existingTei = existingTeis.find(tei_ => tei_.id === tei.id);
-    const apiRelationships = getApiRelationships(existingTei, relationships, metadata.relationshipTypesById);
+    const existingTei = existingTeis[tei.id];
+    const apiRelationships = getApiRelationships(
+        existingTei?.relationships ?? [],
+        relationships,
+        metadata.relationshipTypesById
+    );
 
     const enrollmentId = existingTei?.enrollment?.id || generateUidForTei(tei.id, orgUnit.id, program.id);
 
@@ -475,46 +466,120 @@ function getMultiTextValue(options: {
     return values;
 }
 
-async function getExistingTeis(api: D2Api): Promise<Ref[]> {
-    const apiVersion = await getVersion(api);
-    const ouModeParam = buildOrgUnitMode(apiVersion, "CAPTURE");
+/* TEI IDs referenced by TEI-type relationship constraints, grouped by the constraint's tracked entity type */
+function getRelatedTeiIdsByType(teis: TrackedEntityInstance[], metadata: Metadata): Record<Id, Id[]> {
+    return _(teis)
+        .flatMap(tei => tei.relationships)
+        .flatMap(relationship => {
+            const relType = metadata.relationshipTypesById[relationship.typeId];
+            if (!relType) return [];
 
-    const query = {
-        ...ouModeParam,
-        pageSize: 1000,
-        totalPages: true,
-        fields: "trackedEntity",
-    } as const;
+            return _.compact([
+                getTeiConstraintRef(relType.fromConstraint, relationship.fromId),
+                getTeiConstraintRef(relType.toConstraint, relationship.toId),
+            ]);
+        })
+        .uniqBy(ref => [ref.trackedEntityTypeId, ref.id].join("-"))
+        .groupBy(ref => ref.trackedEntityTypeId)
+        .mapValues(refs => refs.map(ref => ref.id))
+        .value();
+}
 
-    // DHIS 2.37 added a new requirement: "Either Program or Tracked entity type should be specified"
-    // Requests to /api/trackedEntityInstances for these two params are singled-value, so we must
-    // perform multiple requests. Use Tracked Entity Types as tipically there will be more programs.
+function getTeiConstraintRef(
+    constraint: D2RelationshipType["fromConstraint"],
+    id: Id
+): { id: Id; trackedEntityTypeId: Id } | undefined {
+    const trackedEntityTypeId = constraint.trackedEntityType?.id;
 
-    const metadata = await api.metadata.get({ trackedEntityTypes: { fields: { id: true } } }).getData();
+    return constraint.relationshipEntity === "TRACKED_ENTITY_INSTANCE" && trackedEntityTypeId
+        ? { id, trackedEntityTypeId }
+        : undefined;
+}
 
-    const teisGroups = await promiseMap(metadata.trackedEntityTypes, async entityType => {
-        const queryWithEntityType: TrackedEntityGetRequest = { ...query, trackedEntityType: entityType.id };
-
-        const { instances: firstPage, pageCount } = await getTrackedEntities(api, queryWithEntityType);
-
-        const pages = _.range(2, pageCount + 1);
-
-        const otherPages = await promiseMap(pages, async page => {
-            const { instances: trackedEntityInstances } = await getTrackedEntities(api, {
-                ...queryWithEntityType,
-                page,
-            });
-
-            return trackedEntityInstances;
-        });
-
-        return [...firstPage, ..._.flatten(otherPages)].map(({ trackedEntity, ...rest }) => ({
-            ...rest,
-            id: trackedEntity,
-        }));
+/* Check which of the given TEIs exist in the instance, querying them by ID instead of fetching all TEIs.
+   DHIS 2.37+ requires either program or trackedEntityType, so use the type from the relationship constraint. */
+async function getExistingTeiIds(api: D2Api, teiIdsByType: Record<Id, Id[]>): Promise<Set<Id>> {
+    const existingIdsGroups = await promiseMap(_.toPairs(teiIdsByType), async ([trackedEntityType, ids]) => {
+        const instances = await getTrackedEntitiesByIds(api, { trackedEntityType, ids, fields: "trackedEntity" });
+        return instances.map(tei => tei.trackedEntity);
     });
 
-    return _.flatten(teisGroups);
+    return new Set(_.flatten(existingIdsGroups));
+}
+
+/* The part of an existing TEI the import needs: its enrollment and its relationships */
+interface ExistingTei extends Pick<TrackedEntityInstance, "relationships"> {
+    enrollment?: Pick<Enrollment, "id">;
+}
+
+async function getExistingTeis(
+    api: D2Api,
+    program: Program,
+    teiIds: Id[],
+    metadata: Metadata
+): Promise<Record<Id, ExistingTei>> {
+    const existingTeiFields = [
+        "trackedEntity",
+        "orgUnit",
+        "enrollments[enrollment,program,orgUnit]",
+        "relationships[relationship,relationshipType,relationshipName,from[trackedEntity[trackedEntity],event[event]],to[trackedEntity[trackedEntity],event[event]]]",
+    ].join(",");
+
+    const instances = await getTrackedEntitiesByIds(api, {
+        trackedEntityType: program.trackedEntityType.id,
+        ids: teiIds,
+        fields: existingTeiFields,
+    });
+
+    return _(instances)
+        .map(teiApi => {
+            // The program's enrollment in the TEI's own org unit, wherever the sheet row places the TEI
+            const enrollment = teiApi.enrollments.find(e => e.program === program.id && e.orgUnit === teiApi.orgUnit);
+
+            const existingTei: ExistingTei = {
+                enrollment: enrollment && { id: enrollment.enrollment },
+                relationships: fromApiRelationshipsByType(teiApi.relationships, metadata.relationshipTypesById, {
+                    id: teiApi.trackedEntity,
+                    trackedEntityTypeId: program.trackedEntityType.id,
+                }),
+            };
+            return [teiApi.trackedEntity, existingTei] as const;
+        })
+        .fromPairs()
+        .value();
+}
+
+async function getTrackedEntitiesByIds(
+    api: D2Api,
+    options: { trackedEntityType: Id; ids: Id[]; fields: string }
+): Promise<TrackedEntitiesApiRequest[]> {
+    const { trackedEntityType, ids, fields } = options;
+    if (_.isEmpty(ids)) return [];
+
+    const apiVersion = await getVersion(api);
+    const ouModeParam = buildOrgUnitMode(apiVersion, "CAPTURE");
+    const maxTeiIdsPerRequest = 100;
+
+    const instancesGroups = await promiseMap(_.chunk(_.uniq(ids), maxTeiIdsPerRequest), async idsChunk => {
+        return getTrackedEntities(api, {
+            ...ouModeParam,
+            ...buildTrackedEntitiesParameter(apiVersion, idsChunk),
+            trackedEntityType,
+            pageSize: idsChunk.length,
+            fields,
+        });
+    });
+
+    return _.flatten(instancesGroups);
+}
+
+function buildTrackedEntitiesParameter(
+    apiVersion: string,
+    ids: Id[]
+): Pick<TrackedEntityGetRequest, "trackedEntity" | "trackedEntities"> {
+    const majorVersion = getMajorVersion(apiVersion);
+    const idsParameter = joinIdsParameter(majorVersion, ids);
+    return majorVersion >= 42 ? { trackedEntities: idsParameter } : { trackedEntity: idsParameter };
 }
 
 type TeiKey = KeysOfUnion<TrackedEntitiesApiRequest>;
@@ -529,7 +594,7 @@ async function getTeisFromApi(options: {
     enrollmentStartDate?: Moment;
     enrollmentEndDate?: Moment;
     ouMode: RelationshipOrgUnitFilter;
-}): Promise<TrackedEntitiesResponse> {
+}): Promise<TrackedEntitiesApiRequest[]> {
     const { api, apiVersion, program, orgUnits, page, pageSize, enrollmentStartDate, enrollmentEndDate, ouMode } =
         options;
 
@@ -551,25 +616,23 @@ async function getTeisFromApi(options: {
         program: program.id,
         pageSize: pageSize,
         page: page,
-        totalPages: true as const,
         fields: fields.join(","),
         enrollmentEnrolledAfter: enrollmentStartDate?.format("YYYY-MM-DD[T]HH:mm"),
         enrollmentEnrolledBefore: enrollmentEndDate?.format("YYYY-MM-DD[T]HH:mm"),
     };
-    const { instances, pageCount } = await getTrackedEntities(api, filters);
 
-    return { instances, pageCount };
+    return getTrackedEntities(api, filters);
 }
 
 export async function getTrackedEntities(
     api: D2Api,
     filterQuery: TrackedEntityGetRequest
-): Promise<TrackedEntitiesResponse> {
-    const { instances, trackedEntities, pager, pageCount } = await api
+): Promise<TrackedEntitiesApiRequest[]> {
+    const { instances, trackedEntities } = await api
         .get<TrackedEntitiesD2ApiResponse>("/tracker/trackedEntities", filterQuery)
         .getData();
 
-    return { instances: instances || trackedEntities || [], pageCount: pageCount ?? pager?.pageCount ?? 0 };
+    return instances || trackedEntities || [];
 }
 
 function buildTei(
@@ -685,10 +748,6 @@ export function generateUidForTei(teiId: Id, orgUnitId: Id, programId: Id): stri
 export type TrackedEntitiesD2ApiResponse = {
     instances?: TrackedEntitiesApiRequest[];
     trackedEntities?: TrackedEntitiesApiRequest[];
-    pager?: {
-        pageCount: number;
-    };
-    pageCount?: number;
 };
 
 type TEIId = string;

@@ -23,7 +23,6 @@ import {
     Event,
     EventsAPIResponse,
     EventsPackage,
-    EventsResponse,
 } from "../domain/entities/DhisDataPackage";
 import { DhisInstance } from "../domain/entities/DhisInstance";
 import { Locale } from "../domain/entities/Locale";
@@ -59,6 +58,7 @@ import {
     D2SharingSchema,
 } from "../types/d2-api";
 import { cache } from "../utils/cache";
+import { getAllPages, pagedEventsOrder } from "../utils/d2-api";
 import { promiseMap } from "../utils/promises";
 import { postEvents } from "./Dhis2Events";
 import { getProgram, getTrackedEntityInstances, updateTrackedEntityInstances } from "./Dhis2TrackedEntityInstances";
@@ -945,15 +945,17 @@ export class InstanceDhisRepository implements InstanceRepository {
             throw new Error(`Could not find category options for the program ${id}`);
         }
 
-        const getEvents = async (orgUnit: Id, categoryOptionId: Id, page: number): Promise<EventsResponse> => {
-            const { instances, events, pageCount } = await this.api
+        const pageSize = 250;
+
+        const getEvents = async (orgUnit: Id, categoryOptionId: Id, page: number): Promise<Event[]> => {
+            const { instances, events } = await this.api
                 .get<EventsAPIResponse>("/tracker/events", {
                     program: id,
                     orgUnit,
                     paging: true,
-                    totalPages: true,
+                    order: pagedEventsOrder,
                     page,
-                    pageSize: 250,
+                    pageSize,
                     attributeCategoryCombo: categoryComboId,
                     attributeCategoryOptions: categoryOptionId,
                     // TODO: Get typesafety for this object
@@ -964,22 +966,14 @@ export class InstanceDhisRepository implements InstanceRepository {
                 })
                 .getData();
 
-            return { instances: instances || events || [], pageCount };
+            return instances || events || [];
         };
 
-        const programEvents: Event[] = [];
-
-        for (const orgUnit of orgUnits) {
-            for (const categoryOptionId of categoryOptions) {
-                const { instances: events, pageCount } = await getEvents(orgUnit, categoryOptionId, 1);
-                programEvents.push(...events);
-
-                await promiseMap(_.range(2, pageCount + 1, 1), async page => {
-                    const { instances } = await getEvents(orgUnit, categoryOptionId, page);
-                    programEvents.push(...instances);
-                });
-            }
-        }
+        const eventsGroups = await promiseMap(
+            _.flatMap(orgUnits, orgUnit => categoryOptions.map(categoryOptionId => ({ orgUnit, categoryOptionId }))),
+            ({ orgUnit, categoryOptionId }) => getAllPages(pageSize, page => getEvents(orgUnit, categoryOptionId, page))
+        );
+        const programEvents = _.flatten(eventsGroups);
 
         return _(programEvents)
             .map(
