@@ -7,10 +7,15 @@ import {
     DataSource,
     DownloadCustomizationOptions,
     DownloadCustomizationRepositories,
+    ImportCustomizationOptions,
+    ImportCustomizationRepositories,
     RangeRef,
     StyleSource,
+    TemplateDataPackage,
+    TemplateDataPackageData,
 } from "../../../domain/entities/Template";
 import { ExcelRepository } from "../../../domain/repositories/ExcelRepository";
+import { isValidUid } from "../../dhis2-uid";
 import { NRCModuleMetadataRepository } from "../../../domain/repositories/templates/NRCModuleMetadataRepository";
 import { Workbook } from "../../../webapp/logic/Workbook";
 import { Maybe } from "../../../types/utils";
@@ -47,6 +52,36 @@ export class NRCModule101 implements CustomTemplateWithUrl {
     ): Promise<void> {
         const { excelRepository, modulesRepositories } = repositories;
         return new DownloadCustomization(this.id, excelRepository, modulesRepositories.nrc, options).execute();
+    }
+
+    public async importCustomization(
+        repositories: ImportCustomizationRepositories,
+        options: ImportCustomizationOptions
+    ): Promise<TemplateDataPackage> {
+        const { excelRepository } = repositories;
+        const { dataPackage } = options;
+
+        const dataEntries = await Promise.all(
+            dataPackage.dataEntries.map(async entry => {
+                const pairedDataElement = await this.readPairedDataElement(excelRepository, entry.group);
+                return pairedDataElement ? addPairedDataValues(entry, pairedDataElement) : entry;
+            })
+        );
+
+        return { ...dataPackage, dataEntries };
+    }
+
+    private async readPairedDataElement(excelRepository: ExcelRepository, group: TemplateDataPackageData["group"]) {
+        if (!group) return undefined;
+
+        const value = await excelRepository.readCell(this.id, {
+            type: "cell",
+            sheet: "Data Entry",
+            ref: `L${group}`,
+        });
+
+        const id = typeof value === "string" ? value.trim() : "";
+        return isValidUid(id) ? id : undefined;
     }
 }
 
@@ -136,7 +171,7 @@ class DownloadCustomization {
             this.getDataSetCells(metadata),
             this.getClearedOutCellsByCategories(metadata),
             this.getMatchingIndicatorsCells(metadata),
-            this.getMatchedRowsCells(metadata),
+            this.getMatchedIndicatorCells(metadata),
         ];
 
         return { cells: _.flatten(cellGroups) };
@@ -175,43 +210,36 @@ class DownloadCustomization {
         });
     }
 
-    private getMatchedRowsCells(metadata: NRCModuleMetadata): Cell[] {
+    private getMatchedIndicatorCells(metadata: NRCModuleMetadata): Cell[] {
         const matchingRowsCount = this.getMatchingPairs(metadata).length;
+        const sheet = this.sheets.dataEntry;
 
-        if (matchingRowsCount === 0) return [];
+        const header = cell({ sheet, column: "K", row: 3, value: "Matched indicator" });
+        if (matchingRowsCount === 0) return [header];
 
         const sourcesRange = `${this.sheets.matchingIndicators}!$A$1:$A$${matchingRowsCount}`;
         const lookupRange = `${this.sheets.matchingIndicators}!$A$1:$B$${matchingRowsCount}`;
 
-        return this.getSourceRows().flatMap(sourceRow => {
-            const targetRow = sourceRow + 1;
-            const matched = `ISNUMBER(MATCH(C${sourceRow}, ${sourcesRange}, 0))`;
-            const complete = ["A", "B", "C", "D", "E", "F"].map(column => `${column}${sourceRow}<>""`).join(", ");
-            const gate = `AND(${matched}, ${complete})`;
+        const rowCells = this.getDataEntryRows().flatMap(row => [
+            cell({
+                sheet,
+                column: "K",
+                row,
+                value: `=IF(ISNUMBER(MATCH(C${row}, ${sourcesRange}, 0)), VLOOKUP(C${row}, ${lookupRange}, 2, FALSE), "")`,
+            }),
+            cell({
+                sheet,
+                column: "L",
+                row,
+                value: `=IF(K${row}="", NA(), INDEX(Metadata!$A$4:$A$1000, MATCH("dataElements-"&K${row}, Metadata!$D$4:$D$1000, 0), 1))`,
+            }),
+        ]);
 
-            const mirror = (column: string, expression: string) =>
-                cell({
-                    sheet: this.sheets.dataEntry,
-                    column: column,
-                    row: targetRow,
-                    value: `=IF(${gate}, ${expression}, "")`,
-                });
-
-            return [
-                mirror("A", `A${sourceRow}`), // orgUnit
-                mirror("B", `B${sourceRow}`), // phase of emergency
-                mirror("C", `VLOOKUP(C${sourceRow}, ${lookupRange}, 2, FALSE)`), // matched (target) indicator
-                mirror("D", `D${sourceRow}`), // disaggregation
-                mirror("E", `E${sourceRow}`), // target/actual
-                mirror("F", `F${sourceRow}`), // value
-                mirror("G", `G${sourceRow}`), // attribute id (hidden)
-                mirror("H", `H${sourceRow}`), // categoryOption id (hidden)
-            ];
-        });
+        return [header, ...rowCells];
     }
 
-    private getSourceRows(): number[] {
-        return _.range(this.initialDataEntryRow, this.dataEntryLastRow, 2);
+    private getDataEntryRows(): number[] {
+        return _.range(this.initialDataEntryRow, this.dataEntryLastRow);
     }
 
     private getDataSetCells(metadata: NRCModuleMetadata) {
@@ -434,25 +462,23 @@ class DownloadCustomization {
             await excelRepository.styleCell(id, { type: "cell", sheet, ref }, { locked: false });
         }
 
-        for (const sourceRow of this.getSourceRows()) {
-            const targetRow = sourceRow + 1;
+        const lastRow = this.dataEntryLastRow - 1;
 
-            await excelRepository.styleCell(
-                id,
-                { type: "range", sheet, ref: `A${sourceRow}:F${sourceRow}` },
-                { locked: false }
-            );
+        await excelRepository.styleCell(
+            id,
+            { type: "range", sheet, ref: `A${this.initialDataEntryRow}:F${lastRow}` },
+            { locked: false }
+        );
 
-            await excelRepository.styleCell(
-                id,
-                { type: "range", sheet, ref: `A${targetRow}:H${targetRow}` },
-                { locked: true, fillColor: "#F2F2F2" }
-            );
-        }
+        await excelRepository.styleCell(
+            id,
+            { type: "range", sheet, ref: `K${this.initialDataEntryRow}:K${lastRow}` },
+            { locked: true, fillColor: "#F2F2F2", columnSize: 45 }
+        );
     }
 
     private hideIdCells(excelRepository: ExcelRepository) {
-        const idColumns = ["G", "H", "I", "J"];
+        const idColumns = ["G", "H", "I", "J", "L"];
         const sheet = this.sheets.dataEntry;
 
         idColumns.forEach(idColumn => {
@@ -470,6 +496,14 @@ interface Cell {
 
 interface WorkbookData {
     cells: Cell[];
+}
+
+function addPairedDataValues(entry: TemplateDataPackageData, pairedDataElement: Id): TemplateDataPackageData {
+    const existingDataElements = new Set(entry.dataValues.map(dataValue => dataValue.dataElement));
+    if (existingDataElements.has(pairedDataElement)) return entry;
+
+    const pairedDataValues = entry.dataValues.map(dataValue => ({ ...dataValue, dataElement: pairedDataElement }));
+    return { ...entry, dataValues: [...entry.dataValues, ...pairedDataValues] };
 }
 
 function nameForId(id: Id): string {
